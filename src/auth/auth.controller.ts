@@ -1,0 +1,44 @@
+import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { RegisterDto, LoginDto } from '../users/dto/auth.dto';
+import { AuthGuard } from '@nestjs/passport';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('register/initiate')
+  async initiateRegistration(@Body('email') email: string) {
+    return this.authService.initiateRegistration(email);
+  }
+
+  @Post('register/verify')
+  async verifyEmail(
+    @Body('email') email: string,
+    @Body('code') code: string,
+  ) {
+    return this.authService.verifyEmail(email, code);
+  }
+
+  @Post('register/complete')
+  async completeRegistration(@Body() registerDto: RegisterDto) {
+    return this.authService.completeRegistration(registerDto);
+  }
+
+  @Post('login')
+  async login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth() {
+    // This endpoint initiates Google OAuth flow
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthCallback(@Req() req) {
+    return this.authService.googleLogin(req.user);
+  }
+} 
