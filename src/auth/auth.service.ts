@@ -4,8 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { EmailVerification } from '../users/entities/email-verification.entity';
-import { RegisterDto, LoginDto } from '../users/dto/auth.dto';
+import { PasswordReset } from '../users/entities/password-reset.entity';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../users/dto/auth.dto';
 import { EmailService } from '../email/email.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +16,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(EmailVerification)
     private readonly emailVerificationRepository: Repository<EmailVerification>,
+    @InjectRepository(PasswordReset)
+    private readonly passwordResetRepository: Repository<PasswordReset>,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
   ) {}
@@ -131,5 +135,70 @@ export class AuthService {
         avatar: user.avatar,
       },
     };
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.userRepository.findOne({
+      where: { email: forgotPasswordDto.email },
+    });
+
+    if (!user) {
+      // For security reasons, we don't reveal if the email exists
+      return { message: 'If an account exists with this email, a password reset link has been sent' };
+    }
+
+    // Generate a unique token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
+
+    // Create password reset record
+    const passwordReset = this.passwordResetRepository.create({
+      email: user.email,
+      token,
+      expiresAt,
+    });
+
+    await this.passwordResetRepository.save(passwordReset);
+
+    // Generate reset link
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+    // Send email
+    await this.emailService.sendPasswordResetEmail(user.email, resetLink);
+
+    return { message: 'If an account exists with this email, a password reset link has been sent' };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const passwordReset = await this.passwordResetRepository.findOne({
+      where: { token: resetPasswordDto.token, isUsed: false },
+    });
+
+    if (!passwordReset) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (passwordReset.expiresAt < new Date()) {
+      throw new BadRequestException('Reset token has expired');
+    }
+
+    const user = await this.userRepository.findOne({
+      where: { email: passwordReset.email },
+    });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Update password
+    user.password = resetPasswordDto.newPassword;
+    await this.userRepository.save(user);
+
+    // Mark token as used
+    passwordReset.isUsed = true;
+    await this.passwordResetRepository.save(passwordReset);
+
+    return { message: 'Password has been reset successfully' };
   }
 } 

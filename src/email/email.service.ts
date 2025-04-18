@@ -31,4 +31,21 @@ export class EmailService {
 
     await this.transporter.sendMail(mailOptions);
   }
+
+  async sendPasswordResetEmail(email: string, resetLink: string) {
+    const mailOptions = {
+      from: process.env.SMTP_FROM || '"No Reply" <noreply@example.com>',
+      to: email,
+      subject: 'Password Reset Request',
+      html: `
+        <h1>Password Reset</h1>
+        <p>You have requested to reset your password. Click the link below to proceed:</p>
+        <p><a href="${resetLink}">Reset Password</a></p>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you did not request this password reset, please ignore this email.</p>
+      `,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+  }
 } 
