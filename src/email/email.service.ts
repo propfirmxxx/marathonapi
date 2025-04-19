@@ -18,6 +18,7 @@ export class EmailService {
   }
 
   async sendVerificationCode(email: string, code: string) {
+    return;
     const mailOptions = {
       from: process.env.SMTP_FROM || '"No Reply" <noreply@example.com>',
       to: email,
@@ -33,6 +34,7 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, resetLink: string) {
+    return;
     const mailOptions = {
       from: process.env.SMTP_FROM || '"No Reply" <noreply@example.com>',
       to: email,

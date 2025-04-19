@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 @Entity('users')
@@ -15,8 +15,8 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  password?: string;
+  @Column({ select: false })
+  password: string;
 
   @Column({ default: true })
   isActive: boolean;
@@ -34,6 +34,7 @@ export class User {
   updatedAt: Date;
 
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword() {
     if (this.password) {
       this.password = await bcrypt.hash(this.password, 10);
@@ -41,7 +42,6 @@ export class User {
   }
 
   async validatePassword(password: string): Promise<boolean> {
-    if (!this.password) return false;
     return bcrypt.compare(password, this.password);
   }
 } 

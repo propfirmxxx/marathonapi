@@ -1,7 +1,7 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import { EmailVerification } from '../users/entities/email-verification.entity';
 import { PasswordReset } from '../users/entities/password-reset.entity';
@@ -31,18 +31,27 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
-
-    const verification = this.emailVerificationRepository.create({
-      email,
-      code,
-      expiresAt,
+    const existingVerification = await this.emailVerificationRepository.findOne({
+      where: { email },
+      order: { createdAt: 'DESC' },
     });
 
-    await this.emailVerificationRepository.save(verification);
-    await this.emailService.sendVerificationCode(email, code);
+    if (!existingVerification || existingVerification.expiresAt < new Date()) {
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+      const verification = this.emailVerificationRepository.create({
+        email,
+        code,
+        expiresAt,
+      });
+  
+      await this.emailVerificationRepository.save(verification);
+      await this.emailService.sendVerificationCode(email, code);
+    } else {
+      await this.emailService.sendVerificationCode(email, existingVerification.code);
+    }
 
     return { message: 'Verification code sent to your email' };
   }
@@ -75,6 +84,14 @@ export class AuthService {
       throw new BadRequestException('Email not verified');
     }
 
+    const existingUser = await this.userRepository.findOne({
+      where: { email: registerDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
     const user = this.userRepository.create(registerDto);
     await this.userRepository.save(user);
 
@@ -84,6 +101,7 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
+      select: ['id', 'email', 'password', 'firstName', 'lastName', 'avatar', 'isActive'],
     });
 
     if (!user || !(await user.validatePassword(loginDto.password))) {
@@ -143,28 +161,30 @@ export class AuthService {
     });
 
     if (!user) {
-      // For security reasons, we don't reveal if the email exists
       return { message: 'If an account exists with this email, a password reset link has been sent' };
     }
 
-    // Generate a unique token
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1); // Token expires in 1 hour
-
-    // Create password reset record
-    const passwordReset = this.passwordResetRepository.create({
-      email: user.email,
-      token,
-      expiresAt,
+    const existingToken = await this.passwordResetRepository.findOne({
+      where: { email: user.email, isUsed: false, expiresAt: MoreThan(new Date()) },
     });
 
-    await this.passwordResetRepository.save(passwordReset);
-
-    // Generate reset link
+    let token = "";
+    if (existingToken) {
+      token = existingToken.token;
+    } else {
+      token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 1);
+  
+      const passwordReset = this.passwordResetRepository.create({
+        email: user.email,
+        token,
+        expiresAt,
+      });
+      await this.passwordResetRepository.save(passwordReset);
+    }
+    
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-
-    // Send email
     await this.emailService.sendPasswordResetEmail(user.email, resetLink);
 
     return { message: 'If an account exists with this email, a password reset link has been sent' };
