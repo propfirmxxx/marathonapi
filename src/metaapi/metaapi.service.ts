@@ -8,11 +8,12 @@ import { config } from 'dotenv';
 import { MetaTraderAccount } from './entities/meta-trader-account.entity';
 
 config();
+MetaApi.enableLog4jsLogging();
 
 @Injectable()
 export class MetaApiService {
   private readonly logger = new Logger(MetaApiService.name);
-  private metaApi: any;
+  private metaApi: MetaApi;
 
   constructor(
     private configService: ConfigService,
@@ -26,15 +27,31 @@ export class MetaApiService {
     this.metaApi = new MetaApi(token);
   }
 
+  async getAccounts() {
+    try {
+      const accounts = await this.metaApi.metatraderAccountApi.getAccount('1318de1f-ddda-4f50-9395-2d9e99181d65');
+      return accounts;
+    } catch (error) {
+      this.logger.error('Error getting MetaAPI accounts:', error);
+      throw error;
+    }
+  }
+
   async createAccount(createAccountDto: CreateAccountDto, userId: string) {
     try {
       const account = await this.metaApi.metatraderAccountApi.createAccount({
         name: createAccountDto.name,
-        type: 'cloud',
         login: createAccountDto.login,
         password: createAccountDto.password,
         server: createAccountDto.server,
         platform: 'mt5',
+        magic: 0,
+        region: 'new-york',
+        baseCurrency: 'USD',
+        type: 'cloud-g2',
+        keywords: ["Raw Trading Ltd"],
+        quoteStreamingIntervalInSeconds: 2.5, // set to 0 to receive quote per tick
+        reliability: 'regular' // set this field to 'high' value if you want to increase uptime of your account (recommended for production environments)
       });
 
       // Save the account to our database
@@ -50,9 +67,9 @@ export class MetaApiService {
         type: 'cloud',
       });
 
-      await this.metaTraderAccountRepository.save(metaTraderAccount);
+      const savedAccount = await this.metaTraderAccountRepository.save(metaTraderAccount);
 
-      return account;
+      return savedAccount;
     } catch (error) {
       this.logger.error('Error creating MetaAPI account:', error);
       throw error;

@@ -4,6 +4,28 @@ import { MetaApiService } from './metaapi.service';
 import { Socket } from 'socket.io';
 import { WsThrottlerGuard } from '../guards/ws-throttler.guard';
 import { AuthGuard } from '@/auth/guards/auth.guard';
+import { SynchronizationListener } from 'metaapi.cloud-sdk';
+
+class AccountUpdateListener extends SynchronizationListener {
+  constructor(private client: Socket, private accountId: string) {
+    super();
+  }
+
+  async onAccountInformationUpdated(instanceIndex: string, accountInformation: any) {
+    try {
+      this.client.emit('accountUpdate', {
+        accountId: this.accountId,
+        balance: accountInformation.balance,
+        equity: accountInformation.equity,
+        margin: accountInformation.margin,
+        freeMargin: accountInformation.freeMargin,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error(`Error emitting account update: ${error.message}`);
+    }
+  }
+}
 
 @WebSocketGateway({
   cors: {
@@ -84,27 +106,15 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
       const connection = await this.metaApiService.subscribeToAccountUpdates(accountId);
       
+      const listener = new AccountUpdateListener(client, accountId);
+      connection.addSynchronizationListener(listener);
+      
       // Store the subscription
       this.accountSubscriptions.set(accountId, {
         connection,
         clientId: client.id,
-        userId: user.id
-      });
-
-      // Subscribe to account updates with error handling
-      connection.on('accountInformation', (accountInformation) => {
-        try {
-          client.emit('accountUpdate', {
-            accountId,
-            balance: accountInformation.balance,
-            equity: accountInformation.equity,
-            margin: accountInformation.margin,
-            freeMargin: accountInformation.freeMargin,
-            timestamp: new Date().toISOString()
-          });
-        } catch (error) {
-          this.logger.error(`Error emitting account update: ${error.message}`);
-        }
+        userId: user.id,
+        listener
       });
 
       // Get initial balance
@@ -138,6 +148,7 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
       }
 
       if (subscription.clientId === client.id) {
+        subscription.connection.removeSynchronizationListener(subscription.listener);
         await subscription.connection.unsubscribe();
         this.accountSubscriptions.delete(accountId);
         return { success: true };
