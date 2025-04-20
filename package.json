@@ -17,7 +17,8 @@
     "test:watch": "jest --config jest.config.js --watch",
     "test:cov": "jest --config jest.config.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config jest.config.js --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "preinstall": "npx npm-force-resolutions"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.20",
@@ -28,10 +29,15 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.0.1",
+    "axios": "^1.6.7",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.5.0",
+    "metaapi.cloud-sdk": "^23.1.1",
     "mysql2": "^3.14.0",
     "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
@@ -39,6 +45,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.7.4",
     "typeorm": "^0.3.22"
   },
   "devDependencies": {
@@ -70,6 +77,15 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
+  },
+  "resolutions": {
+    "axios": "^1.6.7",
+    "crypto-js": "^4.2.0",
+    "underscore": "^1.13.6",
+    "parseuri": "^2.0.0",
+    "socket.io-client": "^4.7.4",
+    "engine.io-client": "^6.5.3",
+    "binary-search-tree": "^0.3.0"
   },
   "jest": {
     "moduleFileExtensions": [

@@ -1,6 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
+export enum UserRole {
+  RESOURCE = 'resource',
+  ADMIN = 'admin'
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -20,6 +25,13 @@ export class User {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ 
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.RESOURCE
+  })
+  role: UserRole;
 
   @Column({ nullable: true })
   googleId?: string;

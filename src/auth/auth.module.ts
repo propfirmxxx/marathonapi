@@ -12,6 +12,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { EmailModule } from '../email/email.module';
 import { EmailService } from '../email/email.service';
+import { AuthGuard } from './guards/auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 
 @Module({
   imports: [
@@ -29,8 +31,8 @@ import { EmailService } from '../email/email.service';
     }),
     EmailModule,
   ],
-  providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy],
+  providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy, AuthGuard, AdminGuard],
   controllers: [AuthController],
-  exports: [AuthService],
+  exports: [AuthService, AuthGuard, AdminGuard],
 })
 export class AuthModule {} 
