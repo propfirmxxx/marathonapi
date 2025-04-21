@@ -142,13 +142,21 @@ export class AuthService {
   }
 
   private generateToken(user: User) {
-    const payload = { 
-      userId: user.id, 
+    const accessTokenPayload = { 
+      sub: user.id,
       email: user.email,
-      role: user.role 
+      role: user.role,
+      type: 'access'
     };
+
+    const refreshTokenPayload = {
+      sub: user.id,
+      type: 'refresh'
+    };
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(accessTokenPayload, { expiresIn: '15m' }),
+      refresh_token: this.jwtService.sign(refreshTokenPayload, { expiresIn: '7d' }),
       user: {
         id: user.id,
         email: user.email,
@@ -160,17 +168,47 @@ export class AuthService {
     };
   }
 
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken);
+      
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+        select: ['id', 'email', 'firstName', 'lastName', 'avatar', 'role'],
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      return this.generateToken(user);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
+
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     const user = await this.userRepository.findOne({
       where: { email: forgotPasswordDto.email },
     });
 
     if (!user) {
-      return { message: 'If an account exists with this email, a password reset link has been sent' };
+      return {
+        message:
+          'If an account exists with this email, a password reset link has been sent',
+      };
     }
 
     const existingToken = await this.passwordResetRepository.findOne({
-      where: { email: user.email, isUsed: false, expiresAt: MoreThan(new Date()) },
+      where: {
+        email: user.email,
+        isUsed: false,
+        expiresAt: MoreThan(new Date()),
+      },
     });
 
     let token = "";

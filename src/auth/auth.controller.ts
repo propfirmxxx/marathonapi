@@ -40,6 +40,11 @@ export class AuthController {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
+  @Post('refresh')
+  async refreshToken(@Body('refresh_token') refreshToken: string) {
+    return this.authService.refreshToken(refreshToken);
+  }
+
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
