@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import MetaApi from 'metaapi.cloud-sdk';
@@ -16,7 +15,6 @@ export class MetaApiService {
   private metaApi: MetaApi;
 
   constructor(
-    private configService: ConfigService,
     @InjectRepository(MetaTraderAccount)
     private metaTraderAccountRepository: Repository<MetaTraderAccount>,
   ) {
@@ -29,8 +27,14 @@ export class MetaApiService {
 
   async getAccounts() {
     try {
-      const accounts = await this.metaApi.metatraderAccountApi.getAccount('1318de1f-ddda-4f50-9395-2d9e99181d65');
-      return accounts;
+      const accounts = await this.metaApi.metatraderAccountApi.getAccounts();
+      return accounts.map(account => ({
+        id: account.id,
+        name: account.name,
+        login: account.login,
+        server: account.server,
+        type: account.type
+      }));
     } catch (error) {
       this.logger.error('Error getting MetaAPI accounts:', error);
       throw error;
@@ -50,8 +54,8 @@ export class MetaApiService {
         baseCurrency: 'USD',
         type: 'cloud-g2',
         keywords: ["Raw Trading Ltd"],
-        quoteStreamingIntervalInSeconds: 2.5, // set to 0 to receive quote per tick
-        reliability: 'regular' // set this field to 'high' value if you want to increase uptime of your account (recommended for production environments)
+        quoteStreamingIntervalInSeconds: 2.5,
+        reliability: 'regular'
       });
 
       // Save the account to our database
