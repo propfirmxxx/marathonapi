@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { EmailModule } from './email/email.module';
 import { MetaApiModule } from './metaapi/metaapi.module';
+import { MarathonModule } from './marathon/marathon.module';
 import { databaseConfig } from './config/database.config';
 
 @Module({
@@ -25,6 +26,7 @@ import { databaseConfig } from './config/database.config';
     AuthModule,
     EmailModule,
     MetaApiModule,
+    MarathonModule,
   ],
   controllers: [AppController],
   providers: [

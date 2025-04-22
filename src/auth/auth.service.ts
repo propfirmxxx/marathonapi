@@ -254,11 +254,9 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    // Update password
-    user.password = resetPasswordDto.newPassword;
+    user.password = resetPasswordDto.password;
     await this.userRepository.save(user);
 
-    // Mark token as used
     passwordReset.isUsed = true;
     await this.passwordResetRepository.save(passwordReset);
 
