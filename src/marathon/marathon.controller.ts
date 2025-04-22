@@ -6,6 +6,12 @@ import { UserRole } from '@/users/entities/user.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '@/auth/guards/admin.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { 
+  MarathonResponseDto, 
+  MarathonListResponseDto, 
+  MarathonParticipantResponseDto, 
+  MarathonParticipantListResponseDto 
+} from './dto/marathon-response.dto';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
@@ -18,26 +24,7 @@ export class MarathonController {
   @ApiResponse({ 
     status: 201, 
     description: 'Marathon created successfully',
-    schema: {
-      example: {
-        id: '1',
-        name: 'Summer Trading Challenge',
-        description: 'A 30-day trading challenge with cash prizes',
-        entryFee: 100,
-        awardsAmount: 10000,
-        maxPlayers: 100,
-        startDate: '2024-06-01T00:00:00Z',
-        endDate: '2024-06-30T23:59:59Z',
-        rules: {
-          minTrades: 10,
-          maxDrawdown: 20,
-          minProfit: 5
-        },
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }
-    }
+    type: MarathonResponseDto
   })
   @ApiBody({ type: CreateMarathonDto })
   @Post()
@@ -50,26 +37,7 @@ export class MarathonController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all marathons',
-    schema: {
-      example: [{
-        id: '1',
-        name: 'Summer Trading Challenge',
-        description: 'A 30-day trading challenge with cash prizes',
-        entryFee: 100,
-        awardsAmount: 10000,
-        maxPlayers: 100,
-        startDate: '2024-06-01T00:00:00Z',
-        endDate: '2024-06-30T23:59:59Z',
-        rules: {
-          minTrades: 10,
-          maxDrawdown: 20,
-          minProfit: 5
-        },
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }]
-    }
+    type: MarathonListResponseDto
   })
   @Get()
   findAll() {
@@ -80,26 +48,7 @@ export class MarathonController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns the marathon',
-    schema: {
-      example: {
-        id: '1',
-        name: 'Summer Trading Challenge',
-        description: 'A 30-day trading challenge with cash prizes',
-        entryFee: 100,
-        awardsAmount: 10000,
-        maxPlayers: 100,
-        startDate: '2024-06-01T00:00:00Z',
-        endDate: '2024-06-30T23:59:59Z',
-        rules: {
-          minTrades: 10,
-          maxDrawdown: 20,
-          minProfit: 5
-        },
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }
-    }
+    type: MarathonResponseDto
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Get(':id')
@@ -111,26 +60,7 @@ export class MarathonController {
   @ApiResponse({ 
     status: 200, 
     description: 'Marathon updated successfully',
-    schema: {
-      example: {
-        id: '1',
-        name: 'Summer Trading Challenge 2024',
-        description: 'A 30-day trading challenge with cash prizes',
-        entryFee: 150,
-        awardsAmount: 15000,
-        maxPlayers: 150,
-        startDate: '2024-06-01T00:00:00Z',
-        endDate: '2024-06-30T23:59:59Z',
-        rules: {
-          minTrades: 15,
-          maxDrawdown: 25,
-          minProfit: 7
-        },
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:30:00Z'
-      }
-    }
+    type: MarathonResponseDto
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @ApiBody({ type: UpdateMarathonDto })
@@ -161,18 +91,7 @@ export class MarathonController {
   @ApiResponse({ 
     status: 200, 
     description: 'Successfully joined the marathon',
-    schema: {
-      example: {
-        id: '1',
-        marathonId: '1',
-        userId: '1',
-        joinedAt: '2024-04-22T13:00:00Z',
-        status: 'active',
-        currentBalance: 10000,
-        profit: 0,
-        trades: 0
-      }
-    }
+    type: MarathonParticipantResponseDto
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @ApiBody({ 
@@ -193,24 +112,7 @@ export class MarathonController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all participants of the marathon',
-    schema: {
-      example: [{
-        id: '1',
-        marathonId: '1',
-        userId: '1',
-        joinedAt: '2024-04-22T13:00:00Z',
-        status: 'active',
-        currentBalance: 10000,
-        profit: 500,
-        trades: 15,
-        user: {
-          id: '1',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com'
-        }
-      }]
-    }
+    type: MarathonParticipantListResponseDto
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Get(':id/participants')

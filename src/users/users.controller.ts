@@ -4,6 +4,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { UserResponseDto, UserListResponseDto, DeleteUserResponseDto } from './dto/user-response.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -16,18 +17,7 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all users',
-    schema: {
-      example: [{
-        id: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        role: 'resource',
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }]
-    }
+    type: UserListResponseDto
   })
   @Get()
   @UseGuards(AdminGuard)
@@ -39,18 +29,7 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns the user',
-    schema: {
-      example: {
-        id: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        role: 'resource',
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }
-    }
+    type: UserResponseDto
   })
   @ApiParam({ name: 'id', description: 'User ID' })
   @Get(':id')
@@ -62,18 +41,7 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'User updated successfully',
-    schema: {
-      example: {
-        id: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        role: 'resource',
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:30:00Z'
-      }
-    }
+    type: UserResponseDto
   })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiBody({ type: UpdateUserDto })
@@ -87,11 +55,7 @@ export class UsersController {
   @ApiResponse({ 
     status: 200, 
     description: 'User deleted successfully',
-    schema: {
-      example: {
-        message: 'User deleted successfully'
-      }
-    }
+    type: DeleteUserResponseDto
   })
   @ApiParam({ name: 'id', description: 'User ID' })
   @Delete(':id')

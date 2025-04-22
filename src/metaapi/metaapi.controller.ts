@@ -1,9 +1,13 @@
-import { Controller, Post, Body, UseGuards, Request, Get, Param } from '@nestjs/common';
-import { MetaApiService } from './metaapi.service';
-import { CreateAccountDto } from './dto/create-account.dto';
-import { AdminGuard } from '../auth/guards/admin.guard';
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AdminGuard } from '../auth/guards/admin.guard';
+import { CreateAccountDto } from './dto/create-account.dto';
+import {
+  MetaTraderAccountListResponseDto,
+  MetaTraderAccountResponseDto
+} from './dto/metaapi-response.dto';
+import { MetaApiService } from './metaapi.service';
 
 @ApiTags('MetaAPI')
 @ApiBearerAuth()
@@ -16,24 +20,7 @@ export class MetaApiController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all MetaTrader accounts',
-    schema: {
-      example: [
-        {
-          id: '1',
-          name: 'Demo Account',
-          login: '12345678',
-          server: 'MetaQuotes-Demo',
-          type: 'cloud-g2'
-        },
-        {
-          id: '2',
-          name: 'Live Account',
-          login: '87654321',
-          server: 'MetaQuotes-Live',
-          type: 'cloud-g2'
-        }
-      ]
-    }
+    type: MetaTraderAccountListResponseDto
   })
   @Get('accounts')
   @UseGuards(AdminGuard)
@@ -45,19 +32,7 @@ export class MetaApiController {
   @ApiResponse({ 
     status: 201, 
     description: 'Account created successfully',
-    schema: {
-      example: {
-        id: 1,
-        accountId: '12345678',
-        login: '12345678',
-        password: 'password123',
-        server: 'MetaQuotes-Demo',
-        platform: 'mt5',
-        status: 'active',
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }
-    }
+    type: MetaTraderAccountResponseDto
   })
   @ApiBody({ type: CreateAccountDto })
   @Post('accounts')

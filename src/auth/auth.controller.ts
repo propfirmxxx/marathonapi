@@ -3,6 +3,13 @@ import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../users/dto/auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { 
+  InitiateRegistrationResponseDto, 
+  VerifyEmailResponseDto, 
+  LoginResponseDto, 
+  PasswordResetResponseDto, 
+  GoogleAuthResponseDto 
+} from './dto/auth-response.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -13,12 +20,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 201, 
     description: 'Registration initiation email sent',
-    schema: {
-      example: {
-        message: 'Verification email sent successfully',
-        email: 'john.doe@example.com'
-      }
-    }
+    type: InitiateRegistrationResponseDto
   })
   @ApiBody({ 
     schema: { 
@@ -42,13 +44,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Email verified successfully',
-    schema: {
-      example: {
-        message: 'Email verified successfully',
-        email: 'john.doe@example.com',
-        token: 'verification_token'
-      }
-    }
+    type: VerifyEmailResponseDto
   })
   @ApiBody({ 
     schema: {
@@ -80,18 +76,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 201, 
     description: 'User registered successfully',
-    schema: {
-      example: {
-        id: 1,
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        role: 'resource',
-        isActive: true,
-        createdAt: '2024-04-22T12:00:00Z',
-        updatedAt: '2024-04-22T12:00:00Z'
-      }
-    }
+    type: RegisterDto
   })
   @ApiBody({ type: RegisterDto })
   @Post('register/complete')
@@ -103,20 +88,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Login successful',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: {
-          id: 1,
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          role: 'resource',
-          isActive: true
-        }
-      }
-    }
+    type: LoginResponseDto
   })
   @ApiBody({ type: LoginDto })
   @Post('login')
@@ -128,12 +100,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Password reset email sent',
-    schema: {
-      example: {
-        message: 'Password reset email sent successfully',
-        email: 'john.doe@example.com'
-      }
-    }
+    type: PasswordResetResponseDto
   })
   @ApiBody({ type: ForgotPasswordDto })
   @Post('forgot-password')
@@ -145,12 +112,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Password reset successful',
-    schema: {
-      example: {
-        message: 'Password reset successfully',
-        email: 'john.doe@example.com'
-      }
-    }
+    type: PasswordResetResponseDto
   })
   @ApiBody({ type: ResetPasswordDto })
   @Post('reset-password')
@@ -162,12 +124,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Token refreshed successfully',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
-      }
-    }
+    type: LoginResponseDto
   })
   @ApiBody({ 
     schema: {
@@ -207,22 +164,7 @@ export class AuthController {
   @ApiResponse({ 
     status: 200, 
     description: 'Google login successful',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: {
-          id: 1,
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          role: 'resource',
-          isActive: true,
-          googleId: '123456789',
-          avatar: 'https://lh3.googleusercontent.com/...'
-        }
-      }
-    }
+    type: GoogleAuthResponseDto
   })
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
