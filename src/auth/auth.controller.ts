@@ -10,14 +10,24 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({ summary: 'Initiate user registration' })
-  @ApiResponse({ status: 201, description: 'Registration initiation email sent' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Registration initiation email sent',
+    schema: {
+      example: {
+        message: 'Verification email sent successfully',
+        email: 'john.doe@example.com'
+      }
+    }
+  })
   @ApiBody({ 
     schema: { 
       type: 'object', 
       properties: { 
         email: { 
           type: 'string', 
-          description: 'User email address' 
+          description: 'User email address',
+          example: 'john.doe@example.com'
         } 
       }, 
       required: ['email'] 
@@ -29,13 +39,31 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Verify email with code' })
-  @ApiResponse({ status: 200, description: 'Email verified successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Email verified successfully',
+    schema: {
+      example: {
+        message: 'Email verified successfully',
+        email: 'john.doe@example.com',
+        token: 'verification_token'
+      }
+    }
+  })
   @ApiBody({ 
     schema: {
       type: 'object',
       properties: {
-        email: { type: 'string', description: 'User email address' },
-        code: { type: 'string', description: 'Verification code sent to email' }
+        email: { 
+          type: 'string', 
+          description: 'User email address',
+          example: 'john.doe@example.com'
+        },
+        code: { 
+          type: 'string', 
+          description: 'Verification code sent to email',
+          example: '123456'
+        }
       },
       required: ['email', 'code']
     }
@@ -49,7 +77,22 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Complete user registration' })
-  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'User registered successfully',
+    schema: {
+      example: {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@example.com',
+        role: 'resource',
+        isActive: true,
+        createdAt: '2024-04-22T12:00:00Z',
+        updatedAt: '2024-04-22T12:00:00Z'
+      }
+    }
+  })
   @ApiBody({ type: RegisterDto })
   @Post('register/complete')
   async completeRegistration(@Body() registerDto: RegisterDto) {
@@ -57,7 +100,24 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'User login' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Login successful',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 1,
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          role: 'resource',
+          isActive: true
+        }
+      }
+    }
+  })
   @ApiBody({ type: LoginDto })
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
@@ -65,7 +125,16 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Request password reset' })
-  @ApiResponse({ status: 200, description: 'Password reset email sent' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Password reset email sent',
+    schema: {
+      example: {
+        message: 'Password reset email sent successfully',
+        email: 'john.doe@example.com'
+      }
+    }
+  })
   @ApiBody({ type: ForgotPasswordDto })
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
@@ -73,20 +142,42 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Reset password' })
-  @ApiResponse({ status: 200, description: 'Password reset successful' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Password reset successful',
+    schema: {
+      example: {
+        message: 'Password reset successfully',
+        email: 'john.doe@example.com'
+      }
+    }
+  })
   @ApiBody({ type: ResetPasswordDto })
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
 
-  @ApiOperation({ summary: 'Refresh JWT token' })
-  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
-  @ApiBody({
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Token refreshed successfully',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+      }
+    }
+  })
+  @ApiBody({ 
     schema: {
       type: 'object',
       properties: {
-        refresh_token: { type: 'string', description: 'Refresh token' }
+        refresh_token: { 
+          type: 'string', 
+          description: 'Refresh token',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        }
       },
       required: ['refresh_token']
     }
@@ -97,7 +188,15 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Initiate Google OAuth' })
-  @ApiResponse({ status: 302, description: 'Redirects to Google OAuth' })
+  @ApiResponse({ 
+    status: 302, 
+    description: 'Redirects to Google OAuth',
+    schema: {
+      example: {
+        url: 'https://accounts.google.com/o/oauth2/v2/auth?...'
+      }
+    }
+  })
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
@@ -105,7 +204,26 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Google OAuth callback' })
-  @ApiResponse({ status: 200, description: 'Google login successful' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Google login successful',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        user: {
+          id: 1,
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          role: 'resource',
+          isActive: true,
+          googleId: '123456789',
+          avatar: 'https://lh3.googleusercontent.com/...'
+        }
+      }
+    }
+  })
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(@Req() req) {
