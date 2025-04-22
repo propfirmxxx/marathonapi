@@ -9,7 +9,7 @@ import {
 } from './dto/metaapi-response.dto';
 import { MetaApiService } from './metaapi.service';
 
-@ApiTags('MetaAPI')
+@ApiTags('MetaAPI') 
 @ApiBearerAuth()
 @Controller('metaapi')
 @UseGuards(AuthGuard('jwt'))
