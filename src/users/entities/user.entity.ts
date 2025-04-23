@@ -1,9 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Wallet } from './wallet.entity';
 
 export enum UserRole {
-  RESOURCE = 'resource',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  USER = 'user',
 }
 
 @Entity('users')
@@ -29,7 +30,7 @@ export class User {
   @Column({ 
     type: 'enum',
     enum: UserRole,
-    default: UserRole.RESOURCE
+    default: UserRole.USER,
   })
   role: UserRole;
 
@@ -38,6 +39,9 @@ export class User {
 
   @Column({ nullable: true })
   avatar?: string;
+
+  @OneToMany(() => Wallet, wallet => wallet.user)
+  wallets: Wallet[];
 
   @CreateDateColumn()
   createdAt: Date;
