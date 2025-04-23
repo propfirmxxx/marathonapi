@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { MarathonService } from './marathon.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
@@ -12,13 +12,17 @@ import {
   MarathonParticipantResponseDto, 
   MarathonParticipantListResponseDto 
 } from './dto/marathon-response.dto';
+import { PaymentService } from '../payment/payment.service';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
 @Controller('marathons')
 @UseGuards(AuthGuard('jwt'))
 export class MarathonController {
-  constructor(private readonly marathonService: MarathonService) {}
+  constructor(
+    private readonly marathonService: MarathonService,
+    private readonly paymentService: PaymentService,
+  ) {}
 
   @ApiOperation({ summary: 'Create a new marathon' })
   @ApiResponse({ 
@@ -90,22 +94,17 @@ export class MarathonController {
   @ApiOperation({ summary: 'Join a marathon' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Successfully joined the marathon',
-    type: MarathonParticipantResponseDto
-  })
-  @ApiParam({ name: 'id', description: 'Marathon ID' })
-  @ApiBody({ 
+    description: 'Returns payment URL for marathon registration',
     schema: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', description: 'User ID' }
-      },
-      required: ['userId']
+      example: {
+        paymentUrl: 'https://nowpayments.io/payment/...'
+      }
     }
   })
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Post(':id/join')
-  joinMarathon(@Param('id') id: string, @Body('userId') userId: string) {
-    return this.marathonService.joinMarathon(id, userId);
+  async joinMarathon(@Param('id') id: string, @Req() req: any) {
+    return this.paymentService.createPayment(id, req.user.id);
   }
 
   @ApiOperation({ summary: 'Get marathon participants' })
