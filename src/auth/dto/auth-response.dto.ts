@@ -46,26 +46,6 @@ export class LoginResponseDto {
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
   })
   refresh_token: string;
-
-  @ApiProperty({
-    description: 'User information',
-    example: {
-      id: 1,
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@example.com',
-      role: 'resource',
-      isActive: true
-    }
-  })
-  user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
-    isActive: boolean;
-  };
 }
 
 export class PasswordResetResponseDto {
