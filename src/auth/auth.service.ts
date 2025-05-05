@@ -148,6 +148,9 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatar: user.avatar,
       type: 'access'
     };
 
@@ -158,15 +161,7 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(accessTokenPayload, { expiresIn: '15m' }),
-      refresh_token: this.jwtService.sign(refreshTokenPayload, { expiresIn: '7d' }),
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatar: user.avatar,
-        role: user.role
-      },
+      refresh_token: this.jwtService.sign(refreshTokenPayload, { expiresIn: '7d' })
     };
   }
 
