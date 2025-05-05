@@ -97,3 +97,89 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+# Marathon API
+
+## Database Migration from MySQL to PostgreSQL
+
+This project has been migrated from MySQL to PostgreSQL. Here are the steps to set up the database:
+
+1. Install PostgreSQL on your system if you haven't already
+2. Create a new PostgreSQL database for the project
+3. Update your `.env` file with PostgreSQL credentials:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+DB_NAME=your_database_name
+DB_SSL=false
+```
+
+4. Install project dependencies:
+```bash
+npm install
+```
+
+5. Run database migrations:
+```bash
+npm run migration:run
+```
+
+## Development
+
+1. Start the development server:
+```bash
+npm run start:dev
+```
+
+2. The API will be available at `http://localhost:3000/apiv1`
+3. Swagger documentation is available at `http://localhost:3000/swagger`
+
+## Database Management
+
+- Create a new migration:
+```bash
+npm run migration:create -- -n MigrationName
+```
+
+- Generate a migration from entity changes:
+```bash
+npm run migration:generate -- -n MigrationName
+```
+
+- Run migrations:
+```bash
+npm run migration:run
+```
+
+- Revert last migration:
+```bash
+npm run migration:revert
+```
+
+## Environment Variables
+
+Make sure to set up all required environment variables in your `.env` file:
+
+```env
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+DB_NAME=your_database_name
+DB_SSL=false
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRATION=24h
+
+# Other configurations
+PORT=3000
+NODE_ENV=development
+SWAGGER_PATH=swagger
+META_API_TOKEN=your_meta_api_token
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+```

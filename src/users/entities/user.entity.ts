@@ -31,6 +31,7 @@ export class User {
     type: 'enum',
     enum: UserRole,
     default: UserRole.USER,
+    enumName: 'user_role_enum'
   })
   role: UserRole;
 
