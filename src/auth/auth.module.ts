@@ -33,6 +33,6 @@ import { AdminGuard } from './guards/admin.guard';
   ],
   providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy, AuthGuard, AdminGuard],
   controllers: [AuthController],
-  exports: [AuthService, AuthGuard, AdminGuard],
+  exports: [AuthService, AuthGuard, AdminGuard, TypeOrmModule],
 })
 export class AuthModule {} 

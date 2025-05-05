@@ -49,8 +49,10 @@ export class AuthService {
   
       await this.emailVerificationRepository.save(verification);
       await this.emailService.sendVerificationCode(email, code);
+      return { message: code }
     } else {
       await this.emailService.sendVerificationCode(email, existingVerification.code);
+      return { message: existingVerification.code }
     }
 
     return { message: 'Verification code sent to your email' };
