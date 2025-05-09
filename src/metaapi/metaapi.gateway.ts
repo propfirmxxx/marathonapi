@@ -29,7 +29,7 @@ class AccountUpdateListener extends SynchronizationListener {
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [''],
+    origin: '*',
     credentials: true,
   },
 })
