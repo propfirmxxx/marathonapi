@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from './entities/profile.entity';
@@ -6,6 +6,8 @@ import { SocialMedia } from './entities/social-media.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateSocialMediaDto, UpdateSocialMediaDto } from './dto/social-media.dto';
 import { CloudStorageService } from '../services/cloud-storage.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class ProfileService {
@@ -14,6 +16,8 @@ export class ProfileService {
     private profileRepository: Repository<Profile>,
     @InjectRepository(SocialMedia)
     private socialMediaRepository: Repository<SocialMedia>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private cloudStorageService: CloudStorageService,
   ) {}
 
@@ -103,5 +107,24 @@ export class ProfileService {
     }
 
     await this.socialMediaRepository.remove(socialMedia);
+  }
+
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'password'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isPasswordValid = await user.validatePassword(changePasswordDto.oldPassword);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    user.password = changePasswordDto.newPassword;
+    await this.userRepository.save(user);
   }
 } 

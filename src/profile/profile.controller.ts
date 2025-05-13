@@ -17,6 +17,7 @@ import { CreateSocialMediaDto, UpdateSocialMediaDto } from './dto/social-media.d
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('Profile')
 @ApiBearerAuth()
@@ -108,5 +109,16 @@ export class ProfileController {
     @Param('id') socialMediaId: string,
   ) {
     return this.profileService.deleteSocialMedia(userId, socialMediaId);
+  }
+
+  @Put('change-password')
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 401, description: 'Current password is incorrect' })
+  changePassword(
+    @GetUser('id') userId: number,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.profileService.changePassword(userId, changePasswordDto);
   }
 } 

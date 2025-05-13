@@ -18,7 +18,7 @@ export class CreateProfileAndSocialMedia1710000000000 implements MigrationInterf
         "avatarUrl" character varying,
         "createdAt" TIMESTAMP NOT NULL DEFAULT now(),
         "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
-        "userId" uuid,
+        "userId" integer,
         CONSTRAINT "REL_9466682df91534dd95e4dbaa61" UNIQUE ("userId"),
         CONSTRAINT "PK_3dd8bfc97e4a77c70971591bdcb" PRIMARY KEY ("id")
       )
@@ -40,7 +40,7 @@ export class CreateProfileAndSocialMedia1710000000000 implements MigrationInterf
       ALTER TABLE "profile"
       ADD CONSTRAINT "FK_9466682df91534dd95e4dbaa616"
       FOREIGN KEY ("userId")
-      REFERENCES "user"("id")
+      REFERENCES "users"("id")
       ON DELETE CASCADE
       ON UPDATE NO ACTION
     `);

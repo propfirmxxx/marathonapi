@@ -8,10 +8,11 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CloudStorageService } from '../services/cloud-storage.service';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Profile, SocialMedia]),
+    TypeOrmModule.forFeature([Profile, SocialMedia, User]),
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads/avatars',
