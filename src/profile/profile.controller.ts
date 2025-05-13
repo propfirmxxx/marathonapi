@@ -18,6 +18,13 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import {
+  ProfileResponseDto,
+  AvatarUploadResponseDto,
+  SocialMediaCreateResponseDto,
+  SocialMediaUpdateResponseDto,
+  MessageResponseDto,
+} from './dto/profile-response.dto';
 
 @ApiTags('Profile')
 @ApiBearerAuth()
@@ -28,14 +35,22 @@ export class ProfileController {
 
   @Get()
   @ApiOperation({ summary: 'Get user profile' })
-  @ApiResponse({ status: 200, description: 'Returns the user profile' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns the user profile',
+    type: ProfileResponseDto
+  })
   getProfile(@GetUser('id') userId: number) {
     return this.profileService.getProfile(userId);
   }
 
   @Put()
   @ApiOperation({ summary: 'Update user profile' })
-  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Profile updated successfully',
+    type: ProfileResponseDto
+  })
   updateProfile(
     @GetUser('id') userId: number,
     @Body() updateProfileDto: UpdateProfileDto,
@@ -58,7 +73,11 @@ export class ProfileController {
       },
     },
   })
-  @ApiResponse({ status: 201, description: 'Avatar uploaded successfully' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Avatar uploaded successfully',
+    type: AvatarUploadResponseDto
+  })
   @UseInterceptors(FileInterceptor('avatar'))
   uploadAvatar(
     @GetUser('id') userId: number,
@@ -69,14 +88,22 @@ export class ProfileController {
 
   @Delete('avatar')
   @ApiOperation({ summary: 'Delete profile avatar' })
-  @ApiResponse({ status: 200, description: 'Avatar deleted successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Avatar deleted successfully',
+    type: MessageResponseDto
+  })
   deleteAvatar(@GetUser('id') userId: number) {
     return this.profileService.deleteAvatar(userId);
   }
 
   @Post('social-media')
   @ApiOperation({ summary: 'Add social media link' })
-  @ApiResponse({ status: 201, description: 'Social media link added successfully' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Social media link added successfully',
+    type: SocialMediaCreateResponseDto
+  })
   createSocialMedia(
     @GetUser('id') userId: number,
     @Body() createSocialMediaDto: CreateSocialMediaDto,
@@ -87,7 +114,11 @@ export class ProfileController {
   @Put('social-media/:id')
   @ApiOperation({ summary: 'Update social media link' })
   @ApiParam({ name: 'id', description: 'Social media ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'Social media link updated successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Social media link updated successfully',
+    type: SocialMediaUpdateResponseDto
+  })
   updateSocialMedia(
     @GetUser('id') userId: number,
     @Param('id') socialMediaId: string,
@@ -103,7 +134,11 @@ export class ProfileController {
   @Delete('social-media/:id')
   @ApiOperation({ summary: 'Delete social media link' })
   @ApiParam({ name: 'id', description: 'Social media ID', type: 'string' })
-  @ApiResponse({ status: 200, description: 'Social media link deleted successfully' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Social media link deleted successfully',
+    type: MessageResponseDto
+  })
   deleteSocialMedia(
     @GetUser('id') userId: number,
     @Param('id') socialMediaId: string,
@@ -113,8 +148,16 @@ export class ProfileController {
 
   @Put('change-password')
   @ApiOperation({ summary: 'Change user password' })
-  @ApiResponse({ status: 200, description: 'Password changed successfully' })
-  @ApiResponse({ status: 401, description: 'Current password is incorrect' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Password changed successfully',
+    type: MessageResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Current password is incorrect',
+    type: MessageResponseDto
+  })
   changePassword(
     @GetUser('id') userId: number,
     @Body() changePasswordDto: ChangePasswordDto,
