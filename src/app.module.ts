@@ -11,6 +11,7 @@ import { EmailModule } from './email/email.module';
 import { MetaApiModule } from './metaapi/metaapi.module';
 import { MarathonModule } from './marathon/marathon.module';
 import { PaymentModule } from './payment/payment.module';
+import { ProfileModule } from './profile/profile.module';
 import { databaseConfig } from './config/database.config';
 
 @Module({
@@ -29,6 +30,7 @@ import { databaseConfig } from './config/database.config';
     MetaApiModule,
     MarathonModule,
     PaymentModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [
