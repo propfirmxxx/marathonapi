@@ -8,6 +8,7 @@ import { PasswordReset } from '../users/entities/password-reset.entity';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../users/dto/auth.dto';
 import { EmailService } from '../email/email.service';
 import * as crypto from 'crypto';
+import axios from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -113,6 +114,44 @@ export class AuthService {
     return this.generateToken(user);
   }
 
+  async handleOAuthCode(code: string) {
+    try {
+      const tokenRes = await axios.post('https://oauth2.googleapis.com/token', {
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+        grant_type: 'authorization_code',
+      });
+
+      const { access_token } = tokenRes.data;
+
+      const userInfo = await this.getUserInfo(access_token);
+
+      const user = await this.googleLogin(userInfo);
+
+      return this.generateToken(user);
+    } catch (err) {
+      console.error('OAuth Error:', err.response?.data || err.message);
+      throw new UnauthorizedException('Google login failed');
+    }
+  }
+
+  private async getUserInfo(accessToken: string) {
+    const { data } = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    return {
+      email: data.email,
+      name: data.name,
+      avatar: data.picture,
+      googleId: data.id,
+    };
+  }
+
   async googleLogin(profile: any) {
     let user = await this.userRepository.findOne({
       where: { googleId: profile.id },
@@ -140,7 +179,7 @@ export class AuthService {
       }
     }
 
-    return this.generateToken(user);
+    return user;
   }
 
   private generateToken(user: User) {

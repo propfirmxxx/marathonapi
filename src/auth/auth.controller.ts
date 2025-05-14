@@ -161,14 +161,26 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        code: { 
+          type: 'string', 
+          description: 'Google callback code',
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        }
+      },
+      required: ['code']
+    }
+  })
   @ApiResponse({ 
     status: 200, 
     description: 'Google login successful',
     type: GoogleAuthResponseDto
   })
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthCallback(@Req() req) {
-    return this.authService.googleLogin(req.user);
+  @Post('google/verify')
+  async exchangeGoogleCode(@Body('code') code: string) {
+    return this.authService.handleOAuthCode(code);
   }
 } 
