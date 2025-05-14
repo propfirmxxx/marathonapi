@@ -31,6 +31,12 @@ export class ProfileResponseDto {
   @ApiProperty({ example: 'johndoe' })
   nickname: string;
 
+  @ApiProperty({ example: 'johndoe@example.com' })
+  email: string;
+  
+  @ApiProperty({ example: 'I am a trader' })
+  about: string;
+
   @ApiProperty({ example: 'USA' })
   nationality: string;
 

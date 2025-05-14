@@ -14,10 +14,10 @@ import { EmailModule } from '../email/email.module';
 import { EmailService } from '../email/email.service';
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
-
+import { Profile } from '../profile/entities/profile.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, EmailVerification, PasswordReset]),
+    TypeOrmModule.forFeature([User, EmailVerification, PasswordReset, Profile]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

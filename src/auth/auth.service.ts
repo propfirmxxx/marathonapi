@@ -9,6 +9,7 @@ import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../u
 import { EmailService } from '../email/email.service';
 import * as crypto from 'crypto';
 import axios from 'axios';
+import { Profile } from '@/profile/entities/profile.entity';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,8 @@ export class AuthService {
     private readonly emailVerificationRepository: Repository<EmailVerification>,
     @InjectRepository(PasswordReset)
     private readonly passwordResetRepository: Repository<PasswordReset>,
+    @InjectRepository(Profile)
+    private readonly profileRepository: Repository<Profile>,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
   ) {}
@@ -98,13 +101,20 @@ export class AuthService {
     const user = this.userRepository.create(registerDto);
     await this.userRepository.save(user);
 
+    const profile = this.profileRepository.create({
+      user: user,
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName
+    });
+    await this.profileRepository.save(profile);
+
     return this.generateToken(user);
   }
 
   async login(loginDto: LoginDto): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
-      select: ['id', 'email', 'password', 'firstName', 'lastName', 'avatar', 'isActive', 'role'],
+      select: ['id', 'email', 'password', 'isActive', 'role'],
     });
 
     if (!user || !(await user.validatePassword(loginDto.password))) {
@@ -170,11 +180,14 @@ export class AuthService {
         // Create new user from Google profile
         user = this.userRepository.create({
           googleId: profile.id,
-          email: profile.emails[0].value,
+          email: profile.emails[0].value
+        });
+        profile = this.profileRepository.create({
+          user: user,
           firstName: profile.name.givenName,
           lastName: profile.name.familyName,
-          avatar: profile.photos[0]?.value,
-        });
+          avatarUrl: profile.photos[0]?.value
+        })
         await this.userRepository.save(user);
       }
     }
@@ -187,9 +200,6 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      avatar: user.avatar,
       type: 'access'
     };
 
@@ -214,7 +224,7 @@ export class AuthService {
 
       const user = await this.userRepository.findOne({
         where: { id: payload.sub },
-        select: ['id', 'email', 'firstName', 'lastName', 'avatar', 'role'],
+        select: ['id', 'email', 'role'],
       });
 
       if (!user) {

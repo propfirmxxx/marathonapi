@@ -24,7 +24,30 @@ export class ProfileService {
   async getProfile(userId: number): Promise<Profile> {
     const profile = await this.profileRepository.findOne({
       where: { user: { id: userId } },
-      relations: ['socialMedias'],
+      relations: ['socialMedia', 'user'],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        nickname: true,
+        about: true,
+        nationality: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        user: {
+          id: true,
+          email: true,
+          role: true
+        },
+        socialMedia: {
+          id: true,
+          type: true,
+          url: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      }
     });
 
     if (!profile) {

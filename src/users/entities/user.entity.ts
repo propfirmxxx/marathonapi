@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany, OneToOne } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Wallet } from './wallet.entity';
+import { Profile } from '../../profile/entities/profile.entity';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -11,12 +12,6 @@ export enum UserRole {
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Column({ length: 100 })
-  firstName: string;
-
-  @Column({ length: 100 })
-  lastName: string;
 
   @Column({ unique: true })
   email: string;
@@ -38,8 +33,8 @@ export class User {
   @Column({ nullable: true })
   googleId?: string;
 
-  @Column({ nullable: true })
-  avatar?: string;
+  @OneToOne(() => Profile, profile => profile.user)
+  profile: Profile;
 
   @OneToMany(() => Wallet, wallet => wallet.user)
   wallets: Wallet[];

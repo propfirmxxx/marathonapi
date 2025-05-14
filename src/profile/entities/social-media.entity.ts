@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Profile } from './profile.entity';
 
 export enum SocialMediaType {
@@ -6,10 +6,10 @@ export enum SocialMediaType {
   TELEGRAM = 'telegram',
   YOUTUBE = 'youtube',
   TWITTER = 'twitter',
-  LINKEDIN = 'linkedin',
+  LINKEDIN = 'linkedin'
 }
 
-@Entity()
+@Entity('social_media')
 export class SocialMedia {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -17,19 +17,20 @@ export class SocialMedia {
   @Column({
     type: 'enum',
     enum: SocialMediaType,
+    enumName: 'social_media_type_enum'
   })
   type: SocialMediaType;
 
   @Column()
   url: string;
 
-  @ManyToOne(() => Profile, profile => profile.socialMedias)
+  @ManyToOne(() => Profile, profile => profile.socialMedia, { onDelete: 'CASCADE' })
   @JoinColumn()
   profile: Profile;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updatedAt: Date;
 } 

@@ -21,4 +21,9 @@ export class UpdateProfileDto {
   @IsString()
   @IsOptional()
   nationality?: string;
+
+  @ApiPropertyOptional({ description: 'User about' })
+  @IsString()
+  @IsOptional()
+  about?: string;
 } 

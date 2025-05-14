@@ -1,37 +1,43 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { SocialMedia } from './social-media.entity';
 
-@Entity()
+@Entity('profile')
 export class Profile {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 100, nullable: true })
   firstName: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 100, nullable: true })
   lastName: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 400, nullable: true })
+  about: string;
+
+  @Column({ length: 100, nullable: true })
   nickname: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 100, nullable: true })
   nationality: string;
 
   @Column({ nullable: true })
   avatarUrl: string;
 
-  @OneToOne(() => User)
-  @JoinColumn()
+  @Column({ type: 'uuid' })
+  userId: string;
+
+  @OneToOne(() => User, user => user.profile)
+  @JoinColumn({ name: 'userId' })
   user: User;
 
   @OneToMany(() => SocialMedia, socialMedia => socialMedia.profile)
-  socialMedias: SocialMedia[];
+  socialMedia: SocialMedia[];
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  @UpdateDateColumn()
   updatedAt: Date;
 } 
