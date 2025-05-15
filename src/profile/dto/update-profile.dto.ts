@@ -4,13 +4,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export class UpdateProfileDto {
   @ApiPropertyOptional({ description: 'User first name' })
   @IsString()
-  @IsOptional()
-  firstName?: string;
+  firstName: string;
 
   @ApiPropertyOptional({ description: 'User last name' })
   @IsString()
-  @IsOptional()
-  lastName?: string;
+  lastName: string;
 
   @ApiPropertyOptional({ description: 'User nickname' })
   @IsString()
