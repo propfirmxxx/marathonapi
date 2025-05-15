@@ -35,6 +35,7 @@ export class ProfileService {
         avatarUrl: true,
         createdAt: true,
         updatedAt: true,
+        userId: true,
         user: {
           id: true,
           email: true,

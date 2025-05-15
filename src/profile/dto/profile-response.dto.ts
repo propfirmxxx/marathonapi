@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { SocialMediaType } from '../entities/social-media.entity';
+import { UserResponseDto } from '@/users/dto/user-response.dto';
 
 export class SocialMediaResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -30,9 +31,6 @@ export class ProfileResponseDto {
 
   @ApiProperty({ example: 'johndoe' })
   nickname: string;
-
-  @ApiProperty({ example: 'johndoe@example.com' })
-  email: string;
   
   @ApiProperty({ example: 'I am a trader' })
   about: string;
@@ -45,6 +43,9 @@ export class ProfileResponseDto {
 
   @ApiProperty({ type: [SocialMediaResponseDto] })
   socialMedia: SocialMediaResponseDto[];
+
+  @ApiProperty({ type: [UserResponseDto] })
+  user: UserResponseDto[];
 
   @ApiProperty({ example: '2024-05-14T00:00:00.000Z' })
   createdAt: Date;

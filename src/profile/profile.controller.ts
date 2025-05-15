@@ -41,7 +41,6 @@ export class ProfileController {
     type: ProfileResponseDto
   })
   getProfile(@GetUser('id') userId: number) {
-    console.log(userId)
     return this.profileService.getProfile(userId);
   }
 
