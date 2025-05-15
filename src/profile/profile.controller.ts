@@ -111,6 +111,37 @@ export class ProfileController {
     return this.profileService.createSocialMedia(userId, createSocialMediaDto);
   }
 
+  @Post('social-media/bulk')
+  @ApiOperation({ summary: 'Add multiple social media links' })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Social media links added successfully',
+    type: [SocialMediaCreateResponseDto]
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        socialMedia: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['instagram', 'twitter', 'linkedin', 'facebook'] },
+              url: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+  })
+  createBulkSocialMedia(
+    @GetUser('id') userId: number,
+    @Body('socialMedia') socialMediaDtos: CreateSocialMediaDto[],
+  ) {
+    return this.profileService.createBulkSocialMedia(userId, socialMediaDtos);
+  }
+
   @Put('social-media/:id')
   @ApiOperation({ summary: 'Update social media link' })
   @ApiParam({ name: 'id', description: 'Social media ID', type: 'string' })

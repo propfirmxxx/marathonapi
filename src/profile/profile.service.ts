@@ -104,6 +104,31 @@ export class ProfileService {
     return this.socialMediaRepository.save(socialMedia);
   }
 
+  async createBulkSocialMedia(userId: number, createSocialMediaDtos: CreateSocialMediaDto[]): Promise<SocialMedia[]> {
+    const profile = await this.getProfile(userId);
+    const existingSocialMedia = await this.socialMediaRepository.find({
+      where: { profile: { id: profile.id } }
+    });
+
+    const socialMediaToSave = await Promise.all(createSocialMediaDtos.map(async dto => {
+      const existing = existingSocialMedia.find(sm => sm.type === dto.type);
+      
+      if (existing) {
+        // Update existing social media
+        Object.assign(existing, dto);
+        return existing;
+      } else {
+        // Create new social media
+        return this.socialMediaRepository.create({
+          ...dto,
+          profile,
+        });
+      }
+    }));
+
+    return this.socialMediaRepository.save(socialMediaToSave);
+  }
+
   async updateSocialMedia(
     userId: number,
     socialMediaId: string,
