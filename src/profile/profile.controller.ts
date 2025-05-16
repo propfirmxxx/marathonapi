@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Patch,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfileService } from './profile.service';
@@ -120,24 +121,19 @@ export class ProfileController {
   })
   @ApiBody({
     schema: {
-      type: 'object',
-      properties: {
-        socialMedia: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              type: { type: 'string', enum: ['instagram', 'twitter', 'linkedin', 'facebook'] },
-              url: { type: 'string' }
-            }
-          }
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['instagram', 'twitter', 'linkedin', 'facebook'] },
+          url: { type: 'string' }
         }
       }
     }
   })
   createBulkSocialMedia(
     @GetUser('id') userId: number,
-    @Body('socialMedia') socialMediaDtos: CreateSocialMediaDto[],
+    @Body() socialMediaDtos: CreateSocialMediaDto[],
   ) {
     return this.profileService.createBulkSocialMedia(userId, socialMediaDtos);
   }
@@ -159,6 +155,36 @@ export class ProfileController {
       userId,
       socialMediaId,
       updateSocialMediaDto,
+    );
+  }
+
+  @Patch('social-media')
+  @ApiOperation({ summary: 'Update multiple social media links' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Social media links updated successfully',
+    type: [SocialMediaUpdateResponseDto]
+  })
+  @ApiBody({
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          url: { type: 'string' }
+        }
+      }
+    }
+  })
+  updateBulkSocialMedia(
+    @GetUser('id') userId: number,
+    @Body() updateSocialMediaDtos: { id: string; url: string }[],
+  ) {
+    return Promise.all(
+      updateSocialMediaDtos.map(({ id, url }) =>
+        this.profileService.updateSocialMedia(userId, id, { url })
+      )
     );
   }
 
