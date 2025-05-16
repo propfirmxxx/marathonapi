@@ -2,14 +2,14 @@ import {
   Controller,
   Get,
   Put,
+  Post,
+  Delete,
   Body,
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  Delete,
-  Post,
-} from '@nestj,
-  Patchs/common';
+  Patch,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfileService } from './profile.service';
 import { UpdateProfileDto, UpdateSocialMediaDto } from './dto/update-profile.dto';
@@ -23,7 +23,6 @@ import {
   MessageResponseDto,
   SocialMediaUpdateResponseDto,
 } from './dto/profile-response.dto';
-import { Patch } from '@nestjs/common';
 
 @ApiTags('Profile')
 @ApiBearerAuth()
@@ -70,7 +69,7 @@ export class ProfileController {
   ) {
     return this.profileService.updateSocialMedia(userId, updateSocialMediaDto);
   }
-  
+
   @Post('avatar')
   @ApiOperation({ summary: 'Upload profile avatar' })
   @ApiConsumes('multipart/form-data')
