@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { SocialMedia } from './social-media.entity';
 
 @Entity('profile')
 export class Profile {
@@ -25,15 +24,24 @@ export class Profile {
   @Column({ nullable: true })
   avatarUrl: string;
 
+  @Column({ nullable: true })
+  instagramUrl: string;
+
+  @Column({ nullable: true })
+  twitterUrl: string;
+
+  @Column({ nullable: true })
+  linkedinUrl: string;
+
+  @Column({ nullable: true })
+  telegramUrl: string;
+
   @Column({ type: 'uuid' })
   userId: string;
 
   @OneToOne(() => User, user => user.profile)
   @JoinColumn({ name: 'userId' })
   user: User;
-
-  @OneToMany(() => SocialMedia, socialMedia => socialMedia.profile)
-  socialMedia: SocialMedia[];
 
   @CreateDateColumn()
   createdAt: Date;

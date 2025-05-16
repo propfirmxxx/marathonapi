@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProfileController } from './profile.controller';
 import { ProfileService } from './profile.service';
 import { Profile } from './entities/profile.entity';
-import { SocialMedia } from './entities/social-media.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -12,7 +11,7 @@ import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Profile, SocialMedia, User]),
+    TypeOrmModule.forFeature([Profile, User]),
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads/avatars',

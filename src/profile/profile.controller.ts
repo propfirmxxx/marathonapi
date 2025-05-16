@@ -2,30 +2,28 @@ import {
   Controller,
   Get,
   Put,
-  Post,
-  Delete,
   Body,
-  Param,
   UseGuards,
   UseInterceptors,
   UploadedFile,
-  Patch,
-} from '@nestjs/common';
+  Delete,
+  Post,
+} from '@nestj,
+  Patchs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ProfileService } from './profile.service';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { CreateSocialMediaDto, UpdateSocialMediaDto } from './dto/social-media.dto';
+import { UpdateProfileDto, UpdateSocialMediaDto } from './dto/update-profile.dto';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import {
   ProfileResponseDto,
   AvatarUploadResponseDto,
-  SocialMediaCreateResponseDto,
-  SocialMediaUpdateResponseDto,
   MessageResponseDto,
+  SocialMediaUpdateResponseDto,
 } from './dto/profile-response.dto';
+import { Patch } from '@nestjs/common';
 
 @ApiTags('Profile')
 @ApiBearerAuth()
@@ -59,6 +57,20 @@ export class ProfileController {
     return this.profileService.updateProfile(userId, updateProfileDto);
   }
 
+  @Put('social-media')
+  @ApiOperation({ summary: 'Update user social media' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Social media updated successfully',
+    type: SocialMediaUpdateResponseDto
+  })
+  updateSocialMedia(
+    @GetUser('id') userId: number,
+    @Body() updateSocialMediaDto: UpdateSocialMediaDto,
+  ) {
+    return this.profileService.updateSocialMedia(userId, updateSocialMediaDto);
+  }
+  
   @Post('avatar')
   @ApiOperation({ summary: 'Upload profile avatar' })
   @ApiConsumes('multipart/form-data')
@@ -96,111 +108,6 @@ export class ProfileController {
   })
   deleteAvatar(@GetUser('id') userId: number) {
     return this.profileService.deleteAvatar(userId);
-  }
-
-  @Post('social-media')
-  @ApiOperation({ summary: 'Add social media link' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Social media link added successfully',
-    type: SocialMediaCreateResponseDto
-  })
-  createSocialMedia(
-    @GetUser('id') userId: number,
-    @Body() createSocialMediaDto: CreateSocialMediaDto,
-  ) {
-    return this.profileService.createSocialMedia(userId, createSocialMediaDto);
-  }
-
-  @Post('social-media/bulk')
-  @ApiOperation({ summary: 'Add multiple social media links' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Social media links added successfully',
-    type: [SocialMediaCreateResponseDto]
-  })
-  @ApiBody({
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          type: { type: 'string', enum: ['instagram', 'twitter', 'linkedin', 'facebook'] },
-          url: { type: 'string' }
-        }
-      }
-    }
-  })
-  createBulkSocialMedia(
-    @GetUser('id') userId: number,
-    @Body() socialMediaDtos: CreateSocialMediaDto[],
-  ) {
-    return this.profileService.createBulkSocialMedia(userId, socialMediaDtos);
-  }
-
-  @Put('social-media/:id')
-  @ApiOperation({ summary: 'Update social media link' })
-  @ApiParam({ name: 'id', description: 'Social media ID', type: 'string' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Social media link updated successfully',
-    type: SocialMediaUpdateResponseDto
-  })
-  updateSocialMedia(
-    @GetUser('id') userId: number,
-    @Param('id') socialMediaId: string,
-    @Body() updateSocialMediaDto: UpdateSocialMediaDto,
-  ) {
-    return this.profileService.updateSocialMedia(
-      userId,
-      socialMediaId,
-      updateSocialMediaDto,
-    );
-  }
-
-  @Patch('social-media')
-  @ApiOperation({ summary: 'Update multiple social media links' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Social media links updated successfully',
-    type: [SocialMediaUpdateResponseDto]
-  })
-  @ApiBody({
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          url: { type: 'string' }
-        }
-      }
-    }
-  })
-  updateBulkSocialMedia(
-    @GetUser('id') userId: number,
-    @Body() updateSocialMediaDtos: { id: string; url: string }[],
-  ) {
-    return Promise.all(
-      updateSocialMediaDtos.map(({ id, url }) =>
-        this.profileService.updateSocialMedia(userId, id, { url })
-      )
-    );
-  }
-
-  @Delete('social-media/:id')
-  @ApiOperation({ summary: 'Delete social media link' })
-  @ApiParam({ name: 'id', description: 'Social media ID', type: 'string' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Social media link deleted successfully',
-    type: MessageResponseDto
-  })
-  deleteSocialMedia(
-    @GetUser('id') userId: number,
-    @Param('id') socialMediaId: string,
-  ) {
-    return this.profileService.deleteSocialMedia(userId, socialMediaId);
   }
 
   @Put('change-password')

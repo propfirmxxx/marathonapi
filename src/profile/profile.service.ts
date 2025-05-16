@@ -2,9 +2,7 @@ import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/co
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from './entities/profile.entity';
-import { SocialMedia } from './entities/social-media.entity';
-import { UpdateProfileDto } from './dto/update-profile.dto';
-import { CreateSocialMediaDto, UpdateSocialMediaDto } from './dto/social-media.dto';
+import { UpdateProfileDto, UpdateSocialMediaDto } from './dto/update-profile.dto';
 import { CloudStorageService } from '../services/cloud-storage.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '../users/entities/user.entity';
@@ -14,8 +12,6 @@ export class ProfileService {
   constructor(
     @InjectRepository(Profile)
     private profileRepository: Repository<Profile>,
-    @InjectRepository(SocialMedia)
-    private socialMediaRepository: Repository<SocialMedia>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private cloudStorageService: CloudStorageService,
@@ -24,7 +20,7 @@ export class ProfileService {
   async getProfile(userId: number): Promise<Profile> {
     const profile = await this.profileRepository.findOne({
       where: { user: { id: userId } },
-      relations: ['socialMedia', 'user'],
+      relations: ['user'],
       select: {
         id: true,
         firstName: true,
@@ -33,6 +29,10 @@ export class ProfileService {
         about: true,
         nationality: true,
         avatarUrl: true,
+        instagramUrl: true,
+        twitterUrl: true,
+        linkedinUrl: true,
+        telegramUrl: true,
         createdAt: true,
         updatedAt: true,
         userId: true,
@@ -40,13 +40,6 @@ export class ProfileService {
           id: true,
           email: true,
           role: true
-        },
-        socialMedia: {
-          id: true,
-          type: true,
-          url: true,
-          createdAt: true,
-          updatedAt: true
         }
       }
     });
@@ -61,6 +54,12 @@ export class ProfileService {
   async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<Profile> {
     const profile = await this.getProfile(userId);
     Object.assign(profile, updateProfileDto);
+    return this.profileRepository.save(profile);
+  }
+
+  async updateSocialMedia(userId: number, updateSocialMediaDto: UpdateSocialMediaDto): Promise<Profile> {
+    const profile = await this.getProfile(userId);
+    Object.assign(profile, updateSocialMediaDto);
     return this.profileRepository.save(profile);
   }
 
@@ -83,97 +82,38 @@ export class ProfileService {
     return this.profileRepository.save(profile);
   }
 
-  async deleteAvatar(userId: number): Promise<Profile> {
+  async deleteAvatar(userId: number): Promise<{ message: string }> {
     const profile = await this.getProfile(userId);
     
-    if (profile.avatarUrl) {
-      await this.cloudStorageService.deleteImage(profile.avatarUrl);
-      profile.avatarUrl = null;
-      return this.profileRepository.save(profile);
+    if (!profile.avatarUrl) {
+      throw new NotFoundException('Avatar not found');
     }
 
-    return profile;
+    await this.cloudStorageService.deleteImage(profile.avatarUrl);
+    profile.avatarUrl = null;
+    await this.profileRepository.save(profile);
+
+    return { message: 'Avatar deleted successfully' };
   }
 
-  async createSocialMedia(userId: number, createSocialMediaDto: CreateSocialMediaDto): Promise<SocialMedia> {
-    const profile = await this.getProfile(userId);
-    const socialMedia = this.socialMediaRepository.create({
-      ...createSocialMediaDto,
-      profile,
-    });
-    return this.socialMediaRepository.save(socialMedia);
-  }
-
-  async createBulkSocialMedia(userId: number, createSocialMediaDtos: CreateSocialMediaDto[]): Promise<SocialMedia[]> {
-    const profile = await this.getProfile(userId);
-    const existingSocialMedia = await this.socialMediaRepository.find({
-      where: { profile: { id: profile.id } }
-    });
-
-    const socialMediaToSave = await Promise.all(createSocialMediaDtos.map(async dto => {
-      const existing = existingSocialMedia.find(sm => sm.type === dto.type);
-      
-      if (existing) {
-        // Update existing social media
-        Object.assign(existing, dto);
-        return existing;
-      } else {
-        // Create new social media
-        return this.socialMediaRepository.create({
-          ...dto,
-          profile,
-        });
-      }
-    }));
-
-    return this.socialMediaRepository.save(socialMediaToSave);
-  }
-
-  async updateSocialMedia(
-    userId: number,
-    socialMediaId: string,
-    updateSocialMediaDto: UpdateSocialMediaDto,
-  ): Promise<SocialMedia> {
-    const socialMedia = await this.socialMediaRepository.findOne({
-      where: { id: socialMediaId, profile: { user: { id: userId } } },
-    });
-
-    if (!socialMedia) {
-      throw new NotFoundException('Social media not found');
-    }
-
-    Object.assign(socialMedia, updateSocialMediaDto);
-    return this.socialMediaRepository.save(socialMedia);
-  }
-
-  async deleteSocialMedia(userId: number, socialMediaId: string): Promise<void> {
-    const socialMedia = await this.socialMediaRepository.findOne({
-      where: { id: socialMediaId, profile: { user: { id: userId } } },
-    });
-
-    if (!socialMedia) {
-      throw new NotFoundException('Social media not found');
-    }
-
-    await this.socialMediaRepository.remove(socialMedia);
-  }
-
-  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<void> {
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'password'],
+      select: ['id', 'password']
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    const isPasswordValid = await user.validatePassword(changePasswordDto.oldPassword);
+    const isPasswordValid = await user.validatePassword(changePasswordDto.currentPassword);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
 
     user.password = changePasswordDto.newPassword;
     await this.userRepository.save(user);
+
+    return { message: 'Password changed successfully' };
   }
 } 

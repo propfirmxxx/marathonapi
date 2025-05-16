@@ -1,23 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SocialMediaType } from '../entities/social-media.entity';
 import { UserResponseDto } from '@/users/dto/user-response.dto';
-
-export class SocialMediaResponseDto {
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
-  id: string;
-
-  @ApiProperty({ enum: SocialMediaType, example: 'instagram' })
-  type: SocialMediaType;
-
-  @ApiProperty({ example: 'https://instagram.com/username' })
-  url: string;
-
-  @ApiProperty({ example: '2024-05-14T00:00:00.000Z' })
-  createdAt: Date;
-
-  @ApiProperty({ example: '2024-05-14T00:00:00.000Z' })
-  updatedAt: Date;
-}
 
 export class ProfileResponseDto {
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -41,8 +23,17 @@ export class ProfileResponseDto {
   @ApiProperty({ example: 'https://example.com/avatar.jpg' })
   avatarUrl: string;
 
-  @ApiProperty({ type: [SocialMediaResponseDto] })
-  socialMedia: SocialMediaResponseDto[];
+  @ApiProperty({ example: 'https://instagram.com/username' })
+  instagramUrl: string;
+
+  @ApiProperty({ example: 'https://twitter.com/username' })
+  twitterUrl: string;
+
+  @ApiProperty({ example: 'https://linkedin.com/in/username' })
+  linkedinUrl: string;
+
+  @ApiProperty({ example: 'https://t.me/username' })
+  telegramUrl: string;
 
   @ApiProperty({ type: UserResponseDto })
   user: UserResponseDto;
@@ -62,32 +53,10 @@ export class AvatarUploadResponseDto {
   message: string;
 }
 
-export class SocialMediaCreateResponseDto {
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
-  id: string;
-
-  @ApiProperty({ enum: SocialMediaType, example: 'instagram' })
-  type: SocialMediaType;
-
-  @ApiProperty({ example: 'https://instagram.com/username' })
-  url: string;
-
-  @ApiProperty({ example: '2024-05-14T00:00:00.000Z' })
-  createdAt: Date;
-}
 
 export class SocialMediaUpdateResponseDto {
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
-  id: string;
-
-  @ApiProperty({ enum: SocialMediaType, example: 'instagram' })
-  type: SocialMediaType;
-
-  @ApiProperty({ example: 'https://instagram.com/username' })
-  url: string;
-
-  @ApiProperty({ example: '2024-05-14T00:00:00.000Z' })
-  updatedAt: Date;
+  @ApiProperty({ example: 'Social media updated successfully' })
+  message: string;
 }
 
 export class MessageResponseDto {
