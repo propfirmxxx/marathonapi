@@ -14,6 +14,7 @@ import { PaymentModule } from './payment/payment.module';
 import { ProfileModule } from './profile/profile.module';
 import { databaseConfig } from './config/database.config';
 import { NotificationModule } from './notifications/notification.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { NotificationModule } from './notifications/notification.module';
     MarathonModule,
     PaymentModule,
     ProfileModule,
-    NotificationModule
+    NotificationModule,
+    TicketsModule
   ],
   controllers: [AppController],
   providers: [

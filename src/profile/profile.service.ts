@@ -39,7 +39,7 @@ export class ProfileService {
         updatedAt: true,
         userId: true,
         user: {
-          id: true,
+          uid: true,
           email: true,
           role: true
         }
