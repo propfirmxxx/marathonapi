@@ -13,6 +13,7 @@ import { MarathonModule } from './marathon/marathon.module';
 import { PaymentModule } from './payment/payment.module';
 import { ProfileModule } from './profile/profile.module';
 import { databaseConfig } from './config/database.config';
+import { NotificationModule } from './notifications/notification.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { databaseConfig } from './config/database.config';
     MarathonModule,
     PaymentModule,
     ProfileModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [
