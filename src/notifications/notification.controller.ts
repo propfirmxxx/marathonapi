@@ -63,6 +63,7 @@ export class NotificationController {
   @ApiResponse({ status: 200, description: 'The notification has been successfully deleted.' })
   @ApiResponse({ status: 404, description: 'Notification not found.' })
   async deleteNotification(@Param('id') id: string, @Request() req) {
-    return this.notificationService.deleteNotification(id, req.user.id);
+    return 'Disabled'
+    // return this.notificationService.deleteNotification(id, req.user.id);
   }
 }

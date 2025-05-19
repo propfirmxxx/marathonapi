@@ -8,6 +8,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CloudStorageService } from '../services/cloud-storage.service';
 import { User } from '../users/entities/user.entity';
+import { NotificationModule } from '../notifications/notification.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { User } from '../users/entities/user.entity';
         callback(null, true);
       },
     }),
+    NotificationModule
   ],
   controllers: [ProfileController],
   providers: [ProfileService, CloudStorageService],

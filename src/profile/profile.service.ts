@@ -6,18 +6,20 @@ import { UpdateProfileDto, UpdateSocialMediaDto } from './dto/update-profile.dto
 import { CloudStorageService } from '../services/cloud-storage.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '../users/entities/user.entity';
+import { NotificationService } from '../notifications/notification.service';
 
 @Injectable()
 export class ProfileService {
   constructor(
     @InjectRepository(Profile)
-    private profileRepository: Repository<Profile>,
+    private readonly profileRepository: Repository<Profile>,
     @InjectRepository(User)
-    private userRepository: Repository<User>,
-    private cloudStorageService: CloudStorageService,
+    private readonly userRepository: Repository<User>,
+    private readonly cloudStorageService: CloudStorageService,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async getProfile(uid: string): Promise<Profile> {
+  async getProfile(uid: string): Promise<Profile & { unreadNotificationsCount: number }> {
     const profile = await this.profileRepository.findOne({
       where: { user: { uid } },
       relations: ['user'],
@@ -48,7 +50,12 @@ export class ProfileService {
       throw new NotFoundException('Profile not found');
     }
 
-    return profile;
+    const unreadNotificationsCount = await this.notificationService.getUnreadCount(uid);
+
+    return {
+      ...profile,
+      unreadNotificationsCount
+    };
   }
 
   async updateProfile(uid: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {

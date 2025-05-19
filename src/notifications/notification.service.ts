@@ -109,4 +109,18 @@ export class NotificationService {
       NotificationScope.BROADCAST,
     );
   }
+
+  async getUnreadCount(uid: string): Promise<number> {
+    return this.notificationRepository
+      .createQueryBuilder('notification')
+      .leftJoin('notification.recipients', 'recipients')
+      .leftJoin('notification.readBy', 'readBy')
+      .where('(notification.scope = :broadcast OR recipients.uid = :uid)', {
+        broadcast: NotificationScope.BROADCAST,
+        uid,
+      })
+      .andWhere('notification.deletedAt IS NULL')
+      .andWhere('readBy.uid IS NULL')
+      .getCount();
+  }
 } 
