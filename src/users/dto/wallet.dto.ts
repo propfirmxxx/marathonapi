@@ -21,11 +21,6 @@ export class CreateWalletDto {
   @IsString()
   @IsOptional()
   currency?: string;
-
-  @ApiProperty({ description: 'Additional wallet metadata', example: { type: 'hardware' }, required: false })
-  @IsObject()
-  @IsOptional()
-  metadata?: Record<string, any>;
 }
 
 export class UpdateWalletDto {
@@ -48,16 +43,6 @@ export class UpdateWalletDto {
   @IsString()
   @IsOptional()
   currency?: string;
-
-  @ApiProperty({ description: 'Wallet active status', example: true, required: false })
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
-
-  @ApiProperty({ description: 'Additional wallet metadata', example: { type: 'hardware' }, required: false })
-  @IsObject()
-  @IsOptional()
-  metadata?: Record<string, any>;
 }
 
 export class WalletResponseDto {
@@ -78,9 +63,6 @@ export class WalletResponseDto {
 
   @ApiProperty({ description: 'Wallet active status' })
   isActive: boolean;
-
-  @ApiProperty({ description: 'Additional wallet metadata' })
-  metadata: Record<string, any>;
 
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;

@@ -13,6 +13,30 @@ export class WalletService {
   ) {}
 
   async create(userId: number, createWalletDto: CreateWalletDto): Promise<Wallet> {
+    // Check for existing wallet with same name
+    const existingWalletWithName = await this.walletRepository.findOne({
+      where: { 
+        name: createWalletDto.name,
+        user: { id: userId }
+      }
+    });
+
+    if (existingWalletWithName) {
+      throw new BadRequestException('A wallet with this name already exists');
+    }
+
+    // Check for existing wallet with same address
+    const existingWalletWithAddress = await this.walletRepository.findOne({
+      where: { 
+        address: createWalletDto.address,
+        user: { id: userId }
+      }
+    });
+
+    if (existingWalletWithAddress) {
+      throw new BadRequestException('A wallet with this address already exists');
+    }
+
     const wallet = this.walletRepository.create({
       ...createWalletDto,
       user: { id: userId },
@@ -42,14 +66,8 @@ export class WalletService {
   async update(userId: number, id: string, updateWalletDto: UpdateWalletDto): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
-    if (updateWalletDto.isActive) {
-      // Deactivate all other wallets
-      await this.walletRepository
-        .createQueryBuilder()
-        .update(Wallet)
-        .set({ isActive: false })
-        .where('user_id = :userId AND id != :id', { userId, id })
-        .execute();
+    if (!wallet) {
+      throw new NotFoundException(`Wallet with ID ${id} not found`);
     }
 
     Object.assign(wallet, updateWalletDto);
@@ -66,19 +84,25 @@ export class WalletService {
     await this.walletRepository.remove(wallet);
   }
 
-  async setActiveWallet(userId: number, id: string): Promise<Wallet> {
+  async activateWallet(userId: number, id: string): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
-    // Deactivate all other wallets
-    await this.walletRepository
-      .createQueryBuilder()
-      .update(Wallet)
-      .set({ isActive: false })
-      .where('user_id = :userId AND id != :id', { userId, id })
-      .execute();
+    if (!wallet) {
+      throw new NotFoundException(`Wallet with ID ${id} not found`);
+    }
 
-    // Activate the selected wallet
     wallet.isActive = true;
+    return await this.walletRepository.save(wallet);
+  }
+
+  async deactivateWallet(userId: number, id: string): Promise<Wallet> {
+    const wallet = await this.findOne(userId, id);
+
+    if (!wallet) {
+      throw new NotFoundException(`Wallet with ID ${id} not found`);
+    }
+
+    wallet.isActive = false;
     return await this.walletRepository.save(wallet);
   }
 

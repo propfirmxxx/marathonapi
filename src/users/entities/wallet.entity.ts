@@ -21,9 +21,6 @@ export class Wallet {
   @Column({ default: false })
   isActive: boolean;
 
-  @Column({ type: 'json', nullable: true })
-  metadata: Record<string, any>;
-
   @ManyToOne(() => User, user => user.wallets)
   @JoinColumn({ name: 'user_id' })
   user: User;

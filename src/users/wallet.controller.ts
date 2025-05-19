@@ -79,7 +79,19 @@ export class WalletController {
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Post(':id/activate')
   setActiveWallet(@Req() req: any, @Param('id') id: string) {
-    return this.walletService.setActiveWallet(req.user.id, id);
+    return this.walletService.activateWallet(req.user.id, id);
+  }
+
+  @ApiOperation({ summary: 'Deactivate wallet' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Wallet deactivated successfully',
+    type: WalletResponseDto
+  })
+  @ApiParam({ name: 'id', description: 'Wallet ID' })
+  @Post(':id/deactivate')
+  deactivateWallet(@Req() req: any, @Param('id') id: string) {
+    return this.walletService.deactivateWallet(req.user.id, id);
   }
 
   @ApiOperation({ summary: 'Get active wallet' })
