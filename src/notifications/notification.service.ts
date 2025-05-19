@@ -45,6 +45,7 @@ export class NotificationService {
       .leftJoinAndSelect('notification.readBy', 'readBy')
       .where('notification.scope = :broadcast', { broadcast: NotificationScope.BROADCAST })
       .orWhere('recipients.id = :userId', { userId })
+      .andWhere('notification.deletedAt IS NULL')
       .orderBy('notification.createdAt', 'DESC')
       .getMany();
   }
@@ -93,7 +94,7 @@ export class NotificationService {
       throw new NotFoundException('Notification not found');
     }
 
-    await this.notificationRepository.remove(notification);
+    await this.notificationRepository.softDelete(notificationId);
   }
 
   async broadcastNotification(
