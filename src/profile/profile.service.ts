@@ -17,9 +17,9 @@ export class ProfileService {
     private cloudStorageService: CloudStorageService,
   ) {}
 
-  async getProfile(userId: number): Promise<Profile> {
+  async getProfile(uid: string): Promise<Profile> {
     const profile = await this.profileRepository.findOne({
-      where: { user: { id: userId } },
+      where: { user: { uid } },
       relations: ['user'],
       select: {
         id: true,
@@ -51,20 +51,20 @@ export class ProfileService {
     return profile;
   }
 
-  async updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<Profile> {
-    const profile = await this.getProfile(userId);
+  async updateProfile(uid: string, updateProfileDto: UpdateProfileDto): Promise<Profile> {
+    const profile = await this.getProfile(uid);
     Object.assign(profile, updateProfileDto);
     return this.profileRepository.save(profile);
   }
 
-  async updateSocialMedia(userId: number, updateSocialMediaDto: UpdateSocialMediaDto): Promise<Profile> {
-    const profile = await this.getProfile(userId);
+  async updateSocialMedia(uid: string, updateSocialMediaDto: UpdateSocialMediaDto): Promise<Profile> {
+    const profile = await this.getProfile(uid);
     Object.assign(profile, updateSocialMediaDto);
     return this.profileRepository.save(profile);
   }
 
-  async uploadAvatar(userId: number, file: any): Promise<Profile> {
-    const profile = await this.getProfile(userId);
+  async uploadAvatar(uid: string, file: any): Promise<Profile> {
+    const profile = await this.getProfile(uid);
     
     // Delete old avatar if exists
     if (profile.avatarUrl) {
@@ -82,8 +82,8 @@ export class ProfileService {
     return this.profileRepository.save(profile);
   }
 
-  async deleteAvatar(userId: number): Promise<{ message: string }> {
-    const profile = await this.getProfile(userId);
+  async deleteAvatar(uid: string): Promise<{ message: string }> {
+    const profile = await this.getProfile(uid);
     
     if (!profile.avatarUrl) {
       throw new NotFoundException('Avatar not found');
@@ -96,9 +96,9 @@ export class ProfileService {
     return { message: 'Avatar deleted successfully' };
   }
 
-  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+  async changePassword(uid: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { uid },
       select: ['id', 'password']
     });
 

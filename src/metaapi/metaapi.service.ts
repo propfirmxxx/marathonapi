@@ -114,14 +114,14 @@ export class MetaApiService {
     }
   }
 
-  async validateAccountAccess(userId: string, accountId: string): Promise<boolean> {
+  async validateAccountAccess(uid: string, accountId: string): Promise<boolean> {
     try {
       const account = await this.metaTraderAccountRepository.findOne({
-        where: { accountId, userId },
+        where: { accountId, userId: uid },
       });
       return !!account;
     } catch (error) {
-      this.logger.error(`Error validating account access for user ${userId} and account ${accountId}:`, error);
+      this.logger.error(`Error validating account access for user ${uid} and account ${accountId}:`, error);
       return false;
     }
   }

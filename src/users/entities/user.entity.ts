@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany, OneToOne, DeleteDateColumn } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Wallet } from './wallet.entity';
 import { Profile } from '../../profile/entities/profile.entity';
+import { Delete } from '@nestjs/common';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -47,6 +48,9 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   @BeforeInsert()
   @BeforeUpdate()

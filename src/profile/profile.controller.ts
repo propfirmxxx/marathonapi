@@ -38,8 +38,8 @@ export class ProfileController {
     description: 'Returns the user profile',
     type: ProfileResponseDto
   })
-  getProfile(@GetUser('id') userId: number) {
-    return this.profileService.getProfile(userId);
+  getProfile(@GetUser('uid') uid: string) {
+    return this.profileService.getProfile(uid);
   }
 
   @Put()
@@ -50,10 +50,10 @@ export class ProfileController {
     type: ProfileResponseDto
   })
   updateProfile(
-    @GetUser('id') userId: number,
+    @GetUser('uid') uid: string,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.profileService.updateProfile(userId, updateProfileDto);
+    return this.profileService.updateProfile(uid, updateProfileDto);
   }
 
   @Put('social-media')
@@ -64,10 +64,10 @@ export class ProfileController {
     type: SocialMediaUpdateResponseDto
   })
   updateSocialMedia(
-    @GetUser('id') userId: number,
+    @GetUser('uid') uid: string,
     @Body() updateSocialMediaDto: UpdateSocialMediaDto,
   ) {
-    return this.profileService.updateSocialMedia(userId, updateSocialMediaDto);
+    return this.profileService.updateSocialMedia(uid, updateSocialMediaDto);
   }
 
   @Post('avatar')
@@ -92,10 +92,10 @@ export class ProfileController {
   })
   @UseInterceptors(FileInterceptor('avatar'))
   uploadAvatar(
-    @GetUser('id') userId: number,
+    @GetUser('uid') uid: string,
     @UploadedFile() file: any,
   ) {
-    return this.profileService.uploadAvatar(userId, file);
+    return this.profileService.uploadAvatar(uid, file);
   }
 
   @Delete('avatar')
@@ -105,8 +105,8 @@ export class ProfileController {
     description: 'Avatar deleted successfully',
     type: MessageResponseDto
   })
-  deleteAvatar(@GetUser('id') userId: number) {
-    return this.profileService.deleteAvatar(userId);
+  deleteAvatar(@GetUser('uid') uid: string) {
+    return this.profileService.deleteAvatar(uid);
   }
 
   @Put('change-password')
@@ -122,9 +122,9 @@ export class ProfileController {
     type: MessageResponseDto
   })
   changePassword(
-    @GetUser('id') userId: number,
+    @GetUser('uid') uid: string,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    return this.profileService.changePassword(userId, changePasswordDto);
+    return this.profileService.changePassword(uid, changePasswordDto);
   }
 } 

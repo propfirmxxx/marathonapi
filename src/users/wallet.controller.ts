@@ -43,7 +43,7 @@ export class WalletController {
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Get(':id')
   findOne(@Req() req: any, @Param('id') id: string) {
-    return this.walletService.findOne(req.user.id, id);
+    return this.walletService.findOne(req.user.uid, id);
   }
 
   @ApiOperation({ summary: 'Update wallet' })

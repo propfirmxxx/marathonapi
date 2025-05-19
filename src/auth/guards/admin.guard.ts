@@ -13,14 +13,14 @@ export class AdminGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const userId = request.user?.id;
+    const userId = request.user?.uid;
 
     if (!userId) {
       return false;
     }
 
     const user = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { uid: userId },
       select: ['role']
     });
 

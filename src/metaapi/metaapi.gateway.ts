@@ -54,17 +54,17 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
       }
 
       // Check connection limit per user
-      const userConnections = this.connectionCounts.get(user.id) || 0;
+      const userConnections = this.connectionCounts.get(user.uid) || 0;
       if (userConnections >= this.MAX_CONNECTIONS_PER_USER) {
-        this.logger.error(`Connection limit exceeded for user: ${user.id}`);
+        this.logger.error(`Connection limit exceeded for user: ${user.uid}`);
         client.disconnect();
         return;
       }
 
       // Update connection counts
-      this.connectionCounts.set(user.id, userConnections + 1);
+      this.connectionCounts.set(user.uid, userConnections + 1);
       this.activeConnections.set(client.id, client);
-      this.logger.log(`Client connected: ${client.id} (User: ${user.id})`);
+      this.logger.log(`Client connected: ${client.id} (User: ${user.uid})`);
     } catch (error) {
       this.logger.error(`Error in handleConnection: ${error.message}`);
       client.disconnect();
@@ -75,8 +75,8 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
     try {
       const user = client.handshake.auth.user;
       if (user) {
-        const userConnections = this.connectionCounts.get(user.id) || 0;
-        this.connectionCounts.set(user.id, Math.max(0, userConnections - 1));
+        const userConnections = this.connectionCounts.get(user.uid) || 0;
+        this.connectionCounts.set(user.uid, Math.max(0, userConnections - 1));
       }
 
       this.activeConnections.delete(client.id);
@@ -100,7 +100,7 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
     try {
       // Validate user has access to this account
       const user = client.handshake.auth.user;
-      if (!user || !await this.metaApiService.validateAccountAccess(user.id, accountId)) {
+      if (!user || !await this.metaApiService.validateAccountAccess(user.uid, accountId)) {
         return { success: false, error: 'Unauthorized access' };
       }
 
@@ -113,7 +113,7 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.accountSubscriptions.set(accountId, {
         connection,
         clientId: client.id,
-        userId: user.id,
+        userId: user.uid,
         listener
       });
 
@@ -143,7 +143,7 @@ export class MetaApiGateway implements OnGatewayConnection, OnGatewayDisconnect 
       }
 
       // Validate user has access to this subscription
-      if (!user || subscription.userId !== user.id) {
+      if (!user || subscription.userId !== user.uid) {
         return { success: false, error: 'Unauthorized access' };
       }
 
