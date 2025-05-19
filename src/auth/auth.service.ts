@@ -197,14 +197,14 @@ export class AuthService {
 
   private generateToken(user: User) {
     const accessTokenPayload = { 
-      sub: user.id,
+      sub: user.uid,
       email: user.email,
       role: user.role,
       type: 'access'
     };
 
     const refreshTokenPayload = {
-      sub: user.id,
+      sub: user.uid,
       type: 'refresh'
     };
 

@@ -13,6 +13,9 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number; 
 
+  @Column({ type: 'uuid', unique: true, default: () => 'uuid_generate_v4()' })
+  uid: string;
+
   @Column({ unique: true })
   email: string;
 
