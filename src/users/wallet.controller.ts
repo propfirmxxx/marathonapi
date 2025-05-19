@@ -102,6 +102,6 @@ export class WalletController {
   })
   @Get('active')
   getActiveWallet(@Req() req: any) {
-    return this.walletService.getActiveWallet(req.user.id);
+    return this.walletService.getActiveWallets(req.user.id);
   }
 } 

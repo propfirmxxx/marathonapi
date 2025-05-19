@@ -106,8 +106,8 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  async getActiveWallet(userId: number): Promise<Wallet | null> {
-    return await this.walletRepository.findOne({
+  async getActiveWallets(userId: number): Promise<Wallet[]> {
+    return await this.walletRepository.find({
       where: { user: { id: userId }, isActive: true },
     });
   }
