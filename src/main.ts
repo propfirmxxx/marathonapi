@@ -2,6 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { I18nService } from './i18n/i18n.service';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -12,6 +15,9 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
+  
+  // Enable cookie parsing
+  app.use(cookieParser());
   
   app.setGlobalPrefix('apiv1');
   
@@ -25,6 +31,10 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Get I18nService instance and apply global response interceptor
+  const i18nService = app.get(I18nService);
+  app.useGlobalInterceptors(new ResponseInterceptor(i18nService));
 
   const swaggerPath = process.env.SWAGGER_PATH || 'swagger';
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -15,6 +15,8 @@ import { ProfileModule } from './profile/profile.module';
 import { databaseConfig } from './config/database.config';
 import { NotificationModule } from './notifications/notification.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { I18nModule } from './i18n/i18n.module';
+import { I18nMiddleware } from './i18n/i18n.middleware';
 
 @Module({
   imports: [
@@ -34,7 +36,8 @@ import { TicketsModule } from './tickets/tickets.module';
     PaymentModule,
     ProfileModule,
     NotificationModule,
-    TicketsModule
+    TicketsModule,
+    I18nModule
   ],
   controllers: [AppController],
   providers: [
@@ -45,4 +48,8 @@ import { TicketsModule } from './tickets/tickets.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(I18nMiddleware).forRoutes('*');
+  }
+}

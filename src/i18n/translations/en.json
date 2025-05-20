@@ -1,0 +1,46 @@
+{
+  "common": {
+    "success": "Operation completed successfully",
+    "error": "An error occurred",
+    "notFound": "Resource not found",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "validation": {
+      "required": "{field} is required",
+      "invalid": "Invalid {field}",
+      "minLength": "{field} must be at least {min} characters",
+      "maxLength": "{field} must not exceed {max} characters"
+    }
+  },
+  "auth": {
+    "login": {
+      "success": "Login successful",
+      "invalid": "Invalid credentials",
+      "locked": "Account is locked"
+    },
+    "register": {
+      "success": "Registration successful",
+      "emailExists": "Email already exists",
+      "usernameExists": "Username already exists"
+    },
+    "password": {
+      "reset": {
+        "emailSent": "Password reset email has been sent",
+        "success": "Password has been reset successfully"
+      }
+    }
+  },
+  "user": {
+    "profile": {
+      "updated": "Profile updated successfully",
+      "notFound": "User profile not found"
+    }
+  },
+  "ticket": {
+    "created": "Ticket created successfully",
+    "updated": "Ticket updated successfully",
+    "deleted": "Ticket deleted successfully",
+    "notFound": "Ticket not found",
+    "closed": "Ticket closed successfully"
+  }
+} 

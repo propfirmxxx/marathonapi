@@ -90,11 +90,16 @@ export class TicketsController {
     type: TicketResponseDto
   })
   @Post()
-  create(
+  async create(
     @Body() createTicketDto: CreateTicketDto, 
     @Request() req
   ): Promise<TicketResponseDto> {
-    return this.ticketsService.create(createTicketDto, req.user);
+    const data = await this.ticketsService.create(createTicketDto, req.user);
+    return {
+      data,
+      message: 'ticket.created',
+      status: true
+    };
   }
 
   @ApiOperation({ summary: 'Get all tickets' })
@@ -116,10 +121,14 @@ export class TicketsController {
   ): Promise<PaginatedResponseDto<TicketResponseDto>> {
     const { tickets, total } = await this.ticketsService.findAll(page, limit, status, departmentId);
     return {
-      data: tickets,
-      page,
-      limit,
-      total
+      data: {
+        items: tickets,
+        page,
+        limit,
+        total
+      },
+      message: 'common.success',
+      status: true
     };
   }
 
@@ -131,8 +140,13 @@ export class TicketsController {
   })
   @ApiResponse({ status: 404, description: 'Ticket not found' })
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<TicketResponseDto> {
-    return this.ticketsService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<TicketResponseDto> {
+    const data = await this.ticketsService.findOne(id);
+    return {
+      data,
+      message: 'common.success',
+      status: true
+    };
   }
 
   @ApiOperation({ summary: 'Update ticket' })
@@ -187,7 +201,12 @@ export class TicketsController {
   @ApiResponse({ status: 404, description: 'Ticket not found' })
   @ApiResponse({ status: 400, description: 'Ticket is already closed' })
   @Post(':id/close')
-  closeTicket(@Param('id') id: string): Promise<TicketResponseDto> {
-    return this.ticketsService.closeTicket(id);
+  async closeTicket(@Param('id') id: string): Promise<TicketResponseDto> {
+    const data = await this.ticketsService.closeTicket(id);
+    return {
+      data,
+      message: 'ticket.closed',
+      status: true
+    };
   }
 }
