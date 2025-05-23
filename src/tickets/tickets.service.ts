@@ -10,6 +10,7 @@ import { CreateTicketMessageDto } from './dto/create-ticket-message.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { User, UserRole } from '../users/entities/user.entity';
+import { TicketResponseDto } from './dto/ticket-response.dto';
 
 @Injectable()
 export class TicketsService {
@@ -80,7 +81,7 @@ export class TicketsService {
     limit = 10,
     status?: TicketStatus,
     departmentId?: string,
-  ): Promise<{ tickets: Ticket[]; total: number }> {
+  ): Promise<{ tickets: TicketResponseDto[]; total: number }> {
     const query = this.ticketsRepository.createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.createdBy', 'createdBy')
       .leftJoinAndSelect('ticket.messages', 'messages')

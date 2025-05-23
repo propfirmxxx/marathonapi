@@ -95,11 +95,7 @@ export class TicketsController {
     @Request() req
   ): Promise<TicketResponseDto> {
     const data = await this.ticketsService.create(createTicketDto, req.user);
-    return {
-      data,
-      message: 'ticket.created',
-      status: true
-    };
+    return data
   }
 
   @ApiOperation({ summary: 'Get all tickets' })
@@ -121,14 +117,10 @@ export class TicketsController {
   ): Promise<PaginatedResponseDto<TicketResponseDto>> {
     const { tickets, total } = await this.ticketsService.findAll(page, limit, status, departmentId);
     return {
-      data: {
-        items: tickets,
-        page,
-        limit,
-        total
-      },
-      message: 'common.success',
-      status: true
+      data: tickets,
+      page,
+      limit,
+      total
     };
   }
 
@@ -142,11 +134,7 @@ export class TicketsController {
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<TicketResponseDto> {
     const data = await this.ticketsService.findOne(id);
-    return {
-      data,
-      message: 'common.success',
-      status: true
-    };
+    return data;
   }
 
   @ApiOperation({ summary: 'Update ticket' })
@@ -203,10 +191,6 @@ export class TicketsController {
   @Post(':id/close')
   async closeTicket(@Param('id') id: string): Promise<TicketResponseDto> {
     const data = await this.ticketsService.closeTicket(id);
-    return {
-      data,
-      message: 'ticket.closed',
-      status: true
-    };
+    return data;
   }
 }

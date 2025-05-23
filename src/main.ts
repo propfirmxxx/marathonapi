@@ -36,7 +36,7 @@ async function bootstrap() {
   const i18nService = app.get(I18nService);
   app.useGlobalInterceptors(new ResponseInterceptor(i18nService));
 
-  const swaggerPath = process.env.SWAGGER_PATH || 'swagger';
+  const swaggerPath = 'swagger';
 
   const config = new DocumentBuilder()
     .setTitle('Marathon API')
