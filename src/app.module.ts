@@ -17,6 +17,7 @@ import { NotificationModule } from './notifications/notification.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { I18nModule } from './i18n/i18n.module';
 import { I18nMiddleware } from './i18n/i18n.middleware';
+import { FaqModule } from './faq/faq.module';
 
 @Module({
   imports: [
@@ -37,7 +38,8 @@ import { I18nMiddleware } from './i18n/i18n.middleware';
     ProfileModule,
     NotificationModule,
     TicketsModule,
-    I18nModule
+    I18nModule,
+    FaqModule
   ],
   controllers: [AppController],
   providers: [
