@@ -81,11 +81,9 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   @Post('register/complete')
   async completeRegistration(@Body() registerDto: RegisterDto) {
-    const data = await this.authService.completeRegistration(registerDto);
+    await this.authService.completeRegistration(registerDto);
     return {
-      data,
-      message: 'auth.register.success',
-      status: true
+      message: 'auth.register.success'
     };
   }
 
@@ -98,11 +96,9 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    const data = await this.authService.login(loginDto);
+    await this.authService.login(loginDto);
     return {
-      data,
       message: 'auth.login.success',
-      status: true
     };
   }
 
@@ -115,11 +111,9 @@ export class AuthController {
   @ApiBody({ type: ForgotPasswordDto })
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    const data = await this.authService.forgotPassword(forgotPasswordDto);
+    await this.authService.forgotPassword(forgotPasswordDto);
     return {
-      data,
       message: 'auth.password.reset.emailSent',
-      status: true
     };
   }
 
@@ -132,11 +126,9 @@ export class AuthController {
   @ApiBody({ type: ResetPasswordDto })
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    const data = await this.authService.resetPassword(resetPasswordDto);
+    await this.authService.resetPassword(resetPasswordDto);
     return {
-      data,
       message: 'auth.password.reset.success',
-      status: true
     };
   }
 
