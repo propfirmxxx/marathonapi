@@ -81,10 +81,7 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   @Post('register/complete')
   async completeRegistration(@Body() registerDto: RegisterDto) {
-    await this.authService.completeRegistration(registerDto);
-    return {
-      message: 'auth.register.success'
-    };
+    return this.authService.completeRegistration(registerDto);
   }
 
   @ApiOperation({ summary: 'User login' })
@@ -96,10 +93,7 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    await this.authService.login(loginDto);
-    return {
-      message: 'auth.login.success',
-    };
+    return this.authService.login(loginDto);
   }
 
   @ApiOperation({ summary: 'Request password reset' })
@@ -111,10 +105,7 @@ export class AuthController {
   @ApiBody({ type: ForgotPasswordDto })
   @Post('forgot-password')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    await this.authService.forgotPassword(forgotPasswordDto);
-    return {
-      message: 'auth.password.reset.emailSent',
-    };
+    return this.authService.forgotPassword(forgotPasswordDto);
   }
 
   @ApiOperation({ summary: 'Reset password' })
@@ -126,10 +117,7 @@ export class AuthController {
   @ApiBody({ type: ResetPasswordDto })
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    await this.authService.resetPassword(resetPasswordDto);
-    return {
-      message: 'auth.password.reset.success',
-    };
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @ApiOperation({ summary: 'Refresh access token' })
