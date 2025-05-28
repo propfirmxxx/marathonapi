@@ -2,19 +2,20 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { FaqService } from './faq.service';
 import { CreateFaqDto } from './dto/create-faq.dto';
 import { UpdateFaqDto } from './dto/update-faq.dto';
-import { AuthGuard } from '../auth/guards/auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { FaqResponseDto, FaqListResponseDto } from './dto/faq-response.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('FAQ')
 @ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
 @Controller('faq')
 export class FaqController {
   constructor(private readonly faqService: FaqService) {}
 
   @Post()
-  @UseGuards(AuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Create a new FAQ' })
   @ApiResponse({ 
     status: 201, 
@@ -57,7 +58,7 @@ export class FaqController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Update FAQ' })
   @ApiResponse({ 
     status: 200, 
@@ -72,7 +73,7 @@ export class FaqController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   @ApiOperation({ summary: 'Delete FAQ' })
   @ApiResponse({ 
     status: 200, 
