@@ -4,9 +4,7 @@ import { map } from 'rxjs/operators';
 import { I18nService } from '../../i18n/i18n.service';
 
 export interface Response<T> {
-  data: T;
-  message: string;
-  status: boolean;
+  [key: string]: T;
 }
 
 @Injectable()
@@ -20,9 +18,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
     return next.handle().pipe(
       map(data => {
         const response = {
-          data: data.data || data,
-          message: data.message ? this.i18nService.translate(data.message, language, data.params) : undefined,
-          status: data.status ?? true,
+          ...data,
+          ...(data.message && {message: this.i18nService.translate(data.message, language, data.params)})
         };
 
         return response;
