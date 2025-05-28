@@ -3,12 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { FaqController } from './faq.controller';
 import { FaqService } from './faq.service';
 import { Faq } from './entities/faq.entity';
-import { UsersModule } from '../users/users.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Faq]),
-    UsersModule
+    AuthModule
   ],
   controllers: [FaqController],
   providers: [FaqService],
