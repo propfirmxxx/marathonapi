@@ -15,13 +15,14 @@
   "auth": {
     "login": {
       "success": "Login successful",
-      "invalid": "Invalid credentials",
-      "locked": "Account is locked"
+      "error": "Invalid credentials"
     },
     "register": {
       "success": "Registration successful",
-      "emailExists": "Email already exists",
-      "usernameExists": "Username already exists"
+      "error": "Registration failed"
+    },
+    "logout": {
+      "success": "Logout successful"
     },
     "password": {
       "reset": {
@@ -42,5 +43,16 @@
     "deleted": "Ticket deleted successfully",
     "notFound": "Ticket not found",
     "closed": "Ticket closed successfully"
+  },
+  "notifications": {
+    "new": "New notification",
+    "read": "Notification marked as read",
+    "deleted": "Notification deleted"
+  },
+  "faq": {
+    "created": "FAQ created successfully",
+    "updated": "FAQ updated successfully",
+    "deleted": "FAQ deleted successfully",
+    "notFound": "FAQ not found"
   }
 } 

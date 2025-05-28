@@ -21,8 +21,11 @@ export class FaqController {
     description: 'FAQ created successfully',
     type: FaqResponseDto
   })
-  create(@Body() createFaqDto: CreateFaqDto) {
-    return this.faqService.create(createFaqDto);
+  async create(@Body() createFaqDto: CreateFaqDto) {
+    const data = await this.faqService.create(createFaqDto);
+    return {
+      message: 'faq.created'
+    };
   }
 
   @Get()
@@ -32,8 +35,11 @@ export class FaqController {
     description: 'Returns all active FAQs',
     type: FaqListResponseDto
   })
-  findAll() {
-    return this.faqService.findAll();
+  async findAll() {
+    const data = await this.faqService.findAll();
+    return {
+      message: 'common.success'
+    };
   }
 
   @Get(':id')
@@ -43,8 +49,11 @@ export class FaqController {
     description: 'Returns the FAQ',
     type: FaqResponseDto
   })
-  findOne(@Param('id') id: string) {
-    return this.faqService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const data = await this.faqService.findOne(id);
+    return {
+      message: 'common.success'
+    };
   }
 
   @Patch(':id')
@@ -55,8 +64,11 @@ export class FaqController {
     description: 'FAQ updated successfully',
     type: FaqResponseDto
   })
-  update(@Param('id') id: string, @Body() updateFaqDto: UpdateFaqDto) {
-    return this.faqService.update(id, updateFaqDto);
+  async update(@Param('id') id: string, @Body() updateFaqDto: UpdateFaqDto) {
+    const data = await this.faqService.update(id, updateFaqDto);
+    return {
+      message: 'faq.updated'
+    };
   }
 
   @Delete(':id')
@@ -66,7 +78,10 @@ export class FaqController {
     status: 200, 
     description: 'FAQ deleted successfully'
   })
-  remove(@Param('id') id: string) {
-    return this.faqService.remove(id);
+  async remove(@Param('id') id: string) {
+    await this.faqService.remove(id);
+    return {
+      message: 'faq.deleted'
+    };
   }
 } 

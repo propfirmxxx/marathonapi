@@ -27,7 +27,10 @@ export class FaqService {
   async findOne(id: string): Promise<Faq> {
     const faq = await this.faqRepository.findOne({ where: { id } });
     if (!faq) {
-      throw new NotFoundException(`FAQ with ID ${id} not found`);
+      throw new NotFoundException({
+        message: 'faq.notFound',
+        params: { id }
+      });
     }
     return faq;
   }
@@ -41,7 +44,10 @@ export class FaqService {
   async remove(id: string): Promise<void> {
     const result = await this.faqRepository.delete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`FAQ with ID ${id} not found`);
+      throw new NotFoundException({
+        message: 'faq.notFound',
+        params: { id }
+      });
     }
   }
 } 
