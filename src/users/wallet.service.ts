@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { CreateWalletDto } from './dto/wallet.dto';
 import { UpdateWalletDto } from './dto/wallet.dto';
+import { classToPlain, instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class WalletService {
@@ -45,10 +46,12 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  async findAll(userId: number): Promise<Wallet[]> {
-    return await this.walletRepository.find({
-      where: { user: { id: userId } },
+  async findAll(userId: string): Promise<Wallet[]> {
+    const wallets = await this.walletRepository.find({
+      where: { user: { uid: userId } },
     });
+
+    return wallets;
   }
 
   async findOne(userId: number, id: string): Promise<Wallet> {

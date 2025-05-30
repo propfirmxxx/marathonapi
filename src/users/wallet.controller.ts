@@ -31,7 +31,7 @@ export class WalletController {
   })
   @Get()
   findAll(@Req() req: any) {
-    return this.walletService.findAll(req.user.id);
+    return this.walletService.findAll(req.user.uid);
   }
 
   @ApiOperation({ summary: 'Get wallet by ID' })

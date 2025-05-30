@@ -12,7 +12,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   database: process.env.DB_NAME || '',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-  migrationsRun: true,
+  // migrationsRun: true,
   synchronize: process.env.NODE_ENV !== 'production', // Only true in development
   ssl: process.env.DB_SSL === 'true' ? {
     rejectUnauthorized: false
