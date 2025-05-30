@@ -69,6 +69,7 @@ export class TicketsService {
 
     const ticket = this.ticketsRepository.create({
       ...createTicketDto,
+      status: TicketStatus.IN_PROGRESS,
       department,
       createdBy: user,
     });

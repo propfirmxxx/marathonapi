@@ -95,7 +95,7 @@ export class TicketsController {
     @Request() req
   ): Promise<TicketResponseDto> {
     const data = await this.ticketsService.create(createTicketDto, req.user);
-    return data
+    return data;
   }
 
   @ApiOperation({ summary: 'Get all tickets' })
