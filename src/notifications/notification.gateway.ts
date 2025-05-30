@@ -6,6 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Notification } from './entities/notification.entity';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   cors: {
@@ -19,16 +20,18 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
 
   private userSockets: Map<string, Socket[]> = new Map();
 
+  constructor(private readonly jwtService: JwtService) {}
+
   async handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth.token;
-      if (!token) {
+      const payload = this.jwtService.verify(token);
+      if (!token || !payload) {
         client.disconnect();
         return;
       }
 
-      // Store socket connection with user ID
-      const userId = client.handshake.auth.userId;
+      const userId = payload.sub;
       if (!this.userSockets.has(userId)) {
         this.userSockets.set(userId, []);
       }
