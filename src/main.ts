@@ -36,7 +36,7 @@ async function bootstrap() {
   const i18nService = app.get(I18nService);
   app.useGlobalInterceptors(new ResponseInterceptor(i18nService));
 
-  const swaggerPath = process.env.SWAGGER_PATH || 'swagger';
+  const swaggerPath = 'swagger';
 
   const config = new DocumentBuilder()
     .setTitle('Marathon API')
@@ -48,6 +48,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup(swaggerPath, app, document);
   
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();

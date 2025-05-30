@@ -12,18 +12,25 @@ export class I18nService {
   }
 
   private loadTranslations() {
-    const translationsPath = path.join(__dirname, 'translations');
-    const files = fs.readdirSync(translationsPath);
+    const translationsPath = path.join(process.cwd(), 'src', 'i18n', 'translations');
+    
+    try {
+      const files = fs.readdirSync(translationsPath);
 
-    files.forEach((file) => {
-      if (file.endsWith('.json')) {
-        const language = file.replace('.json', '');
-        const content = JSON.parse(
-          fs.readFileSync(path.join(translationsPath, file), 'utf-8'),
-        );
-        this.translations.set(language, content);
-      }
-    });
+      files.forEach((file) => {
+        if (file.endsWith('.json')) {
+          const language = file.replace('.json', '');
+          const content = JSON.parse(
+            fs.readFileSync(path.join(translationsPath, file), 'utf-8'),
+          );
+          this.translations.set(language, content);
+        }
+      });
+    } catch (error) {
+      console.warn('No translations found in:', translationsPath);
+      // Initialize with empty translations
+      this.translations.set(this.defaultLanguage, {});
+    }
   }
 
   translate(key: string, language: string = this.defaultLanguage, params?: Record<string, any>): string {
