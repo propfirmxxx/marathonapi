@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import MetaApi from 'metaapi.cloud-sdk';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { config } from 'dotenv';
-import { MetaTraderAccount } from './entities/meta-trader-account.entity';
+import { MetaTraderAccount, MetaTraderAccountStatus } from './entities/meta-trader-account.entity';
+import { TokyoService } from '@/tokyo/tokyo.service';
 
 config();
 MetaApi.enableLog4jsLogging();
@@ -17,6 +18,7 @@ export class MetaApiService {
   constructor(
     @InjectRepository(MetaTraderAccount)
     private metaTraderAccountRepository: Repository<MetaTraderAccount>,
+    private readonly tokyoService: TokyoService
   ) {
     const token = process.env.META_API_TOKEN;
     if (!token) {
@@ -43,32 +45,21 @@ export class MetaApiService {
 
   async createAccount(createAccountDto: CreateAccountDto, userId: string) {
     try {
-      const account = await this.metaApi.metatraderAccountApi.createAccount({
-        name: createAccountDto.name,
-        login: createAccountDto.login,
-        password: createAccountDto.password,
-        server: createAccountDto.server,
-        platform: 'mt5',
-        magic: 0,
-        region: 'new-york',
-        baseCurrency: 'USD',
-        type: 'cloud-g2',
-        keywords: ["Raw Trading Ltd"],
-        quoteStreamingIntervalInSeconds: 2.5,
-        reliability: 'regular'
-      });
+      const account = await this.tokyoService.createAccount(createAccountDto.login, createAccountDto.masterPassword || createAccountDto.investorPassword, createAccountDto.server);
 
-      // Save the account to our database
+      if (!account) {
+        throw new Error('Account not created');
+      }
+
       const metaTraderAccount = this.metaTraderAccountRepository.create({
-        accountId: account.id,
         name: createAccountDto.name,
         login: createAccountDto.login,
-        password: createAccountDto.password,
+        masterPassword: createAccountDto.masterPassword,
+        investorPassword: createAccountDto.investorPassword,
         server: createAccountDto.server,
         userId,
-        status: 'active',
-        platform: 'mt5',
-        type: 'cloud',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+        platform: 'mt5'
       });
 
       const savedAccount = await this.metaTraderAccountRepository.save(metaTraderAccount);
@@ -117,7 +108,7 @@ export class MetaApiService {
   async validateAccountAccess(uid: string, accountId: string): Promise<boolean> {
     try {
       const account = await this.metaTraderAccountRepository.findOne({
-        where: { accountId, userId: uid },
+        where: { id: accountId, userId: uid },
       });
       return !!account;
     } catch (error) {

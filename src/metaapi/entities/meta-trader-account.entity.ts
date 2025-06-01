@@ -1,12 +1,15 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Check } from 'typeorm';
+
+export enum MetaTraderAccountStatus {
+  DEPLOYED = 'deployed',
+  UNDEPLOYED = 'undeployed'
+}
 
 @Entity('meta_trader_accounts')
+@Check('check_passwords', '("masterPassword" IS NOT NULL) OR ("investorPassword" IS NOT NULL)')
 export class MetaTraderAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column({ unique: true })
-  accountId: string;
 
   @Column()
   name: string;
@@ -14,8 +17,11 @@ export class MetaTraderAccount {
   @Column()
   login: string;
 
-  @Column()
-  password: string;
+  @Column({ nullable: true })
+  masterPassword: string;
+
+  @Column({ nullable: true })
+  investorPassword: string;
 
   @Column()
   server: string;
@@ -24,14 +30,15 @@ export class MetaTraderAccount {
   @Index()
   userId: string;
 
-  @Column({ default: 'active' })
-  status: string;
+  @Column({
+    type: 'enum',
+    enum: MetaTraderAccountStatus,
+    default: MetaTraderAccountStatus.UNDEPLOYED
+  })
+  status: MetaTraderAccountStatus;
 
   @Column({ default: 'mt5' })
   platform: string;
-
-  @Column({ default: 'cloud' })
-  type: string;
 
   @CreateDateColumn()
   createdAt: Date;

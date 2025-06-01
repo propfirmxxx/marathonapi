@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, ValidateIf } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAccountDto {
@@ -12,10 +12,17 @@ export class CreateAccountDto {
   @IsNotEmpty()
   login: string;
 
-  @ApiProperty({ description: 'MetaTrader account password', example: 'password123' })
+  @ApiProperty({ description: 'MetaTrader account master password', example: 'password123' })
   @IsString()
+  @ValidateIf((o) => !o.investorPassword)
   @IsNotEmpty()
-  password: string;
+  masterPassword: string;
+
+  @ApiProperty({ description: 'MetaTrader account investor password', example: 'password123' })
+  @IsString()
+  @ValidateIf((o) => !o.masterPassword)
+  @IsNotEmpty()
+  investorPassword: string;
 
   @ApiProperty({ description: 'MetaTrader server name', example: 'ICMarkets-Demo' })
   @IsString()

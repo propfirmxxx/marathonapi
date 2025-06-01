@@ -13,12 +13,12 @@ export class WalletService {
     private readonly walletRepository: Repository<Wallet>,
   ) {}
 
-  async create(userId: number, createWalletDto: CreateWalletDto): Promise<Wallet> {
+  async create(userId: string, createWalletDto: CreateWalletDto): Promise<Wallet> {
     // Check for existing wallet with same name
     const existingWalletWithName = await this.walletRepository.findOne({
       where: { 
         name: createWalletDto.name,
-        user: { id: userId }
+        user: { uid: userId }
       }
     });
 
@@ -30,7 +30,7 @@ export class WalletService {
     const existingWalletWithAddress = await this.walletRepository.findOne({
       where: { 
         address: createWalletDto.address,
-        user: { id: userId }
+        user: { uid: userId }
       }
     });
 
@@ -40,7 +40,7 @@ export class WalletService {
 
     const wallet = this.walletRepository.create({
       ...createWalletDto,
-      user: { id: userId },
+      user: { uid: userId },
     });
 
     return await this.walletRepository.save(wallet);
@@ -54,9 +54,9 @@ export class WalletService {
     return wallets;
   }
 
-  async findOne(userId: number, id: string): Promise<Wallet> {
+  async findOne(userId: string, id: string): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({
-      where: { id, user: { id: userId } },
+      where: { id, user: { uid: userId } },
     });
 
     if (!wallet) {
@@ -66,7 +66,7 @@ export class WalletService {
     return wallet;
   }
 
-  async update(userId: number, id: string, updateWalletDto: UpdateWalletDto): Promise<Wallet> {
+  async update(userId: string, id: string, updateWalletDto: UpdateWalletDto): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
     if (!wallet) {
@@ -77,7 +77,7 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  async remove(userId: number, id: string): Promise<void> {
+  async remove(userId: string, id: string): Promise<void> {
     const wallet = await this.findOne(userId, id);
 
     if (wallet.isActive) {
@@ -87,7 +87,7 @@ export class WalletService {
     await this.walletRepository.remove(wallet);
   }
 
-  async activateWallet(userId: number, id: string): Promise<Wallet> {
+  async activateWallet(userId: string, id: string): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
     if (!wallet) {
@@ -98,7 +98,7 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  async deactivateWallet(userId: number, id: string): Promise<Wallet> {
+  async deactivateWallet(userId: string, id: string): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
     if (!wallet) {
@@ -109,9 +109,9 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  async getActiveWallets(userId: number): Promise<Wallet[]> {
+  async getActiveWallets(userId: string): Promise<Wallet[]> {
     return await this.walletRepository.find({
-      where: { user: { id: userId }, isActive: true },
+      where: { user: { uid: userId }, isActive: true },
     });
   }
 } 
