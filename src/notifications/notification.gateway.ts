@@ -6,6 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Notification } from './entities/notification.entity';
+import { User } from '../users/entities/user.entity';
 
 @WebSocketGateway({
   cors: {
@@ -20,34 +21,27 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   private userSockets: Map<string, Socket[]> = new Map();
 
   async handleConnection(client: Socket) {
-    try {
-      const token = client.handshake.auth.token;
-      if (!token) {
-        client.disconnect();
-        return;
+    const user = client.handshake.auth.user;
+    if (user) {
+      if (!this.userSockets.has(user.id)) {
+        this.userSockets.set(user.id, []);
       }
-
-      // Store socket connection with user ID
-      const userId = client.handshake.auth.userId;
-      if (!this.userSockets.has(userId)) {
-        this.userSockets.set(userId, []);
-      }
-      this.userSockets.get(userId).push(client);
-    } catch (error) {
-      client.disconnect();
+      this.userSockets.get(user.id).push(client);
     }
   }
 
-  handleDisconnect(client: Socket) {
-    const userId = client.handshake.auth.userId;
-    if (this.userSockets.has(userId)) {
-      const sockets = this.userSockets.get(userId);
-      const index = sockets.indexOf(client);
-      if (index > -1) {
-        sockets.splice(index, 1);
-      }
-      if (sockets.length === 0) {
-        this.userSockets.delete(userId);
+  async handleDisconnect(client: Socket) {
+    const user = client.handshake.auth.user;
+    if (user) {
+      const sockets = this.userSockets.get(user.id);
+      if (sockets) {
+        const index = sockets.indexOf(client);
+        if (index > -1) {
+          sockets.splice(index, 1);
+        }
+        if (sockets.length === 0) {
+          this.userSockets.delete(user.id);
+        }
       }
     }
   }
@@ -59,14 +53,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
       this.server.emit('notification', notification);
     } else {
       // Send to specific recipients
-      notification.recipients.forEach(recipient => {
-        const userSockets = this.userSockets.get(recipient.uid);
-        if (userSockets) {
-          userSockets.forEach(socket => {
-            socket.emit('notification', notification);
-          });
-        }
-      });
+      for (const recipient of notification.recipients) {
+        await this.sendNotificationToUser(recipient.id, notification);
+      }
     }
   }
 
@@ -74,9 +63,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   async sendNotificationToUser(userId: string, notification: Notification) {
     const userSockets = this.userSockets.get(userId);
     if (userSockets) {
-      userSockets.forEach(socket => {
+      for (const socket of userSockets) {
         socket.emit('notification', notification);
-      });
+      }
     }
   }
 } 

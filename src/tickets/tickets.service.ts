@@ -147,10 +147,11 @@ export class TicketsService {
     const ticket = await this.findOne(ticketId);
     
     const systemUser = user.role === UserRole.ADMIN ? 
-      await this.usersRepository.findOne({ where: { uid: 'system' } }) || 
+      await this.usersRepository.findOne({ where: { id: 'system' } }) || 
       this.usersRepository.create({
-        uid: 'system',
-        email: 'trading@marathon.com',
+        id: 'system',
+        email: 'system@example.com',
+        password: 'system',
         role: UserRole.ADMIN
       }) : user;
 
@@ -177,5 +178,24 @@ export class TicketsService {
 
     ticket.status = TicketStatus.CLOSED;
     return this.ticketsRepository.save(ticket);
+  }
+
+  async createSystemTicket(title: string, message: string): Promise<Ticket> {
+    const systemUser = await this.usersRepository.findOne({ where: { id: 'system' } }) ||
+      await this.usersRepository.save({
+        id: 'system',
+        email: 'system@example.com',
+        password: 'system',
+        role: UserRole.ADMIN,
+      });
+
+    const ticket = this.ticketsRepository.create({
+      title,
+      description: message,
+      status: TicketStatus.OPEN,
+      createdBy: systemUser,
+    });
+
+    return await this.ticketsRepository.save(ticket);
   }
 } 

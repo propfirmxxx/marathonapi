@@ -1,10 +1,12 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import { Marathon } from '../marathon/entities/marathon.entity';
+import { Payment } from './entities/payment.entity';
+import { PaymentStatus } from './enums/payment-status.enum';
 
 @Injectable()
 export class PaymentService {
@@ -17,55 +19,32 @@ export class PaymentService {
     private readonly participantRepository: Repository<MarathonParticipant>,
     @InjectRepository(Marathon)
     private readonly marathonRepository: Repository<Marathon>,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
   ) {
     this.nowPaymentsApiKey = this.configService.get<string>('NOWPAYMENTS_API_KEY');
     this.nowPaymentsApiUrl = this.configService.get<string>('NOWPAYMENTS_API_URL', 'https://api.nowpayments.io/v1');
   }
 
-  async createPayment(marathonId: string, userId: string): Promise<{ paymentUrl: string }> {
-    const marathon = await this.marathonRepository.findOne({ where: { id: marathonId } });
-    if (!marathon) {
-      throw new BadRequestException('Marathon not found');
-    }
-
-    const existingParticipant = await this.participantRepository.findOne({
+  async createPayment(userId: string, amount: number): Promise<Payment> {
+    const existingPayment = await this.paymentRepository.findOne({
       where: {
-        marathon: { id: marathonId },
-        user: { id: parseInt(userId, 10) },
+        user: { id: userId },
+        status: PaymentStatus.PENDING,
       },
     });
 
-    if (existingParticipant) {
-      throw new BadRequestException('User is already participating in this marathon');
+    if (existingPayment) {
+      throw new ConflictException('User already has a pending payment');
     }
 
-    try {
-      const response = await axios.post(
-        `${this.nowPaymentsApiUrl}/payment`,
-        {
-          price_amount: marathon.entryFee,
-          price_currency: 'usd',
-          pay_currency: 'btc', // You can make this configurable
-          order_id: `marathon-${marathonId}-user-${userId}`,
-          order_description: `Entry fee for marathon: ${marathon.name}`,
-          ipn_callback_url: `${this.configService.get('API_URL')}/payment/webhook`,
-          success_url: `${this.configService.get('FRONTEND_URL')}/marathon/${marathonId}/success`,
-          cancel_url: `${this.configService.get('FRONTEND_URL')}/marathon/${marathonId}/cancel`,
-        },
-        {
-          headers: {
-            'x-api-key': this.nowPaymentsApiKey,
-          },
-        },
-      );
+    const payment = this.paymentRepository.create({
+      user: { id: userId },
+      amount,
+      status: PaymentStatus.PENDING,
+    });
 
-      return {
-        paymentUrl: response.data.invoice_url,
-      };
-    } catch (error) {
-      console.error('Error creating payment:', error.response?.data || error.message);
-      throw new BadRequestException('Failed to create payment');
-    }
+    return await this.paymentRepository.save(payment);
   }
 
   async handleWebhook(paymentData: any): Promise<void> {
@@ -79,7 +58,7 @@ export class PaymentService {
     
     const participant = this.participantRepository.create({
       marathon: { id: marathonId },
-      user: { id: parseInt(userId, 10) },
+      user: { id: userId },
       isActive: true,
     });
 

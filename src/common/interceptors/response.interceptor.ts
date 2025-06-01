@@ -19,7 +19,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
       map(data => {
         const response = data
 
-        if(response.message) {
+        if(response &&response.message) {
           response.message = this.i18nService.translate(response.message, language, response.params);
         }
 

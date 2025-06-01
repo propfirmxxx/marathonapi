@@ -18,7 +18,7 @@ export class WalletService {
     const existingWalletWithName = await this.walletRepository.findOne({
       where: { 
         name: createWalletDto.name,
-        user: { uid: userId }
+        user: { id: userId }
       }
     });
 
@@ -30,7 +30,7 @@ export class WalletService {
     const existingWalletWithAddress = await this.walletRepository.findOne({
       where: { 
         address: createWalletDto.address,
-        user: { uid: userId }
+        user: { id: userId }
       }
     });
 
@@ -40,7 +40,7 @@ export class WalletService {
 
     const wallet = this.walletRepository.create({
       ...createWalletDto,
-      user: { uid: userId },
+      user: { id: userId },
     });
 
     return await this.walletRepository.save(wallet);
@@ -48,7 +48,7 @@ export class WalletService {
 
   async findAll(userId: string): Promise<Wallet[]> {
     const wallets = await this.walletRepository.find({
-      where: { user: { uid: userId } },
+      where: { user: { id: userId } },
     });
 
     return wallets;
@@ -56,7 +56,7 @@ export class WalletService {
 
   async findOne(userId: string, id: string): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({
-      where: { id, user: { uid: userId } },
+      where: { id, user: { id: userId } },
     });
 
     if (!wallet) {
@@ -77,7 +77,7 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  async remove(userId: string, id: string): Promise<void> {
+  async remove(userId: string, id: string): Promise<{ message: string }> {
     const wallet = await this.findOne(userId, id);
 
     if (wallet.isActive) {
@@ -85,6 +85,10 @@ export class WalletService {
     }
 
     await this.walletRepository.remove(wallet);
+
+    return {
+      message: 'Wallet deleted successfully',
+    }
   }
 
   async activateWallet(userId: string, id: string): Promise<Wallet> {
@@ -111,7 +115,7 @@ export class WalletService {
 
   async getActiveWallets(userId: string): Promise<Wallet[]> {
     return await this.walletRepository.find({
-      where: { user: { uid: userId }, isActive: true },
+      where: { user: { id: userId }, isActive: true },
     });
   }
 } 

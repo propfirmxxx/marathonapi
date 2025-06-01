@@ -25,16 +25,16 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @ApiOperation({ summary: 'Get user by UID' })
+  @ApiOperation({ summary: 'Get user by ID' })
   @ApiResponse({ 
     status: 200, 
     description: 'Returns the user',
     type: UserResponseDto
   })
-  @ApiParam({ name: 'uid', description: 'User UID' })
-  @Get(':uid')
-  findOne(@Param('uid') uid: string) {
-    return this.usersService.findOne(uid);
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   @ApiOperation({ summary: 'Update user' })
@@ -43,12 +43,12 @@ export class UsersController {
     description: 'User updated successfully',
     type: UserResponseDto
   })
-  @ApiParam({ name: 'uid', description: 'User UID' })
+  @ApiParam({ name: 'id', description: 'User ID' })
   @ApiBody({ type: UpdateUserDto })
-  @Patch(':uid')
+  @Patch(':id')
   @UseGuards(AdminGuard)
-  update(@Param('uid') uid: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(uid, updateUserDto);
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
   }
 
   @ApiOperation({ summary: 'Delete user' })
@@ -57,10 +57,10 @@ export class UsersController {
     description: 'User deleted successfully',
     type: DeleteUserResponseDto
   })
-  @ApiParam({ name: 'uid', description: 'User UID' })
-  @Delete(':uid')
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @Delete(':id')
   @UseGuards(AdminGuard)
-  remove(@Param('uid') uid: string) {
-    return this.usersService.remove(uid);
+  remove(@Param('id') id: string) {
+    return this.usersService.remove(id);
   }
 } 

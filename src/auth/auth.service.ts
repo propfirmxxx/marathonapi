@@ -108,7 +108,7 @@ export class AuthService {
     });
     await this.profileRepository.save(profile);
 
-    return this.generateToken(user);
+    return this.generateTokens(user);
   }
 
   async login(loginDto: LoginDto): Promise<any> {
@@ -121,7 +121,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.generateToken(user);
+    return this.generateTokens(user);
   }
 
   async handleOAuthCode(code: string) {
@@ -140,7 +140,7 @@ export class AuthService {
 
       const user = await this.googleLogin(userInfo);
 
-      return this.generateToken(user);
+      return this.generateTokens(user);
     } catch (err) {
       console.error('OAuth Error:', err.response?.data || err.message);
       throw new UnauthorizedException('Google login failed');
@@ -195,22 +195,22 @@ export class AuthService {
     return user;
   }
 
-  private generateToken(user: User) {
-    const accessTokenPayload = { 
-      sub: user.uid,
+  private generateTokens(user: User) {
+    const payload = {
+      type: 'access',
+      sub: user.id,
       email: user.email,
       role: user.role,
-      type: 'access'
     };
 
-    const refreshTokenPayload = {
-      sub: user.uid,
-      type: 'refresh'
+    const refreshPayload = {
+      type: 'refresh',
+      sub: user.id,
     };
 
     return {
-      access_token: this.jwtService.sign(accessTokenPayload, { expiresIn: '15m' }),
-      refresh_token: this.jwtService.sign(refreshTokenPayload, { expiresIn: '7d' })
+      access_token: this.jwtService.sign(payload, { expiresIn: '15m' }),
+      refresh_token: this.jwtService.sign(refreshPayload, { expiresIn: '7d' })
     };
   }
 
@@ -231,7 +231,7 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      return this.generateToken(user);
+      return this.generateTokens(user);
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
     }

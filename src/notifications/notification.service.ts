@@ -73,7 +73,7 @@ export class NotificationService {
       throw new NotFoundException('Notification not found');
     }
 
-    const user = await this.userRepository.findOne({ where: { uid: userId } });
+    const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -125,17 +125,17 @@ export class NotificationService {
     );
   }
 
-  async getUnreadCount(uid: string): Promise<number> {
+  async getUnreadCount(id: string): Promise<number> {
     return this.notificationRepository
       .createQueryBuilder('notification')
       .leftJoin('notification.recipients', 'recipients')
       .leftJoin('notification.readBy', 'readBy')
-      .where('(notification.scope = :broadcast OR recipients.uid = :uid)', {
+      .where('(notification.scope = :broadcast OR recipients.id = :id)', {
         broadcast: NotificationScope.BROADCAST,
-        uid,
+        id,
       })
       .andWhere('notification.deletedAt IS NULL')
-      .andWhere('readBy.uid IS NULL')
+      .andWhere('readBy.id IS NULL')
       .getCount();
   }
 } 

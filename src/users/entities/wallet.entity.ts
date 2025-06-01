@@ -22,7 +22,7 @@ export class Wallet {
   isActive: boolean;
 
   @ManyToOne(() => User, user => user.wallets)
-  @JoinColumn({ name: 'user_uid' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
   @CreateDateColumn()
