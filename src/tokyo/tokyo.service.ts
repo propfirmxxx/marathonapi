@@ -1,7 +1,7 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import axios from 'axios';
 
 @Injectable()
 export class TokyoService {
@@ -11,35 +11,24 @@ export class TokyoService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    this.baseUrl = this.configService.get<string>('TOKYO_SERVICE_BASE_URL');
+    this.baseUrl = process.env.TOKYO_SERVICE_BASE_URL;
   }
 
   async createAccount(login: string, password: string, server: string) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/account`, {
-          login,
-          password,
-          server,
-        }),
-      );
-
-      return response.data;
-    } catch (error) {
-      throw new HttpException(
-        error.response?.data?.message || 'Failed to create account in Tokyo service',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    const response = await axios.post(`${this.baseUrl}/account`, {
+      login,
+      password,
+      server,
+    });
+    console.log(response)
+    return response.data;
   }
 
   async deployAccount(login: string) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/deploy`, {
-          login,
-        }),
-      );
+      const response = await axios.post(`${this.baseUrl}/deploy`, {
+        login,
+      });
 
       return response.data;
     } catch (error) {
@@ -52,11 +41,9 @@ export class TokyoService {
 
   async undeployAccount(login: string) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.baseUrl}/undeploy`, {
-          login,
-        }),
-      );
+      const response = await axios.post(`${this.baseUrl}/undeploy`, {
+        login,
+      });
 
       return response.data;
     } catch (error) {

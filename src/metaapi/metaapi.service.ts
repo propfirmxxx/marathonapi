@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import MetaApi from 'metaapi.cloud-sdk';
@@ -45,10 +45,10 @@ export class MetaApiService {
 
   async createAccount(createAccountDto: CreateAccountDto, userId: string) {
     try {
-      const account = await this.tokyoService.createAccount(createAccountDto.login, createAccountDto.masterPassword || createAccountDto.investorPassword, createAccountDto.server);
+      const response = await this.tokyoService.createAccount(createAccountDto.login, createAccountDto.masterPassword || createAccountDto.investorPassword, createAccountDto.server);
 
-      if (!account) {
-        throw new Error('Account not created');
+      if (response.status === 'error') {
+        throw new InternalServerErrorException('Something went wrong');
       }
 
       const metaTraderAccount = this.metaTraderAccountRepository.create({
@@ -57,7 +57,7 @@ export class MetaApiService {
         masterPassword: createAccountDto.masterPassword,
         investorPassword: createAccountDto.investorPassword,
         server: createAccountDto.server,
-        userId,
+        userId: userId,
         status: MetaTraderAccountStatus.UNDEPLOYED,
         platform: 'mt5'
       });
@@ -66,7 +66,7 @@ export class MetaApiService {
 
       return savedAccount;
     } catch (error) {
-      this.logger.error('Error creating MetaAPI account:', error);
+      this.logger.error('Error creating account:', error);
       throw error;
     }
   }

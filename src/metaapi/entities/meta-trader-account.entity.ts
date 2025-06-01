@@ -5,7 +5,7 @@ export enum MetaTraderAccountStatus {
   UNDEPLOYED = 'undeployed'
 }
 
-@Entity('meta_trader_accounts')
+@Entity('metatrader_accounts')
 @Check('check_passwords', '("masterPassword" IS NOT NULL) OR ("investorPassword" IS NOT NULL)')
 export class MetaTraderAccount {
   @PrimaryGeneratedColumn('uuid')
