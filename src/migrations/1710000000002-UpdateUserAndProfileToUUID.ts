@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class UpdateUserAndProfileToUUID1710000000001 implements MigrationInterface {
-  name = 'UpdateUserAndProfileToUUID1710000000001';
+export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterface {
+  name = 'UpdateUserAndProfileToUUID1710000000002';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Drop all foreign key constraints that reference users.id
