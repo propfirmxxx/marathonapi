@@ -36,6 +36,9 @@ export class Profile {
   @Column({ nullable: true })
   telegramUrl: string;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  balance: number;
+
   @Column({ type: 'uuid' })
   userId: string;
 

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from './entities/profile.entity';
@@ -38,6 +38,7 @@ export class ProfileService {
         createdAt: true,
         updatedAt: true,
         userId: true,
+        balance: true,
         user: {
           id: true,
           email: true,
@@ -122,5 +123,60 @@ export class ProfileService {
     await this.userRepository.save(user);
 
     return { message: 'Password changed successfully' };
+  }
+
+  async getBalance(id: string): Promise<{ balance: number }> {
+    const profile = await this.profileRepository.findOne({
+      where: { user: { id } },
+      select: ['balance']
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    return { balance: profile.balance };
+  }
+
+  async addBalance(id: string, amount: number): Promise<{ balance: number }> {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    const profile = await this.profileRepository.findOne({
+      where: { user: { id } }
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    profile.balance = Number(profile.balance) + amount;
+    await this.profileRepository.save(profile);
+
+    return { balance: profile.balance };
+  }
+
+  async subtractBalance(id: string, amount: number): Promise<{ balance: number }> {
+    if (amount <= 0) {
+      throw new BadRequestException('Amount must be greater than 0');
+    }
+
+    const profile = await this.profileRepository.findOne({
+      where: { user: { id } }
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    if (Number(profile.balance) < amount) {
+      throw new BadRequestException('Insufficient balance');
+    }
+
+    profile.balance = Number(profile.balance) - amount;
+    await this.profileRepository.save(profile);
+
+    return { balance: profile.balance };
   }
 } 
