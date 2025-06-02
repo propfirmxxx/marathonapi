@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { Notification, NotificationType, NotificationScope } from './entities/notification.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationGateway } from './notification.gateway';
+import { QueryBuilder } from 'typeorm';
 
 @Injectable()
 export class NotificationService {
@@ -48,8 +49,10 @@ export class NotificationService {
   async getNotifications(userId: string): Promise<Notification[]> {
     return this.notificationRepository
       .createQueryBuilder('notification')
-      .leftJoinAndSelect('notification.recipients', 'recipients')
-      .leftJoinAndSelect('notification.readBy', 'readBy')
+      .leftJoin('notification.recipients', 'recipients')
+      .leftJoin('notification.readBy', 'readBy')
+      .addSelect('EXISTS (SELECT 1 FROM notification_read_by WHERE notification_id = notification.id AND user_id = :userId)', 'notification_isRead')
+      .setParameter('userId', userId)
       .where('notification.scope = :broadcast', { broadcast: NotificationScope.BROADCAST })
       .orWhere('recipients.id = :userId', { userId })
       .andWhere('notification.deletedAt IS NULL')
@@ -137,5 +140,44 @@ export class NotificationService {
       .andWhere('notification.deletedAt IS NULL')
       .andWhere('readBy.id IS NULL')
       .getCount();
+  }
+
+  async markMultipleAsRead(notificationIds: string[], userId: string): Promise<Notification[]> {
+    const notifications = await this.notificationRepository
+      .createQueryBuilder('notification')
+      .leftJoinAndSelect('notification.recipients', 'recipients')
+      .leftJoinAndSelect('notification.readBy', 'readBy')
+      .where('notification.id IN (:...notificationIds)', { notificationIds })
+      .andWhere('(notification.scope = :broadcast OR recipients.id = :userId)', {
+        broadcast: NotificationScope.BROADCAST,
+        userId,
+      })
+      .getMany();
+
+    if (notifications.length !== notificationIds.length) {
+      throw new NotFoundException('One or more notifications not found');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updatedNotifications = await Promise.all(
+      notifications.map(async (notification) => {
+        if (!notification.readBy) {
+          notification.readBy = [];
+        }
+        if (!notification.readBy.some(reader => reader.id === userId)) {
+          notification.readBy.push(user);
+        }
+        const updated = await this.notificationRepository.save(notification);
+        // Notify about read status
+        await this.notificationGateway.sendNotificationToUser(userId, updated);
+        return updated;
+      })
+    );
+
+    return updatedNotifications;
   }
 } 

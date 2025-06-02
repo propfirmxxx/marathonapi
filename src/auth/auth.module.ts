@@ -15,6 +15,8 @@ import { EmailService } from '../email/email.service';
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { Profile } from '../profile/entities/profile.entity';
+import { NotificationModule } from '../notifications/notification.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, EmailVerification, PasswordReset, Profile]),
@@ -30,6 +32,7 @@ import { Profile } from '../profile/entities/profile.entity';
       inject: [ConfigService],
     }),
     EmailModule,
+    NotificationModule,
   ],
   providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy, AuthGuard, AdminGuard],
   controllers: [AuthController],
