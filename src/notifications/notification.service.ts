@@ -138,4 +138,43 @@ export class NotificationService {
       .andWhere('readBy.id IS NULL')
       .getCount();
   }
+
+  async markMultipleAsRead(notificationIds: string[], userId: string): Promise<Notification[]> {
+    const notifications = await this.notificationRepository
+      .createQueryBuilder('notification')
+      .leftJoinAndSelect('notification.recipients', 'recipients')
+      .leftJoinAndSelect('notification.readBy', 'readBy')
+      .where('notification.id IN (:...notificationIds)', { notificationIds })
+      .andWhere('(notification.scope = :broadcast OR recipients.id = :userId)', {
+        broadcast: NotificationScope.BROADCAST,
+        userId,
+      })
+      .getMany();
+
+    if (notifications.length !== notificationIds.length) {
+      throw new NotFoundException('One or more notifications not found');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updatedNotifications = await Promise.all(
+      notifications.map(async (notification) => {
+        if (!notification.readBy) {
+          notification.readBy = [];
+        }
+        if (!notification.readBy.some(reader => reader.id === userId)) {
+          notification.readBy.push(user);
+        }
+        const updated = await this.notificationRepository.save(notification);
+        // Notify about read status
+        await this.notificationGateway.sendNotificationToUser(userId, updated);
+        return updated;
+      })
+    );
+
+    return updatedNotifications;
+  }
 } 

@@ -7,6 +7,8 @@ import { EmailVerification } from '../users/entities/email-verification.entity';
 import { PasswordReset } from '../users/entities/password-reset.entity';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../users/dto/auth.dto';
 import { EmailService } from '../email/email.service';
+import { NotificationService } from '../notifications/notification.service';
+import { NotificationType, NotificationScope } from '../notifications/entities/notification.entity';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { Profile } from '@/profile/entities/profile.entity';
@@ -24,6 +26,7 @@ export class AuthService {
     private readonly profileRepository: Repository<Profile>,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async initiateRegistration(email: string) {
@@ -107,6 +110,15 @@ export class AuthService {
       lastName: registerDto.lastName
     });
     await this.profileRepository.save(profile);
+
+    // Send welcome notification
+    await this.notificationService.createNotification(
+      'Welcome to Our Platform!',
+      `Welcome ${registerDto.firstName}! We're excited to have you join our community.`,
+      NotificationType.INFO,
+      NotificationScope.SPECIFIC,
+      [user.id]
+    );
 
     return this.generateTokens(user);
   }
