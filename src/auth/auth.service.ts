@@ -119,7 +119,6 @@ export class AuthService {
       NotificationScope.SPECIFIC,
       [user.id]
     );
-
     return this.generateTokens(user);
   }
 
