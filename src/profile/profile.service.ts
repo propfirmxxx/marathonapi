@@ -19,9 +19,9 @@ export class ProfileService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async getProfile(uid: string): Promise<Profile & { unreadNotificationsCount: number }> {
+  async getProfile(id: string): Promise<Profile & { unreadNotificationsCount: number }> {
     const profile = await this.profileRepository.findOne({
-      where: { user: { uid } },
+      where: { user: { id } },
       relations: ['user'],
       select: {
         id: true,
@@ -39,7 +39,7 @@ export class ProfileService {
         updatedAt: true,
         userId: true,
         user: {
-          uid: true,
+          id: true,
           email: true,
           role: true
         }
@@ -50,7 +50,7 @@ export class ProfileService {
       throw new NotFoundException('Profile not found');
     }
 
-    const unreadNotificationsCount = await this.notificationService.getUnreadCount(uid);
+    const unreadNotificationsCount = await this.notificationService.getUnreadCount(id);
 
     return {
       ...profile,
@@ -103,9 +103,9 @@ export class ProfileService {
     return { message: 'Avatar deleted successfully' };
   }
 
-  async changePassword(uid: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
+  async changePassword(id: string, changePasswordDto: ChangePasswordDto): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({
-      where: { uid },
+      where: { id },
       select: ['id', 'password']
     });
 

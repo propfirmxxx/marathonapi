@@ -36,7 +36,7 @@ export class MetaApiController {
   })
   @ApiBody({ type: CreateAccountDto })
   @Post('accounts')
-  @UseGuards(AdminGuard)
+  // @UseGuards(AdminGuard)
   async createAccount(@Body() createAccountDto: CreateAccountDto, @Request() req) {
     return this.metaApiService.createAccount(createAccountDto, req.user.id);
   }

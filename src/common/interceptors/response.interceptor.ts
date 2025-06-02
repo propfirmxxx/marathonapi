@@ -17,10 +17,11 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
 
     return next.handle().pipe(
       map(data => {
-        const response = {
-          ...data,
-          ...(data.message && {message: this.i18nService.translate(data.message, language, data.params)})
-        };
+        const response = data
+
+        if(response &&response.message) {
+          response.message = this.i18nService.translate(response.message, language, response.params);
+        }
 
         return response;
       }),

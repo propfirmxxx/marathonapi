@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Marathon } from './entities/marathon.entity';
@@ -52,36 +52,25 @@ export class MarathonService {
     }
   }
 
-  async joinMarathon(marathonId: string, userId: string): Promise<MarathonParticipant> {
-    const marathon = await this.findOne(marathonId);
-    
-    if (marathon.currentPlayers >= marathon.maxPlayers) {
-      throw new Error('Marathon is full');
-    }
-
-    if (!marathon.isActive) {
-      throw new Error('Marathon is not active');
-    }
-
+  async joinMarathon(userId: string, marathonId: string): Promise<MarathonParticipant> {
+    // Check if user is already a participant
     const existingParticipant = await this.participantRepository.findOne({
       where: {
         marathon: { id: marathonId },
-        user: { id: parseInt(userId, 10) },
+        user: { id: userId },
       },
     });
 
     if (existingParticipant) {
-      throw new Error('User is already participating in this marathon');
+      throw new ConflictException('User is already a participant in this marathon');
     }
 
+    // Create new participant
     const participant = this.participantRepository.create({
       marathon: { id: marathonId },
-      user: { id: parseInt(userId, 10) },
+      user: { id: userId },
       isActive: true,
     });
-
-    marathon.currentPlayers += 1;
-    await this.marathonRepository.save(marathon);
 
     return await this.participantRepository.save(participant);
   }

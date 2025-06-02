@@ -31,7 +31,7 @@ export class WalletController {
   })
   @Get()
   findAll(@Req() req: any) {
-    return this.walletService.findAll(req.user.id);
+    return this.walletService.findAll(req.user.uid);
   }
 
   @ApiOperation({ summary: 'Get wallet by ID' })
@@ -67,7 +67,7 @@ export class WalletController {
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Delete(':id')
   remove(@Req() req: any, @Param('id') id: string) {
-    return this.walletService.remove(req.user.id, id);
+    return this.walletService.remove(req.user.uid, id);
   }
 
   @ApiOperation({ summary: 'Set active wallet' })

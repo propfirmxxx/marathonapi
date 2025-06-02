@@ -1,5 +1,5 @@
+import { MarathonParticipant } from '@/marathon/entities/marathon-participant.entity';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from 'typeorm';
-import { MarathonParticipant } from '../../marathon/entities/marathon-participant.entity';
 
 @Entity('metaapi_accounts')
 export class Account {

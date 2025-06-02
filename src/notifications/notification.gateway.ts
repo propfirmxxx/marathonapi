@@ -6,6 +6,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Notification } from './entities/notification.entity';
+import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
@@ -41,16 +42,18 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
     }
   }
 
-  handleDisconnect(client: Socket) {
-    const userId = client.handshake.auth.userId;
-    if (this.userSockets.has(userId)) {
-      const sockets = this.userSockets.get(userId);
-      const index = sockets.indexOf(client);
-      if (index > -1) {
-        sockets.splice(index, 1);
-      }
-      if (sockets.length === 0) {
-        this.userSockets.delete(userId);
+  async handleDisconnect(client: Socket) {
+    const user = client.handshake.auth.user;
+    if (user) {
+      const sockets = this.userSockets.get(user.id);
+      if (sockets) {
+        const index = sockets.indexOf(client);
+        if (index > -1) {
+          sockets.splice(index, 1);
+        }
+        if (sockets.length === 0) {
+          this.userSockets.delete(user.id);
+        }
       }
     }
   }
@@ -62,14 +65,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
       this.server.emit('notification', notification);
     } else {
       // Send to specific recipients
-      notification.recipients.forEach(recipient => {
-        const userSockets = this.userSockets.get(recipient.uid);
-        if (userSockets) {
-          userSockets.forEach(socket => {
-            socket.emit('notification', notification);
-          });
-        }
-      });
+      for (const recipient of notification.recipients) {
+        await this.sendNotificationToUser(recipient.id, notification);
+      }
     }
   }
 
@@ -77,9 +75,9 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
   async sendNotificationToUser(userId: string, notification: Notification) {
     const userSockets = this.userSockets.get(userId);
     if (userSockets) {
-      userSockets.forEach(socket => {
+      for (const socket of userSockets) {
         socket.emit('notification', notification);
-      });
+      }
     }
   }
 } 
