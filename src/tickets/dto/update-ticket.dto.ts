@@ -8,10 +8,6 @@ export class UpdateTicketDto {
 
   @IsString()
   @IsOptional()
-  description?: string;
-
-  @IsString()
-  @IsOptional()
   category?: string;
 
   @IsUUID()

@@ -9,13 +9,13 @@ import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('FAQ')
 @ApiBearerAuth()
-@UseGuards(AuthGuard('jwt'))
 @Controller('faq')
 export class FaqController {
   constructor(private readonly faqService: FaqService) {}
 
   @Post()
   @UseGuards(AdminGuard)
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a new FAQ' })
   @ApiResponse({ 
     status: 201, 
@@ -43,23 +43,9 @@ export class FaqController {
     };
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get FAQ by ID' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Returns the FAQ',
-    type: FaqResponseDto
-  })
-  async findOne(@Param('id') id: string) {
-    const data = await this.faqService.findOne(id);
-    return {
-      message: 'common.success'
-    };
-  }
-
   @Patch(':id')
   @UseGuards(AdminGuard)
-  @ApiOperation({ summary: 'Update FAQ' })
+  @UseGuards(AuthGuard('jwt'))  @ApiOperation({ summary: 'Update FAQ' })
   @ApiResponse({ 
     status: 200, 
     description: 'FAQ updated successfully',
@@ -74,7 +60,7 @@ export class FaqController {
 
   @Delete(':id')
   @UseGuards(AdminGuard)
-  @ApiOperation({ summary: 'Delete FAQ' })
+  @UseGuards(AuthGuard('jwt'))  @ApiOperation({ summary: 'Delete FAQ' })
   @ApiResponse({ 
     status: 200, 
     description: 'FAQ deleted successfully'

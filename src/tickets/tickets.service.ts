@@ -1,16 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Ticket, TicketStatus } from './entities/ticket.entity';
-import { TicketMessage } from './entities/ticket-message.entity';
-import { Department } from './entities/department.entity';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketDto } from './dto/update-ticket.dto';
-import { CreateTicketMessageDto } from './dto/create-ticket-message.dto';
-import { CreateDepartmentDto } from './dto/create-department.dto';
-import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { User, UserRole } from '../users/entities/user.entity';
+import { CreateDepartmentDto } from './dto/create-department.dto';
+import { CreateTicketMessageDto } from './dto/create-ticket-message.dto';
+import { CreateTicketDto } from './dto/create-ticket.dto';
+import { TicketMessageResponseDto, UserSystemEnum } from './dto/ticket-message-response.dto';
 import { TicketResponseDto } from './dto/ticket-response.dto';
+import { UpdateDepartmentDto } from './dto/update-department.dto';
+import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { Department } from './entities/department.entity';
+import { TicketMessage } from './entities/ticket-message.entity';
+import { Ticket, TicketStatus } from './entities/ticket.entity';
+import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 
 @Injectable()
 export class TicketsService {
@@ -58,7 +60,34 @@ export class TicketsService {
   }
 
   // Ticket methods
-  async create(createTicketDto: CreateTicketDto, user: User): Promise<Ticket> {
+  mapTicketToResponseDto(ticket: Ticket, department: Department, firstMessage?: TicketMessage): TicketResponseDto {
+    const response = new TicketResponseDto();
+    response.id = ticket.id;
+    response.title = ticket.title;
+    response.status = ticket.status;
+    response.priority = ticket.priority;
+    response.department = {
+      id: department.id,
+      name: department.name,
+      description: department.description,
+      isActive: department.isActive,
+      createdAt: department.createdAt,
+      updatedAt: department.updatedAt
+    };
+    response.createdBy = UserSystemEnum.USER;
+    response.messages = firstMessage ? [{
+      id: firstMessage.id,
+      content: firstMessage.content,
+      createdAt: firstMessage.createdAt,
+      createdBy: UserSystemEnum.USER
+    }] : [];
+    response.createdAt = ticket.createdAt;
+    response.updatedAt = ticket.updatedAt;
+    response.resolvedAt = ticket.resolvedAt;
+    return response;
+  }
+
+  async create(createTicketDto: CreateTicketDto, user: User): Promise<TicketResponseDto> {
     const department = await this.departmentsRepository.findOne({
       where: { id: createTicketDto.departmentId },
     });
@@ -67,14 +96,25 @@ export class TicketsService {
       throw new NotFoundException('Department not found');
     }
 
-    const ticket = this.ticketsRepository.create({
+    // Create and save the ticket entity
+    const ticketEntity = this.ticketsRepository.create({
       ...createTicketDto,
       status: TicketStatus.IN_PROGRESS,
       department,
       createdBy: user,
     });
+    const savedTicket = await this.ticketsRepository.save(ticketEntity);
 
-    return this.ticketsRepository.save(ticket);
+    // Create and save the first message entity
+    const messageEntity = this.ticketMessagesRepository.create({
+      ticket: savedTicket,
+      createdBy: user,
+      content: createTicketDto.title,
+    });
+    const savedMessage = await this.ticketMessagesRepository.save(messageEntity);
+
+    // Transform to response DTO
+    return this.mapTicketToResponseDto(savedTicket, department, savedMessage);
   }
 
   async findAll(
@@ -102,10 +142,17 @@ export class TicketsService {
       .take(limit)
       .getManyAndCount();
 
-    return { tickets, total };
+    return { tickets: tickets.map(ticket => ({
+      ...ticket,
+      createdBy: ticket.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+      messages: ticket.messages.map(message => ({
+        ...message,
+        createdBy: message.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+      })),
+    })), total };
   }
 
-  async findOne(id: string): Promise<Ticket> {
+  async findOne(id: string): Promise<TicketResponseDto> {
     const ticket = await this.ticketsRepository.findOne({
       where: { id },
       relations: ['createdBy', 'messages', 'messages.createdBy', 'department'],
@@ -115,11 +162,25 @@ export class TicketsService {
       throw new NotFoundException('Ticket not found');
     }
 
-    return ticket;
+    return {
+      ...ticket,
+      createdBy: ticket.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+      messages: ticket.messages.map(message => ({
+        ...message,
+        createdBy: message.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+      })),
+    };
   }
 
   async update(id: string, updateTicketDto: UpdateTicketDto): Promise<Ticket> {
-    const ticket = await this.findOne(id);
+    const ticket = await this.ticketsRepository.findOne({
+      where: { id },
+      relations: ['department', 'createdBy']
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
 
     if (updateTicketDto.departmentId) {
       const department = await this.departmentsRepository.findOne({
@@ -139,12 +200,44 @@ export class TicketsService {
     return this.ticketsRepository.save(ticket);
   }
 
+  async search(query?: string, page = 1, limit = 10): Promise<PaginatedResponseDto<TicketResponseDto>> {
+    const queryBuilder = this.ticketsRepository.createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.createdBy', 'createdBy')
+      .leftJoinAndSelect('ticket.messages', 'messages')
+      .leftJoinAndSelect('ticket.department', 'department')
+      .orderBy('ticket.createdAt', 'DESC');
+  
+    if (query) {
+      queryBuilder.andWhere('ticket.title LIKE :query', { query: `%${query}%` });
+    }
+
+    const [tickets, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: tickets.map(ticket => this.mapTicketToResponseDto(ticket, ticket.department)),
+      total,
+      page,
+      limit
+    };
+  }
+
+
   async addMessage(
     ticketId: string,
     createMessageDto: CreateTicketMessageDto,
     user: User,
-  ): Promise<TicketMessage> {
-    const ticket = await this.findOne(ticketId);
+  ): Promise<TicketMessageResponseDto> {
+    const ticket = await this.ticketsRepository.findOne({
+      where: { id: ticketId },
+      relations: ['createdBy', 'messages', 'messages.createdBy', 'department'],
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
     
     const systemUser = user.role === UserRole.ADMIN ? 
       await this.usersRepository.findOne({ where: { id: 'system' } }) || 
@@ -155,22 +248,46 @@ export class TicketsService {
         role: UserRole.ADMIN
       }) : user;
 
-    const message = this.ticketMessagesRepository.create({
+    // Create and save the message entity
+    const messageEntity = this.ticketMessagesRepository.create({
       ...createMessageDto,
       ticket,
       createdBy: systemUser,
     });
-
-    return this.ticketMessagesRepository.save(message);
+    const savedMessage = await this.ticketMessagesRepository.save(messageEntity);
+    
+    // Transform to response DTO
+    const response = new TicketMessageResponseDto();
+    response.id = savedMessage.id;
+    response.content = savedMessage.content;
+    response.createdAt = savedMessage.createdAt;
+    response.createdBy = systemUser.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER;
+    return response;
   }
 
-  async getMessages(ticketId: string): Promise<TicketMessage[]> {
-    const ticket = await this.findOne(ticketId);
-    return ticket.messages;
+  async getMessages(ticketId: string): Promise<TicketMessageResponseDto[]> {
+    const messages = await this.ticketMessagesRepository.find({
+      where: { ticket: { id: ticketId } },
+      relations: ['createdBy'],
+    });
+    
+    return messages.map(message => ({
+      id: message.id,
+      content: message.content,
+      createdAt: message.createdAt,
+      createdBy: message.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+    }));
   }
 
   async closeTicket(id: string): Promise<Ticket> {
-    const ticket = await this.findOne(id);
+    const ticket = await this.ticketsRepository.findOne({
+      where: { id },
+      relations: ['department', 'createdBy']
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
     
     if (ticket.status === TicketStatus.CLOSED) {
       throw new BadRequestException('Ticket is already closed');
@@ -178,24 +295,5 @@ export class TicketsService {
 
     ticket.status = TicketStatus.CLOSED;
     return this.ticketsRepository.save(ticket);
-  }
-
-  async createSystemTicket(title: string, message: string): Promise<Ticket> {
-    const systemUser = await this.usersRepository.findOne({ where: { id: 'system' } }) ||
-      await this.usersRepository.save({
-        id: 'system',
-        email: 'system@example.com',
-        password: 'system',
-        role: UserRole.ADMIN,
-      });
-
-    const ticket = this.ticketsRepository.create({
-      title,
-      description: message,
-      status: TicketStatus.OPEN,
-      createdBy: systemUser,
-    });
-
-    return await this.ticketsRepository.save(ticket);
   }
 } 

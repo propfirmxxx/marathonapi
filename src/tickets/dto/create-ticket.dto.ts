@@ -7,10 +7,6 @@ export class CreateTicketDto {
   @IsString()
   title: string;
 
-  @ApiProperty({ description: 'Detailed description of the ticket' })
-  @IsString()
-  description: string;
-
   @ApiProperty({ description: 'ID of the department this ticket belongs to' })
   @IsUUID()
   departmentId: string;

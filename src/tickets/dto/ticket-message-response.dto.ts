@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { UserResponseDto } from '../../users/dto/user-response.dto';
+
+export enum UserSystemEnum {
+  SYSTEM = 'system',
+  USER = 'user',
+}
 
 export class TicketMessageResponseDto {
   @ApiProperty()
@@ -11,6 +15,6 @@ export class TicketMessageResponseDto {
   @ApiProperty()
   createdAt: Date;
 
-  @ApiProperty({ type: () => UserResponseDto })
-  createdBy: UserResponseDto;
+  @ApiProperty({ type: () => UserSystemEnum })
+  createdBy: UserSystemEnum;
 } 

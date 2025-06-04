@@ -15,7 +15,7 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { CreateTicketMessageDto } from './dto/create-ticket-message.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
-import { TicketStatus } from './entities/ticket.entity';
+import { Ticket, TicketStatus } from './entities/ticket.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '@/auth/guards/admin.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -141,14 +141,14 @@ export class TicketsController {
   @ApiResponse({ 
     status: 200, 
     description: 'Ticket updated successfully',
-    type: TicketResponseDto
+    type: Ticket
   })
   @ApiResponse({ status: 404, description: 'Ticket not found' })
   @Patch(':id')
   update(
     @Param('id') id: string, 
     @Body() updateTicketDto: UpdateTicketDto
-  ): Promise<TicketResponseDto> {
+  ): Promise<Ticket> {
     return this.ticketsService.update(id, updateTicketDto);
   }
 
@@ -160,12 +160,13 @@ export class TicketsController {
   })
   @ApiResponse({ status: 404, description: 'Ticket not found' })
   @Post(':id/messages')
-  addMessage(
+  async addMessage(
     @Param('id') id: string,
     @Body() createMessageDto: CreateTicketMessageDto,
     @Request() req,
   ): Promise<TicketMessageResponseDto> {
-    return this.ticketsService.addMessage(id, createMessageDto, req.user);
+    await this.ticketsService.addMessage(id, createMessageDto, req.user);
+    return 
   }
 
   @ApiOperation({ summary: 'Get ticket messages' })
@@ -180,6 +181,18 @@ export class TicketsController {
     return this.ticketsService.getMessages(id);
   }
 
+  @ApiOperation({ summary: 'Search tickets' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Return paginated tickets',
+    type: PaginatedResponseDto<TicketResponseDto>
+  })
+  @ApiQuery({ name: 'query', required: false, type: String })
+  @Get('search')
+  search(@Query('query') query?: string): Promise<PaginatedResponseDto<TicketResponseDto>> {
+    return this.ticketsService.search(query);
+  }
+
   @ApiOperation({ summary: 'Close ticket' })
   @ApiResponse({ 
     status: 200, 
@@ -190,7 +203,7 @@ export class TicketsController {
   @ApiResponse({ status: 400, description: 'Ticket is already closed' })
   @Post(':id/close')
   async closeTicket(@Param('id') id: string): Promise<TicketResponseDto> {
-    const data = await this.ticketsService.closeTicket(id);
-    return data;
+    const ticket = await this.ticketsService.closeTicket(id);
+    return this.ticketsService.mapTicketToResponseDto(ticket, ticket.department);
   }
 }

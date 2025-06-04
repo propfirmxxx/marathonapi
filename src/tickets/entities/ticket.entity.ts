@@ -26,9 +26,6 @@ export class Ticket {
   @Column()
   title: string;
 
-  @Column('text')
-  description: string;
-
   @Column({
     type: 'enum',
     enum: TicketStatus,

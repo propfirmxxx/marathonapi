@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { TicketStatus, TicketPriority } from '../entities/ticket.entity';
-import { UserResponseDto } from '../../users/dto/user-response.dto';
+import { TicketPriority, TicketStatus } from '../entities/ticket.entity';
 import { DepartmentResponseDto } from './department-response.dto';
-import { TicketMessageResponseDto } from './ticket-message-response.dto';
+import { TicketMessageResponseDto, UserSystemEnum } from './ticket-message-response.dto';
 
 export class TicketResponseDto {
   @ApiProperty()
@@ -10,9 +9,6 @@ export class TicketResponseDto {
 
   @ApiProperty()
   title: string;
-
-  @ApiProperty()
-  description: string;
 
   @ApiProperty({ enum: TicketStatus })
   status: TicketStatus;
@@ -23,8 +19,8 @@ export class TicketResponseDto {
   @ApiProperty({ type: () => DepartmentResponseDto })
   department: DepartmentResponseDto;
 
-  @ApiProperty({ type: () => UserResponseDto })
-  createdBy: UserResponseDto;
+  @ApiProperty({ type: () => UserSystemEnum })
+  createdBy: UserSystemEnum;
 
   @ApiProperty({ type: () => [TicketMessageResponseDto] })
   messages: TicketMessageResponseDto[];
