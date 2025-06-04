@@ -51,13 +51,16 @@ export class NotificationService {
       .createQueryBuilder('notification')
       .leftJoin('notification.recipients', 'recipients')
       .leftJoin('notification.readBy', 'readBy')
-      .addSelect('EXISTS (SELECT 1 FROM notification_read_by WHERE notification_id = notification.id AND user_id = :userId)', 'notification_isRead')
       .setParameter('userId', userId)
       .where('notification.scope = :broadcast', { broadcast: NotificationScope.BROADCAST })
       .orWhere('recipients.id = :userId', { userId })
       .andWhere('notification.deletedAt IS NULL')
       .orderBy('notification.createdAt', 'DESC')
-      .getMany();
+      .getMany()
+      .then(notifications => notifications.map(notification => ({
+        ...notification,
+        isRead: notification.readBy.some(reader => reader.id === userId),
+      })));
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<Notification> {
