@@ -30,6 +30,12 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
     // Add new UUID columns
     await queryRunner.query(`ALTER TABLE "users" ADD COLUMN "uuid" uuid DEFAULT uuid_generate_v4()`);
 
+    // Create a temporary mapping table
+    await queryRunner.query(`
+      CREATE TEMPORARY TABLE id_mapping AS
+      SELECT id, uuid FROM users;
+    `);
+
     // Create profile table if it doesn't exist
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "profile" (
@@ -84,41 +90,41 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
         -- Update profile UUIDs
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'profile') THEN
           UPDATE "profile" p
-          SET "userUuid" = u.uuid
-          FROM "users" u
-          WHERE p."userId"::integer = u.id;
+          SET "userUuid" = m.uuid
+          FROM id_mapping m
+          WHERE p."userId" = m.id;
         END IF;
 
         -- Update wallet UUIDs
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'wallets') THEN
           UPDATE "wallets" w
-          SET "userUuid" = u.uuid
-          FROM "users" u
-          WHERE w."user_uid"::integer = u.id;
+          SET "userUuid" = m.uuid
+          FROM id_mapping m
+          WHERE w."user_id" = m.id;
         END IF;
 
         -- Update marathon participant UUIDs
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'marathon_participants') THEN
           UPDATE "marathon_participants" mp
-          SET "userUuid" = u.uuid
-          FROM "users" u
-          WHERE mp."user_id"::integer = u.id;
+          SET "userUuid" = m.uuid
+          FROM id_mapping m
+          WHERE mp."user_id" = m.id;
         END IF;
 
         -- Update notification user UUIDs
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notification_users') THEN
           UPDATE "notification_users" nu
-          SET "userUuid" = u.uuid
-          FROM "users" u
-          WHERE nu."user_id"::integer = u.id;
+          SET "userUuid" = m.uuid
+          FROM id_mapping m
+          WHERE nu."user_id" = m.id;
         END IF;
 
         -- Update notification read by UUIDs
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notification_read_by') THEN
           UPDATE "notification_read_by" nrb
-          SET "userUuid" = u.uuid
-          FROM "users" u
-          WHERE nrb."user_id"::integer = u.id;
+          SET "userUuid" = m.uuid
+          FROM id_mapping m
+          WHERE nrb."user_id" = m.id;
         END IF;
       END $$;
     `);
@@ -132,7 +138,7 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
         END IF;
 
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'wallets') THEN
-          ALTER TABLE "wallets" DROP COLUMN IF EXISTS "user_uid";
+          ALTER TABLE "wallets" DROP COLUMN IF EXISTS "user_id";
         END IF;
 
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'marathon_participants') THEN
@@ -162,7 +168,7 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
         END IF;
 
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'wallets') THEN
-          ALTER TABLE "wallets" RENAME COLUMN "userUuid" TO "user_uid";
+          ALTER TABLE "wallets" RENAME COLUMN "userUuid" TO "user_id";
         END IF;
 
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'marathon_participants') THEN
@@ -200,7 +206,7 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
         IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'wallets') THEN
           ALTER TABLE "wallets"
           ADD CONSTRAINT "FK_wallets_user"
-          FOREIGN KEY ("user_uid")
+          FOREIGN KEY ("user_id")
           REFERENCES "users"("id")
           ON DELETE CASCADE
           ON UPDATE NO ACTION;

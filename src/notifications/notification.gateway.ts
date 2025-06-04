@@ -8,6 +8,9 @@ import { Server, Socket } from 'socket.io';
 import { Notification } from './entities/notification.entity';
 import { User } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
+import { config } from 'dotenv';
+
+config()
 
 @WebSocketGateway({
   cors: {
@@ -25,8 +28,10 @@ export class NotificationGateway implements OnGatewayConnection, OnGatewayDiscon
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token;
-      const payload = this.jwtService.verify(token);
+      const token = client.handshake.query.token as string;
+      const payload = this.jwtService.verify(token, {
+        secret: process.env.JWT_SECRET
+      });
       if (!token || !payload) {
         client.disconnect();
         return;
