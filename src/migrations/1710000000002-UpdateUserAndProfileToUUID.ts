@@ -35,7 +35,6 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
       CREATE TEMPORARY TABLE id_mapping AS
       SELECT id, uuid FROM users;
     `);
-
     // Create profile table if it doesn't exist
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "profile" (
