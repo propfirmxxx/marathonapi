@@ -47,20 +47,34 @@ export class NotificationService {
   }
 
   async getNotifications(userId: string): Promise<Notification[]> {
-    return this.notificationRepository
-      .createQueryBuilder('notification')
-      .leftJoin('notification.recipients', 'recipients')
-      .leftJoin('notification.readBy', 'readBy')
-      .setParameter('userId', userId)
-      .where('notification.scope = :broadcast', { broadcast: NotificationScope.BROADCAST })
-      .orWhere('recipients.id = :userId', { userId })
-      .andWhere('notification.deletedAt IS NULL')
-      .orderBy('notification.createdAt', 'DESC')
-      .getMany()
-      .then(notifications => notifications.map(notification => ({
+    const notifications = await this.notificationRepository.find({
+      where: [
+        { scope: NotificationScope.BROADCAST },
+        { recipients: { id: userId } }
+      ],
+      relations: ['recipients', 'readBy'],
+      order: {
+        createdAt: 'DESC'
+      },
+      select: {
+        id: true,
+        title: true,
+        message: true,
+        type: true,
+        scope: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    return notifications
+      .filter(notification => !notification.deletedAt)
+      .map(notification => ({
         ...notification,
-        isRead: notification.readBy.some(reader => reader.id === userId),
-      })));
+        isRead: notification.readBy?.some(reader => reader.id === userId) || false,
+        recipients: undefined,
+        readBy: undefined
+      }));
   }
 
   async markAsRead(notificationId: string, userId: string): Promise<Notification> {

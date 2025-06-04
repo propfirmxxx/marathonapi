@@ -7,7 +7,7 @@ export class CreateUsersTable1710000000001 implements MigrationInterface {
 
         // Create users table
         await queryRunner.query(`
-            CREATE TABLE "users" (
+            CREATE TABLE IF NOT EXISTS "users" (
                 "id" SERIAL PRIMARY KEY,
                 "email" character varying NOT NULL UNIQUE,
                 "password" character varying NOT NULL,
