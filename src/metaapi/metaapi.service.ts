@@ -30,13 +30,7 @@ export class MetaApiService {
   async getAccounts() {
     try {
       const accounts = await this.metaApi.metatraderAccountApi.getAccounts();
-      return accounts.map(account => ({
-        id: account.id,
-        name: account.name,
-        login: account.login,
-        server: account.server,
-        type: account.type
-      }));
+      return accounts
     } catch (error) {
       this.logger.error('Error getting MetaAPI accounts:', error);
       throw error;

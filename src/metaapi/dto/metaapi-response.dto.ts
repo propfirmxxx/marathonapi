@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { MetaTraderAccountStatus } from '../entities/meta-trader-account.entity';
 
 export class MetaTraderAccountResponseDto {
   @ApiProperty({
@@ -35,9 +36,21 @@ export class MetaTraderAccountResponseDto {
   @ApiProperty({
     description: 'Account status',
     example: 'active',
-    enum: ['active', 'inactive', 'deleted']
+    enum: MetaTraderAccountStatus
   })
-  status: string;
+  status: MetaTraderAccountStatus;
+
+  @ApiProperty({
+    description: 'Account master password',
+    example: '12345678'
+  })
+  masterPassword: string;
+
+  @ApiProperty({
+    description: 'Account investor password',
+    example: '12345678'
+  })
+  investorPassword: string;
 
   @ApiProperty({
     description: 'Creation timestamp',
