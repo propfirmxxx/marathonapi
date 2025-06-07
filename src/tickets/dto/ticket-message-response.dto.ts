@@ -15,6 +15,6 @@ export class TicketMessageResponseDto {
   @ApiProperty()
   createdAt: Date;
 
-  @ApiProperty({ type: () => UserSystemEnum })
+  @ApiProperty({ enum: UserSystemEnum })
   createdBy: UserSystemEnum;
 } 

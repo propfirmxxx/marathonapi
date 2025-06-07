@@ -19,10 +19,10 @@ export class TicketResponseDto {
   @ApiProperty({ type: () => DepartmentResponseDto })
   department: DepartmentResponseDto;
 
-  @ApiProperty({ type: () => UserSystemEnum })
+  @ApiProperty({ enum: UserSystemEnum })
   createdBy: UserSystemEnum;
 
-  @ApiProperty({ type: () => [TicketMessageResponseDto] })
+  @ApiProperty({ type: [TicketMessageResponseDto] })
   messages: TicketMessageResponseDto[];
 
   @ApiProperty()
