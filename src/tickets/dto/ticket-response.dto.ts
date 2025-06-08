@@ -4,33 +4,69 @@ import { DepartmentResponseDto } from './department-response.dto';
 import { TicketMessageResponseDto, UserSystemEnum } from './ticket-message-response.dto';
 
 export class TicketResponseDto {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Ticket ID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Ticket title',
+    example: 'Cannot access my account'
+  })
   title: string;
 
-  @ApiProperty({ enum: TicketStatus })
+  @ApiProperty({
+    description: 'Ticket status',
+    enum: TicketStatus,
+    example: TicketStatus.OPEN
+  })
   status: TicketStatus;
 
-  @ApiProperty({ enum: TicketPriority })
+  @ApiProperty({
+    description: 'Ticket priority',
+    enum: TicketPriority,
+    example: TicketPriority.HIGH
+  })
   priority: TicketPriority;
 
-  @ApiProperty({ type: () => DepartmentResponseDto })
+  @ApiProperty({
+    description: 'Department information',
+    type: () => DepartmentResponseDto
+  })
   department: DepartmentResponseDto;
 
-  @ApiProperty({ type: () => UserSystemEnum })
+  @ApiProperty({
+    description: 'User who created the ticket',
+    type: () => String,
+    enum: UserSystemEnum,
+    example: UserSystemEnum.USER
+  })
   createdBy: UserSystemEnum;
 
-  @ApiProperty({ type: () => [TicketMessageResponseDto] })
+  @ApiProperty({
+    description: 'Ticket messages',
+    type: () => [TicketMessageResponseDto],
+    isArray: true
+  })
   messages: TicketMessageResponseDto[];
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2024-04-22T12:00:00Z'
+  })
   createdAt: Date;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Last update timestamp',
+    example: '2024-04-22T12:00:00Z'
+  })
   updatedAt: Date;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({
+    description: 'Resolution timestamp',
+    example: '2024-04-22T13:00:00Z',
+    nullable: true
+  })
   resolvedAt: Date;
 } 

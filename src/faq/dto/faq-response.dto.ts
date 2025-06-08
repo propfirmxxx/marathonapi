@@ -50,10 +50,4 @@ export class FaqListResponseDto {
     type: [FaqResponseDto]
   })
   items: FaqResponseDto[];
-
-  @ApiProperty({
-    description: 'Total number of FAQs',
-    example: 1
-  })
-  total: number;
 } 

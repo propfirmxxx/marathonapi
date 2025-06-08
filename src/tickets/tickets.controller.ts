@@ -102,7 +102,53 @@ export class TicketsController {
   @ApiResponse({ 
     status: 200, 
     description: 'Return paginated tickets',
-    type: PaginatedResponseDto<TicketResponseDto>
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+              title: { type: 'string', example: 'Cannot access my account' },
+              status: { type: 'string', enum: ['open', 'in_progress', 'waiting_for_user', 'resolved', 'closed'], example: 'open' },
+              priority: { type: 'string', enum: ['low', 'medium', 'high'], example: 'high' },
+              department: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+                  name: { type: 'string', example: 'Support' },
+                  description: { type: 'string', example: 'Support Department', nullable: true },
+                  isActive: { type: 'boolean', example: true },
+                  createdAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' },
+                  updatedAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' }
+                }
+              },
+              createdBy: { type: 'string', enum: ['system', 'user'], example: 'user' },
+              messages: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+                    content: { type: 'string', example: 'Hello, how can I help you?' },
+                    createdAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' },
+                    createdBy: { type: 'string', enum: ['system', 'user'], example: 'user' }
+                  }
+                }
+              },
+              createdAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' },
+              updatedAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' },
+              resolvedAt: { type: 'string', format: 'date-time', example: '2024-04-22T13:00:00Z', nullable: true }
+            }
+          }
+        },
+        total: { type: 'number', example: 100 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 }
+      }
+    }
   })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })

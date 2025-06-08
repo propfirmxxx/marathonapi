@@ -6,15 +6,29 @@ export enum UserSystemEnum {
 }
 
 export class TicketMessageResponseDto {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Message ID',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
   id: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Message content',
+    example: 'Hello, how can I help you?'
+  })
   content: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2024-04-22T12:00:00Z'
+  })
   createdAt: Date;
 
-  @ApiProperty({ type: () => UserSystemEnum })
+  @ApiProperty({
+    description: 'Message creator type',
+    type: () => String,
+    enum: UserSystemEnum,
+    example: UserSystemEnum.USER
+  })
   createdBy: UserSystemEnum;
 } 

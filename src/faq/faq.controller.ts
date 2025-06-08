@@ -34,13 +34,11 @@ export class FaqController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all active FAQs',
-    type: FaqListResponseDto
+    type: [FaqResponseDto]
   })
   async findAll() {
     const data = await this.faqService.findAll();
-    return {
-      message: 'common.success'
-    };
+    return data
   }
 
   @Patch(':id')
