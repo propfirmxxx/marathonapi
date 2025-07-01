@@ -1,10 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BeforeInsert, getRepository } from 'typeorm';
 import { Ticket } from './ticket.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 @Entity('departments')
 export class Department {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ unique: true })
+  code: string;
 
   @Column({ unique: true })
   name: string;
@@ -23,4 +27,10 @@ export class Department {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @BeforeInsert()
+  async generateCode() {
+    const code = uuidv4().replace(/-/g, '').slice(0, 6).toUpperCase();
+    this.code = code;
+  }
 } 

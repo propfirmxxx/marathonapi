@@ -29,6 +29,14 @@ export class TicketsService {
 
   // Department methods
   async createDepartment(createDepartmentDto: CreateDepartmentDto): Promise<Department> {
+    const existingDepartment = await this.departmentsRepository.findOne({
+      where: { name: createDepartmentDto.name },
+    });
+
+    if (existingDepartment) {
+      throw new BadRequestException('Department with this name already exists');
+    } 
+
     const department = this.departmentsRepository.create(createDepartmentDto);
     return this.departmentsRepository.save(department);
   }
@@ -144,10 +152,10 @@ export class TicketsService {
 
     return { tickets: tickets.map(ticket => ({
       ...ticket,
-      createdBy: ticket.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+      createdBy: ticket.createdBy?.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
       messages: ticket.messages.map(message => ({
         ...message,
-        createdBy: message.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
+        createdBy: message.createdBy?.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
       })),
     })), total };
   }
