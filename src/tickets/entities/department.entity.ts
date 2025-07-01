@@ -8,9 +8,6 @@ export class Department {
   id: string;
 
   @Column({ unique: true })
-  code: string;
-
-  @Column({ unique: true })
   name: string;
 
   @Column({ nullable: true })
@@ -27,10 +24,4 @@ export class Department {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @BeforeInsert()
-  async generateCode() {
-    const code = uuidv4().replace(/-/g, '').slice(0, 6).toUpperCase();
-    this.code = code;
-  }
 } 

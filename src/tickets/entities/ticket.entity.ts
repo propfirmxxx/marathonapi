@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, BeforeInsert } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { TicketMessage } from './ticket-message.entity';
 import { Department } from './department.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 export enum TicketStatus {
   OPEN = 'open',
@@ -25,6 +26,9 @@ export class Ticket {
 
   @Column()
   title: string;
+
+  @Column({ unique: true })
+  code: string;
 
   @Column({
     type: 'enum',
@@ -59,4 +63,10 @@ export class Ticket {
 
   @Column({ nullable: true })
   resolvedAt: Date;
+
+  @BeforeInsert()
+  async generateCode() {
+    const code = uuidv4().replace(/-/g, '').slice(0, 6).toUpperCase();
+    this.code = code;
+  }
 } 
