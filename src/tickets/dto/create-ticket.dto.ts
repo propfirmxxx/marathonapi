@@ -19,4 +19,8 @@ export class CreateTicketDto {
   @IsEnum(TicketPriority)
   @IsOptional()
   priority?: TicketPriority;
+
+  @ApiProperty({ description: 'Message of the ticket' })
+  @IsString()
+  message: string;
 } 

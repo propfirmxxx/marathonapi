@@ -109,7 +109,7 @@ export class TicketsService {
     const messageEntity = this.ticketMessagesRepository.create({
       ticket: savedTicket,
       createdBy: user,
-      content: createTicketDto.title,
+      content: createTicketDto.message,
     });
     const savedMessage = await this.ticketMessagesRepository.save(messageEntity);
 
