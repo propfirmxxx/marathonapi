@@ -133,7 +133,6 @@ export class TicketsService {
   ): Promise<{ tickets: TicketResponseDto[]; total: number }> {
     const query = this.ticketsRepository.createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.createdBy', 'createdBy')
-      .leftJoinAndSelect('ticket.messages', 'messages')
       .leftJoinAndSelect('ticket.department', 'department')
       .orderBy('ticket.createdAt', 'DESC');
 
@@ -150,34 +149,20 @@ export class TicketsService {
       .take(limit)
       .getManyAndCount();
 
-    return { tickets: tickets.map(ticket => ({
-      ...ticket,
-      createdBy: ticket.createdBy?.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
-      messages: ticket.messages.map(message => ({
-        ...message,
-        createdBy: message.createdBy?.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
-      })),
-    })), total };
+    return { tickets: tickets.map(ticket => this.mapTicketToResponseDto(ticket, ticket.department)), total };
   }
 
   async findOne(id: string): Promise<TicketResponseDto> {
     const ticket = await this.ticketsRepository.findOne({
       where: { id },
-      relations: ['createdBy', 'messages', 'messages.createdBy', 'department'],
+      relations: ['createdBy', 'department'],
     });
 
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
     }
 
-    return {
-      ...ticket,
-      createdBy: ticket.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
-      messages: ticket.messages.map(message => ({
-        ...message,
-        createdBy: message.createdBy.id === 'system' ? UserSystemEnum.SYSTEM : UserSystemEnum.USER,
-      })),
-    };
+    return this.mapTicketToResponseDto(ticket, ticket.department);
   }
 
   async update(id: string, updateTicketDto: UpdateTicketDto): Promise<Ticket> {
