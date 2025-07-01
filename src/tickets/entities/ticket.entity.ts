@@ -27,9 +27,6 @@ export class Ticket {
   @Column()
   title: string;
 
-  @Column({ unique: true })
-  code: string;
-
   @Column({
     type: 'enum',
     enum: TicketStatus,
@@ -63,10 +60,4 @@ export class Ticket {
 
   @Column({ nullable: true })
   resolvedAt: Date;
-
-  @BeforeInsert()
-  async generateCode() {
-    const code = uuidv4().replace(/-/g, '').slice(0, 6).toUpperCase();
-    this.code = code;
-  }
 } 
