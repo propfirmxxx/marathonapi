@@ -92,6 +92,7 @@ export class TicketsService {
     response.createdAt = ticket.createdAt;
     response.updatedAt = ticket.updatedAt;
     response.resolvedAt = ticket.resolvedAt;
+    response.trackingId = ticket.trackingId;
     return response;
   }
 

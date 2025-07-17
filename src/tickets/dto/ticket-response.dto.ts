@@ -69,4 +69,11 @@ export class TicketResponseDto {
     nullable: true
   })
   resolvedAt: Date;
+  
+  @ApiProperty({
+    description: 'Tracking Id',
+    example: '42564',
+    nullable: false
+  })
+  trackingId: number;
 } 

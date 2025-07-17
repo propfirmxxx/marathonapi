@@ -41,6 +41,9 @@ export class Ticket {
   })
   priority: TicketPriority;
 
+  @Column({ name: 'tracking_id', type: 'int', unique: true })
+  trackingId: number;
+
   @ManyToOne(() => Department)
   @JoinColumn({ name: 'department_id' })
   department: Department;
