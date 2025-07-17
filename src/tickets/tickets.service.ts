@@ -129,7 +129,8 @@ export class TicketsService {
     page = 1,
     limit = 10,
     status?: TicketStatus,
-    departmentId?: string,
+    departmentIds?: string[],
+    title?: string,
   ): Promise<{ tickets: TicketResponseDto[]; total: number }> {
     const query = this.ticketsRepository.createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.createdBy', 'createdBy')
@@ -140,8 +141,12 @@ export class TicketsService {
       query.andWhere('ticket.status = :status', { status });
     }
 
-    if (departmentId) {
-      query.andWhere('ticket.departmentId = :departmentId', { departmentId });
+    if (departmentIds && departmentIds.length > 0) {
+      query.andWhere('ticket.departmentId IN (:...departmentIds)', { departmentIds });
+    }
+
+    if (title) {
+      query.andWhere('ticket.title LIKE :title', { title: `%${title}%` });
     }
 
     const [tickets, total] = await query

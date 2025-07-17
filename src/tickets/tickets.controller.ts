@@ -153,15 +153,24 @@ export class TicketsController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'status', required: false, enum: TicketStatus })
-  @ApiQuery({ name: 'departmentId', required: false, type: String })
+  @ApiQuery({ name: 'departmentIds', required: false, type: [String], description: 'List of department IDs' })
+  @ApiQuery({ name: 'title', required: false, type: String, description: 'Search in ticket titles' })
   @Get()
   async findAll(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: TicketStatus,
-    @Query('departmentId') departmentId?: string,
+    @Query('departmentIds') departmentIds?: string[] | string,
+    @Query('title') title?: string,
   ): Promise<PaginatedResponseDto<TicketResponseDto>> {
-    const { tickets, total } = await this.ticketsService.findAll(page, limit, status, departmentId);
+    // Ensure departmentIds is always an array if provided
+    let departmentIdsArray: string[] | undefined = undefined;
+    if (typeof departmentIds === 'string') {
+      departmentIdsArray = departmentIds.split(',');
+    } else if (Array.isArray(departmentIds)) {
+      departmentIdsArray = departmentIds;
+    }
+    const { tickets, total } = await this.ticketsService.findAll(page, limit, status, departmentIdsArray, title);
     return {
       data: tickets,
       page,
