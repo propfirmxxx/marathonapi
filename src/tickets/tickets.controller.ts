@@ -140,7 +140,8 @@ export class TicketsController {
               },
               createdAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' },
               updatedAt: { type: 'string', format: 'date-time', example: '2024-04-22T12:00:00Z' },
-              resolvedAt: { type: 'string', format: 'date-time', example: '2024-04-22T13:00:00Z', nullable: true }
+              resolvedAt: { type: 'string', format: 'date-time', example: '2024-04-22T13:00:00Z', nullable: true },
+              trackingId: { type: 'number', example: 52231 }
             }
           }
         },
