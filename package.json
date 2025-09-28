@@ -18,7 +18,6 @@
     "test:cov": "jest --config jest.config.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --config jest.config.js --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "preinstall": "npx npm-force-resolutions",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:create": "npm run typeorm migration:create -- -d src/config/data-source.ts",
     "migration:generate": "npm run typeorm migration:generate -- -d src/config/data-source.ts",
@@ -91,10 +90,10 @@
     "axios": "^1.6.7",
     "crypto-js": "^4.2.0",
     "underscore": "^1.13.6",
-    "parseuri": "^2.0.0",
+    "parseuri": "^0.0.5",
     "socket.io-client": "^4.7.4",
     "engine.io-client": "^6.5.3",
-    "binary-search-tree": "^0.3.0"
+    "binary-search-tree": "^0.2.1"
   },
   "jest": {
     "moduleFileExtensions": [
