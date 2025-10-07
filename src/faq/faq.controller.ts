@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { FaqService } from './faq.service';
 import { CreateFaqDto } from './dto/create-faq.dto';
 import { UpdateFaqDto } from './dto/update-faq.dto';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { FaqResponseDto, FaqListResponseDto } from './dto/faq-response.dto';
+import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 
 @ApiTags('FAQ')
@@ -34,11 +36,33 @@ export class FaqController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all active FAQs',
-    type: [FaqResponseDto]
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/FaqResponseDto' } },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' }
+      }
+    }
   })
-  async findAll() {
-    const data = await this.faqService.findAll();
-    return data
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'query', required: false, type: String, description: 'Search in question or answer' })
+  async findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('query') query?: string,
+  ): Promise<PaginatedResponseDto<FaqResponseDto>> {
+    const pageNum = page && Number(page) > 0 ? Number(page) : 1;
+    const limitNum = limit && Number(limit) > 0 ? Number(limit) : 10;
+    const { faqs, total } = await this.faqService.findAll(pageNum, limitNum, query);
+    return {
+      data: faqs as any,
+      total,
+      page: pageNum,
+      limit: limitNum,
+    };
   }
 
   @Patch(':id')

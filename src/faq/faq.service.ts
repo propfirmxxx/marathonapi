@@ -17,11 +17,25 @@ export class FaqService {
     return await this.faqRepository.save(faq);
   }
 
-  async findAll(): Promise<Faq[]> {
-    return await this.faqRepository.find({
-      where: { isActive: true },
-      order: { order: 'ASC' },
-    });
+  async findAll(
+    page = 1,
+    limit = 10,
+    query?: string,
+  ): Promise<{ faqs: Faq[]; total: number }> {
+    const qb = this.faqRepository.createQueryBuilder('faq')
+      .where('faq.isActive = :isActive', { isActive: true })
+      .orderBy('faq.order', 'ASC');
+
+    if (query) {
+      qb.andWhere('(faq.question LIKE :q OR faq.answer LIKE :q)', { q: `%${query}%` });
+    }
+
+    const [faqs, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { faqs, total };
   }
 
   async findOne(id: string): Promise<Faq> {
