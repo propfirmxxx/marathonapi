@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node -r module-alias/register dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest --config jest.config.js",
     "test:watch": "jest --config jest.config.js --watch",
@@ -52,6 +52,7 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.2.2",
+    "module-alias": "^2.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.4",
     "typeorm": "^0.3.22"
@@ -94,6 +95,9 @@
     "socket.io-client": "^4.7.4",
     "engine.io-client": "^6.5.3",
     "binary-search-tree": "^0.2.1"
+  },
+  "_moduleAliases": {
+    "@": "dist"
   },
   "jest": {
     "moduleFileExtensions": [
