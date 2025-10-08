@@ -2,9 +2,13 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class InsertSampleFaqData1710000000008 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Guard: do nothing if the faqs table does not exist yet
+    const hasFaqs = await queryRunner.hasTable('faqs');
+    if (!hasFaqs) return;
+
     // Clear existing FAQ data
     await queryRunner.query(`DELETE FROM faqs`);
-    
+
     // Insert new FAQ data
     await queryRunner.query(`
       INSERT INTO faqs (id, question, answer, "isActive", "order", "createdAt", "updatedAt") VALUES
@@ -17,6 +21,10 @@ export class InsertSampleFaqData1710000000008 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    // Safe down: only attempt delete if table exists
+    const hasFaqs = await queryRunner.hasTable('faqs');
+    if (!hasFaqs) return;
+
     // Remove the inserted FAQ data
     await queryRunner.query(`
       DELETE FROM faqs WHERE id IN (
