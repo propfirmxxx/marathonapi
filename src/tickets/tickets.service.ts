@@ -41,11 +41,22 @@ export class TicketsService {
     return this.departmentsRepository.save(department);
   }
 
-  async findAllDepartments(): Promise<Department[]> {
-    return this.departmentsRepository.find({
-      where: { isActive: true },
-      order: { name: 'ASC' },
-    });
+  async findAllDepartments(page = 1, limit = 10): Promise<PaginatedResponseDto<Department>> {
+    const query = this.departmentsRepository.createQueryBuilder('department')
+      .where('department.isActive = :isActive', { isActive: true })
+      .orderBy('department.name', 'ASC');
+
+    const [items, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: items,
+      total,
+      page,
+      limit,
+    };
   }
 
   async findDepartment(id: string): Promise<Department> {

@@ -43,15 +43,20 @@ export class TicketsController {
     return this.ticketsService.createDepartment(createDepartmentDto);
   }
 
-  @ApiOperation({ summary: 'Get all departments' })
+  @ApiOperation({ summary: 'Get all departments (paginated)' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Return all active departments',
-    type: [DepartmentResponseDto]
+    description: 'Return active departments paginated',
+    type: PaginatedResponseDto<DepartmentResponseDto>
   })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @Get('departments')
-  findAllDepartments(): Promise<DepartmentResponseDto[]> {
-    return this.ticketsService.findAllDepartments();
+  findAllDepartments(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ): Promise<PaginatedResponseDto<DepartmentResponseDto>> {
+    return this.ticketsService.findAllDepartments(page, limit);
   }
 
   @ApiOperation({ summary: 'Get department by ID' })
