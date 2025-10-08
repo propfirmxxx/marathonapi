@@ -165,7 +165,12 @@ export class TicketsService {
     }
 
     if (departmentIds && departmentIds.length > 0) {
-      query.andWhere('ticket.departmentId IN (:...departmentIds)', { departmentIds });
+      // normalize and remove empty values
+      const cleanedIds = departmentIds.map(id => String(id)).filter(id => id && id.trim().length > 0);
+      if (cleanedIds.length > 0) {
+        // use the joined department alias to filter by department id
+        query.andWhere('department.id IN (:...departmentIds)', { departmentIds: cleanedIds });
+      }
     }
 
     if (title) {

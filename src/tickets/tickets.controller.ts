@@ -166,17 +166,10 @@ export class TicketsController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: TicketStatus,
-    @Query('departmentIds') departmentIds?: string[] | string,
+    @Query('departmentIds') departmentIds?: string[],
     @Query('title') title?: string,
   ): Promise<PaginatedResponseDto<TicketResponseDto>> {
-    // Ensure departmentIds is always an array if provided
-    let departmentIdsArray: string[] | undefined = undefined;
-    if (typeof departmentIds === 'string') {
-      departmentIdsArray = departmentIds.split(',');
-    } else if (Array.isArray(departmentIds)) {
-      departmentIdsArray = departmentIds;
-    }
-    const { tickets, total } = await this.ticketsService.findAll(page, limit, status, departmentIdsArray, title);
+    const { tickets, total } = await this.ticketsService.findAll(page, limit, status, departmentIds, title);
     return {
       data: tickets,
       page,

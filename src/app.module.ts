@@ -24,10 +24,15 @@ import { FaqModule } from './faq/faq.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 10,
-    }]),
+    // Only enable HTTP throttling outside of development to avoid 429s during local dev/startup.
+    ...(process.env.NODE_ENV === 'development'
+      ? []
+      : [
+          ThrottlerModule.forRoot({
+            ttl: 60,
+            limit: 10,
+          } as any),
+        ]),
     TypeOrmModule.forRoot(databaseConfig),
     UsersModule,
     AuthModule,
@@ -44,10 +49,15 @@ import { FaqModule } from './faq/faq.module';
   controllers: [AppController],
   providers: [
     AppService,
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    // Register global throttler guard only in non-development environments
+    ...(process.env.NODE_ENV === 'development'
+      ? []
+      : [
+          {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard,
+          },
+        ]),
   ],
 })
 export class AppModule implements NestModule {

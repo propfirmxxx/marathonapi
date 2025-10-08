@@ -3,6 +3,11 @@ import { ThrottlerGuard, ThrottlerException, ThrottlerLimitDetail } from '@nestj
 
 @Injectable()
 export class WsThrottlerGuard extends ThrottlerGuard {
+  // In development we want to avoid websocket throttling to prevent 429s on startup/dev workflow
+  canActivate(context: ExecutionContext) {
+    if (process.env.NODE_ENV === 'development') return true as any;
+    return super.canActivate(context);
+  }
   getRequestResponse(context: ExecutionContext) {
     const ws = context.switchToWs();
     return { req: ws.getClient(), res: ws.getClient() };
