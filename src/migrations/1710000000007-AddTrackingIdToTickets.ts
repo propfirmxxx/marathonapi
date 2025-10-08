@@ -4,6 +4,15 @@ export class AddTrackingIdToTickets1710000000007 implements MigrationInterface {
     name = 'AddTrackingIdToTickets1710000000007'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        // If the tickets table does not exist yet (for example migrations ran out-of-order),
+        // skip this migration rather than throwing an error. This makes the migration idempotent
+        // in environments where the table will be created by another migration.
+        const hasTickets = await queryRunner.hasTable('tickets');
+        if (!hasTickets) {
+            // nothing to do
+            return;
+        }
+
         // 1. Create the sequence starting at 1000
         await queryRunner.query(`CREATE SEQUENCE IF NOT EXISTS "tickets_tracking_id_seq" START 1000`);
         // 2. Add the column as nullable for now, only if it does not exist
@@ -30,7 +39,8 @@ export class AddTrackingIdToTickets1710000000007 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "tickets" DROP COLUMN "tracking_id"`);
+        // Use IF EXISTS so this is safe even if the table/column/sequence are absent
+        await queryRunner.query(`ALTER TABLE IF EXISTS "tickets" DROP COLUMN IF EXISTS "tracking_id"`);
         await queryRunner.query(`DROP SEQUENCE IF EXISTS "tickets_tracking_id_seq"`);
     }
 } 
