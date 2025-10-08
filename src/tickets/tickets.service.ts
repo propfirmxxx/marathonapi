@@ -116,25 +116,36 @@ export class TicketsService {
       throw new NotFoundException('Department not found');
     }
 
-    // Create and save the ticket entity
-    const ticketEntity = this.ticketsRepository.create({
-      ...createTicketDto,
-      status: TicketStatus.IN_PROGRESS,
-      department,
-      createdBy: user,
-    });
-    const savedTicket = await this.ticketsRepository.save(ticketEntity);
+    // Ensure sequence exists and fetch next tracking id for the ticket
+    try {
+      await this.ticketsRepository.query(`CREATE SEQUENCE IF NOT EXISTS tickets_tracking_id_seq START 1000`);
+      const res = await this.ticketsRepository.query(`SELECT nextval('tickets_tracking_id_seq') as next`);
+      const nextTrackingId = res && res[0] && (res[0].next ?? res[0].nextval ?? res[0].id) ? Number(res[0].next ?? res[0].nextval ?? res[0].id) : undefined;
 
-    // Create and save the first message entity
-    const messageEntity = this.ticketMessagesRepository.create({
-      ticket: savedTicket,
-      createdBy: user,
-      content: createTicketDto.message,
-    });
-    const savedMessage = await this.ticketMessagesRepository.save(messageEntity);
+      // Create and save the ticket entity (include trackingId to satisfy NOT NULL)
+      const ticketEntity = this.ticketsRepository.create({
+        ...createTicketDto,
+        status: TicketStatus.IN_PROGRESS,
+        department,
+        createdBy: user,
+        trackingId: nextTrackingId,
+      });
+      const savedTicket = await this.ticketsRepository.save(ticketEntity);
 
-    // Transform to response DTO
-    return this.mapTicketToResponseDto(savedTicket, department, savedMessage);
+      // Create and save the first message entity
+      const messageEntity = this.ticketMessagesRepository.create({
+        ticket: savedTicket,
+        createdBy: user,
+        content: createTicketDto.message,
+      });
+      const savedMessage = await this.ticketMessagesRepository.save(messageEntity);
+
+      // Transform to response DTO
+      return this.mapTicketToResponseDto(savedTicket, department, savedMessage);
+    } catch (err) {
+      // Re-throw so upper layers can handle/log
+      throw err;
+    }
   }
 
   async findAll(
