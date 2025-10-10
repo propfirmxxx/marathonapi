@@ -13,17 +13,22 @@ export class WsThrottlerGuard extends ThrottlerGuard {
   // The parent ThrottlerGuard.onModuleInit expects options to exist and calls .sort on them. If
   // options are undefined (e.g. module not registered) we short-circuit initialization here.
   async onModuleInit(): Promise<void> {
-    // If options are not provided, set safe defaults and skip parent initialization
-    if (!this['options']) {
+    // If options are not provided or malformed, set the derived properties the
+    // parent would normally set and skip calling the parent implementation.
+    const opts = this['options'];
+    const isMalformed = !opts || (typeof opts === 'object' && !Array.isArray(opts) && !opts.throttlers);
+
+    if (isMalformed) {
+      // Mirror the minimal state the parent expects after initialization.
       this.throttlers = [];
       this.commonOptions = {} as any;
-      // ensure defaults for tracker/generateKey so other methods won't fail
       this.commonOptions.getTracker = this.getTracker.bind(this);
       this.commonOptions.generateKey = this.generateKey.bind(this);
       return;
     }
 
-    // Otherwise delegate to the parent implementation
+    // If options look OK, delegate to parent initialization which will populate
+    // `throttlers` and `commonOptions` correctly.
     if (typeof super.onModuleInit === 'function') {
       await super.onModuleInit();
     }

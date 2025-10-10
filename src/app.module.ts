@@ -28,9 +28,16 @@ import { FaqModule } from './faq/faq.module';
     ...(process.env.NODE_ENV === 'development'
       ? []
       : [
+          // Throttler v6 expects either an array of throttler configs or an
+          // options object with a `throttlers` array. Provide the expected
+          // shape to avoid `this.options.throttlers` being undefined.
           ThrottlerModule.forRoot({
-            ttl: 60,
-            limit: 10,
+            throttlers: [
+              {
+                ttl: 60,
+                limit: 10,
+              },
+            ],
           } as any),
         ]),
     TypeOrmModule.forRoot(databaseConfig),
