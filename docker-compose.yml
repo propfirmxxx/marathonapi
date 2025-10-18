@@ -32,6 +32,37 @@ services:
     networks:
       - marathon-network
 
+  directus:
+        image: directus/directus:latest
+        restart: unless-stopped
+        ports:
+            - 8055:8055
+        volumes:
+            - ./directus-database:/directus/database
+            - ./directus-uploads:/directus/uploads
+            - ./directus-extensions:/directus/extensions
+        networks:
+            - marathon-network
+        depends_on:
+            - db
+        environment:
+            SECRET: "replace-with-random-value"
+            ADMIN_EMAIL: "admin@example.com"
+            ADMIN_PASSWORD: "admin"
+
+            WEBSOCKETS_ENABLED: "true"
+
+            DB_CLIENT: "pg"
+            DB_HOST: "db"
+            DB_PORT: "5432"
+            DB_DATABASE: "marathon"
+            DB_USER: "postgres"
+            DB_PASSWORD: "postgres"
+
+            # CACHE_ENABLED: "true"
+            # CACHE_AUTO_PURGE: "true"
+            # CACHE_STORE: "redis"
+            # REDIS: "redis://cache:6379"
   # adminer:
   #   image: adminer
   #   restart: unless-stopped
