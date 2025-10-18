@@ -9,18 +9,14 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=postgres
-      - DB_NAME=marathon
+    env_file:
+      - compose.env
     depends_on:
       - db
     volumes:
       - ./uploads:/usr/src/app/uploads:rw
+    networks:
+      - marathon-network
 
   db:
     image: postgres:15-alpine
@@ -32,14 +28,20 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "54321:5432"
+    networks:
+      - marathon-network
 
-  adminer:
-    image: adminer
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
+  # adminer:
+  #   image: adminer
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
 
 volumes:
   pgdata:
     driver: local
+
+networks:
+  marathon-network:
+    driver: bridge
