@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  app:
+  marathon-api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,9 +15,21 @@ services:
       - db
     volumes:
       - ./uploads:/usr/src/app/uploads:rw
+      - /var/run/docker.sock:/var/run/docker.sock 
     networks:
       - marathon-network
-
+  
+  marathon-mt5-python:
+    image: devenio/marathon-metapython:latest
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+      - "8000:8000"
+    volumes:
+      - ./meta-configs:/app/meta-configs
+    networks:
+      - marathon-network
+    
   db:
     image: postgres:15-alpine
     restart: unless-stopped
