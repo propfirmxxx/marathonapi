@@ -18,6 +18,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock 
     networks:
       - marathon-network
+
+  marathon-front:
+    image: devenio/marathon-front:latest
+    restart: unless-stopped
+    ports:
+      - "4010:4010"
+    networks:
+      - marathon-network
   
   marathon-mt5-python:
     image: devenio/marathon-metapython:latest
