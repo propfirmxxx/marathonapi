@@ -8,7 +8,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { EmailModule } from './email/email.module';
-import { MetaApiModule } from './metaapi/metaapi.module';
+// import { MetaApiModule } from './metaapi/metaapi.module';
 import { MarathonModule } from './marathon/marathon.module';
 import { PaymentModule } from './payment/payment.module';
 import { ProfileModule } from './profile/profile.module';
@@ -44,7 +44,7 @@ import { FaqModule } from './faq/faq.module';
     UsersModule,
     AuthModule,
     EmailModule,
-    MetaApiModule,
+    // MetaApiModule,
     MarathonModule,
     PaymentModule,
     ProfileModule,
