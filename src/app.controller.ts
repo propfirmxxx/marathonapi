@@ -13,4 +13,15 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @ApiOperation({ summary: 'Health check endpoint' })
+  @ApiResponse({ status: 200, description: 'Service is healthy' })
+  @Get('health')
+  health() {
+    return { 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      service: 'marathon-api'
+    };
+  }
 }

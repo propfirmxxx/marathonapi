@@ -11,13 +11,38 @@ services:
       - "3000:3000"
     env_file:
       - compose.env
+    environment:
+      # Override with environment variables from compose.env
+      - NODE_ENV=production
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./uploads:/usr/src/app/uploads:rw
-      - /var/run/docker.sock:/var/run/docker.sock 
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - marathon-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
   marathon-front:
     image: devenio/marathon-front:latest
@@ -26,6 +51,27 @@ services:
       - "4010:4010"
     networks:
       - marathon-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4010/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
   
   marathon-mt5-python:
     image: devenio/marathon-metapython:latest
@@ -34,60 +80,123 @@ services:
       - "8888:8888"
       - "8000:8000"
     volumes:
-      - ./meta-configs:/app/meta-configs
+      - ./meta-configs:/app/meta-configs:ro
     networks:
       - marathon-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
     
   db:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
+      # These should be set in environment or secrets
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: marathon
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "54321:5432"
+    # Remove port exposure for production security
+    # ports:
+    #   - "54321:5432"
     networks:
       - marathon-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-marathon}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
   directus:
-        image: directus/directus:latest
-        restart: unless-stopped
-        ports:
-            - 8055:8055
-        volumes:
-            - ./directus-database:/directus/database
-            - ./directus-uploads:/directus/uploads
-            - ./directus-extensions:/directus/extensions
-        networks:
-            - marathon-network
-        depends_on:
-            - db
-        environment:
-            SECRET: "replace-with-random-value"
-            ADMIN_EMAIL: "admin@example.com"
-            ADMIN_PASSWORD: "admin"
+    image: directus/directus:latest
+    restart: unless-stopped
+    ports:
+      - 8055:8055
+    volumes:
+      - ./directus-database:/directus/database
+      - ./directus-uploads:/directus/uploads
+      - ./directus-extensions:/directus/extensions
+    networks:
+      - marathon-network
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Use environment variables from compose.env
+      SECRET: thisisasupersecretsecret
+      ADMIN_EMAIL: ${DIRECTUS_ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${DIRECTUS_ADMIN_PASSWORD:-admin}
 
-            WEBSOCKETS_ENABLED: "true"
+      WEBSOCKETS_ENABLED: "true"
 
-            DB_CLIENT: "pg"
-            DB_HOST: "db"
-            DB_PORT: "5432"
-            DB_DATABASE: "marathon"
-            DB_USER: "postgres"
-            DB_PASSWORD: "postgres"
+      DB_CLIENT: "pg"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      DB_DATABASE: ${POSTGRES_DB:-marathon}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
 
-            # CACHE_ENABLED: "true"
-            # CACHE_AUTO_PURGE: "true"
-            # CACHE_STORE: "redis"
-            # REDIS: "redis://cache:6379"
-  # adminer:
-  #   image: adminer
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8080:8080"
+      # CACHE_ENABLED: "true"
+      # CACHE_AUTO_PURGE: "true"
+      # CACHE_STORE: "redis"
+      # REDIS: "redis://cache:6379"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8055/server/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   pgdata:
