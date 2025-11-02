@@ -234,7 +234,7 @@ export class TicketsService {
       .orderBy('ticket.createdAt', 'DESC');
   
     if (query) {
-      queryBuilder.andWhere('ticket.title LIKE :query', { query: `%${query}%` });
+      queryBuilder.andWhere('LOWER(ticket.title) LIKE LOWER(:query)', { query: `%${query}%` });
     }
 
     const [tickets, total] = await queryBuilder

@@ -2,9 +2,19 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class InsertSampleFaqData1710000000008 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Check if seeding is enabled via environment variable
+    const seedMockData = process.env.SEED_MOCK_DATA === 'true';
+    
+    if (!seedMockData) {
+      console.log('Skipping FAQ mock data seeding - SEED_MOCK_DATA not enabled');
+      return;
+    }
+
     // Guard: do nothing if the faqs table does not exist yet
     const hasFaqs = await queryRunner.hasTable('faqs');
     if (!hasFaqs) return;
+
+    console.log('Seeding FAQ mock data...');
 
     // Clear existing FAQ data
     await queryRunner.query(`DELETE FROM faqs`);

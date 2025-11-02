@@ -2,11 +2,21 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class InsertSampleMarathonData1710000000009 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Check if seeding is enabled via environment variable
+    const seedMockData = process.env.SEED_MOCK_DATA === 'true';
+    
+    if (!seedMockData) {
+      console.log('Skipping marathon mock data seeding - SEED_MOCK_DATA not enabled');
+      return;
+    }
+
     // Guard: do nothing if the marathons table does not exist yet
     const hasMarathons = await queryRunner.hasTable('marathons');
     const hasParticipants = await queryRunner.hasTable('marathon_participants');
     
     if (!hasMarathons) return;
+    
+    console.log('Seeding marathon mock data...');
 
     // Clear existing marathon data (participants will be cascaded if FK constraint exists)
     if (hasParticipants) {

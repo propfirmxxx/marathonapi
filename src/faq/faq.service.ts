@@ -27,7 +27,7 @@ export class FaqService {
       .orderBy('faq.order', 'ASC');
 
     if (query) {
-      qb.andWhere('(faq.question LIKE :q OR faq.answer LIKE :q)', { q: `%${query}%` });
+      qb.andWhere('(LOWER(faq.question) LIKE :q OR LOWER(faq.answer) LIKE LOWER(:q))', { q: `%${query}%` });
     }
 
     const [faqs, total] = await qb

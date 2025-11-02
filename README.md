@@ -182,4 +182,8 @@ NODE_ENV=development
 SWAGGER_PATH=swagger
 META_API_TOKEN=your_meta_api_token
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+
+# Data Seeding (optional)
+# Set to 'true' to enable mock data seeding (FAQ and Marathon data)
+SEED_MOCK_DATA=false
 ```

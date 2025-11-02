@@ -12,7 +12,8 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || '',
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-  migrationsRun: true,
+  // migrationsRun is set to false because we call runMigrations() explicitly in main.ts
+  migrationsRun: false,
   synchronize: process.env.NODE_ENV !== 'production', // Never use synchronize in production
   ssl: process.env.DB_SSL === 'true' ? {
     rejectUnauthorized: false

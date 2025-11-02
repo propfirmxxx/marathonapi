@@ -8,14 +8,23 @@ import cookieParser from 'cookie-parser';
 import { AppDataSource } from './config/data-source';
 
 async function bootstrap() {
-  // Ensure database is ready and run migrations
+  // Run migrations before starting the app
   try {
     if (!AppDataSource.isInitialized) {
       await AppDataSource.initialize();
-      console.log('Database connection initialized');
+      console.log('✓ Database connection initialized');
+      
+      // Run migrations explicitly to ensure they execute
+      const migrations = await AppDataSource.runMigrations();
+      if (migrations.length > 0) {
+        console.log(`✓ Executed ${migrations.length} pending migration(s):`, 
+          migrations.map(m => m.name).join(', '));
+      } else {
+        console.log('✓ All migrations are up to date');
+      }
     }
   } catch (error) {
-    console.error('Error during database initialization:', error);
+    console.error('✗ Error during database initialization:', error);
     // Continue anyway as TypeORM module will try to connect
   }
   
