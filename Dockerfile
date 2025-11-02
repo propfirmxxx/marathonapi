@@ -13,7 +13,9 @@ RUN yarn build
 FROM node:25-slim
 
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update 
+RUN apt-get install -y --no-install-recommends curl
+RUN rm -rf /var/lib/apt/lists/*
 
 COPY package.json yarn.lock ./
 RUN yarn install --production --frozen-lockfile
