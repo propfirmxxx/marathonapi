@@ -1,17 +1,17 @@
 services:
   marathon-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     image: devenio/marathonapi:latest
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
       - compose.env
-    environment:
+    # environment:
       # Override with environment variables from compose.env
-      - NODE_ENV=production
+      # - NODE_ENV=production
     depends_on:
       db:
         condition: service_healthy
