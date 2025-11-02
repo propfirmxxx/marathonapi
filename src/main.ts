@@ -5,8 +5,20 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { I18nService } from './i18n/i18n.service';
 import cookieParser from 'cookie-parser';
+import { AppDataSource } from './config/data-source';
 
 async function bootstrap() {
+  // Ensure database is ready and run migrations
+  try {
+    if (!AppDataSource.isInitialized) {
+      await AppDataSource.initialize();
+      console.log('Database connection initialized');
+    }
+  } catch (error) {
+    console.error('Error during database initialization:', error);
+    // Continue anyway as TypeORM module will try to connect
+  }
+  
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS for all origins
