@@ -1,19 +1,23 @@
-# -------- Stage 1: Build --------
-FROM node:25-slim AS builder
-
+# -------- Stage 1: Dependencies --------
+FROM node:25-slim AS deps
 WORKDIR /app
 
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 
-COPY . ./
+# -------- Stage 2: Build --------
+FROM node:25-slim AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 RUN yarn build
 
-# -------- Stage 2: Production --------
+# -------- Stage 3: Production --------
 FROM node:25-slim
 
 WORKDIR /app
-RUN apt-get update --fix-missing
+
+RUN apt-get update
 RUN apt-get install -y --no-install-recommends curl
 RUN rm -rf /var/lib/apt/lists/*
 
