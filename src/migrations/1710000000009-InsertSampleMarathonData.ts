@@ -311,9 +311,9 @@ export class InsertSampleMarathonData1710000000009 implements MigrationInterface
 
   private generateParticipantId(index: number): string {
     // Generate deterministic UUID-like IDs for participants
-    // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+    // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx (36 chars total, 12 for last segment)
     const hex = index.toString(16).padStart(12, '0');
-    return `b1c2d3e4-f5a6-4${hex.slice(0, 3)}-a${hex.slice(3, 6)}-${hex.slice(6, 12)}`;
+    return `b1c2d3e4-f5a6-4000-a000-${hex}`;
   }
 }
 
