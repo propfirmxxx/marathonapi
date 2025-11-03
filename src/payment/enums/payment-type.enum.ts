@@ -1,0 +1,4 @@
+export enum PaymentType {
+  WALLET_CHARGE = 'WALLET_CHARGE',
+  MARATHON_JOIN = 'MARATHON_JOIN',
+}

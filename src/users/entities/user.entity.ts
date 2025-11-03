@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import * as bcrypt from 'bcrypt';
 import { Wallet } from './wallet.entity';
 import { Profile } from '../../profile/entities/profile.entity';
-import { Delete } from '@nestjs/common';
 
 export enum UserRole {
   ADMIN = 'admin',

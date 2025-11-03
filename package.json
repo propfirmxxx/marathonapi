@@ -22,7 +22,11 @@
     "migration:create": "npm run typeorm migration:create -- -d src/config/data-source.ts",
     "migration:generate": "npm run typeorm migration:generate -- -d src/config/data-source.ts",
     "migration:run": "npm run typeorm migration:run -- -d src/config/data-source.ts",
-    "migration:revert": "npm run typeorm migration:revert -- -d src/config/data-source.ts"
+    "migration:revert": "npm run typeorm migration:revert -- -d src/config/data-source.ts",
+    "seed": "ts-node -r tsconfig-paths/register src/seeders/seed.ts seed",
+    "seed:one": "ts-node -r tsconfig-paths/register src/seeders/seed.ts seed:one",
+    "seed:clean": "ts-node -r tsconfig-paths/register src/seeders/seed.ts clean",
+    "seed:clean:one": "ts-node -r tsconfig-paths/register src/seeders/seed.ts clean:one"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",

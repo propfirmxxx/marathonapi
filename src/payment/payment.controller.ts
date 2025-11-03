@@ -1,69 +1,187 @@
-import { Controller, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Body, Param, UseGuards, Get, Query, Headers } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery, ApiHeader } from '@nestjs/swagger';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { CreateWalletChargeDto } from './dto/create-wallet-charge.dto';
+import { CreateMarathonPaymentDto } from './dto/create-marathon-payment.dto';
+import { NowPaymentsWebhookDto } from './dto/nowpayments-webhook.dto';
+import { GetPaymentsDto } from './dto/get-payments.dto';
+import { PaymentResponseDto } from './dto/payment-response.dto';
 
 @ApiTags('Payments')
-@ApiBearerAuth()
 @Controller('payment')
-@UseGuards(AuthGuard('jwt'))
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  @ApiOperation({ summary: 'Create payment for marathon registration' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Returns payment URL',
+  @Post('wallet/charge')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create payment for wallet charge' })
+  @ApiResponse({
+    status: 201,
+    description: 'Payment created successfully',
     schema: {
       type: 'object',
       properties: {
-        paymentUrl: {
-          type: 'string',
-          example: 'https://nowpayments.io/payment/...'
-        }
-      }
-    }
+        paymentId: { type: 'string' },
+        paymentUrl: { type: 'string' },
+        payAddress: { type: 'string' },
+        payAmount: { type: 'number' },
+        payCurrency: { type: 'string' },
+        network: { type: 'string' },
+        expiresAt: { type: 'string', format: 'date-time' },
+      },
+    },
   })
-  @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
-  @Post('marathon/:marathonId')
-  async createMarathonPayment(
-    @Param('marathonId') marathonId: string,
-    @Req() req: any,
+  async createWalletChargePayment(
+    @GetUser('id') userId: string,
+    @Body() createWalletChargeDto: CreateWalletChargeDto,
   ) {
-    return this.paymentService.createPayment(marathonId, req.user.id);
+    return this.paymentService.createWalletChargePayment(userId, createWalletChargeDto);
   }
 
-  @ApiOperation({ summary: 'Handle payment webhook' })
-  @ApiResponse({ 
-    status: 200, 
+  @Post('marathon/:marathonId')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create payment for marathon join' })
+  @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
+  @ApiResponse({
+    status: 201,
+    description: 'Payment created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        paymentId: { type: 'string' },
+        paymentUrl: { type: 'string' },
+        payAddress: { type: 'string' },
+        payAmount: { type: 'number' },
+        payCurrency: { type: 'string' },
+        network: { type: 'string' },
+        expiresAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  async createMarathonPayment(
+    @Param('marathonId') marathonId: string,
+    @GetUser('id') userId: string,
+  ) {
+    return this.paymentService.createMarathonPayment(userId, marathonId);
+  }
+
+  @Post('webhook')
+  @ApiOperation({ summary: 'Handle payment webhook from NowPayments' })
+  @ApiResponse({
+    status: 200,
     description: 'Webhook processed successfully',
     schema: {
       type: 'object',
       properties: {
         status: {
           type: 'string',
-          example: 'success'
-        }
-      }
-    }
+          example: 'success',
+        },
+      },
+    },
   })
+  @ApiHeader({ name: 'x-nowpayments-sig', description: 'IPN signature', required: true })
   @ApiBody({
+    description: 'Webhook payload from NowPayments',
+    type: NowPaymentsWebhookDto,
+  })
+  async handleWebhook(
+    @Body() webhookData: NowPaymentsWebhookDto,
+    @Headers('x-nowpayments-sig') signature: string,
+  ) {
+    if (!signature) {
+      throw new Error('Missing IPN signature');
+    }
+
+    await this.paymentService.handleWebhook(webhookData, signature);
+    return { status: 'success' };
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get payment details by ID' })
+  @ApiParam({ name: 'id', description: 'Payment ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment details',
+    type: PaymentResponseDto,
+  })
+  async getPaymentById(
+    @Param('id') paymentId: string,
+    @GetUser('id') userId: string,
+  ) {
+    const payment = await this.paymentService.getPaymentById(paymentId, userId);
+    return this.transformToResponseDto(payment);
+  }
+
+  @Get('my-payments/all')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all user payments with pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'status', required: false, enum: ['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'] })
+  @ApiQuery({ name: 'paymentType', required: false, enum: ['WALLET_CHARGE', 'MARATHON_JOIN'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of payments',
     schema: {
       type: 'object',
       properties: {
-        payment_id: { type: 'string' },
-        payment_status: { type: 'string' },
-        pay_address: { type: 'string' },
-        pay_amount: { type: 'number' },
-        pay_currency: { type: 'string' },
-        order_id: { type: 'string' },
-        order_description: { type: 'string' }
-      }
-    }
+        payments: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/PaymentResponseDto' },
+        },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' },
+      },
+    },
   })
-  @Post('webhook')
-  async handleWebhook(@Body() paymentData: any) {
-    await this.paymentService.handleWebhook(paymentData);
-    return { status: 'success' };
+  async getUserPayments(
+    @GetUser('id') userId: string,
+    @Query() query: GetPaymentsDto,
+  ) {
+    const { payments, total } = await this.paymentService.getUserPayments(
+      userId,
+      query.page,
+      query.limit,
+      {
+        status: query.status,
+        paymentType: query.paymentType,
+      },
+    );
+
+    return {
+      payments: payments.map((p) => this.transformToResponseDto(p)),
+      total,
+      page: query.page,
+      limit: query.limit,
+    };
+  }
+
+  private transformToResponseDto(payment: any): PaymentResponseDto {
+    return {
+      id: payment.id,
+      amount: payment.amount,
+      status: payment.status,
+      paymentType: payment.paymentType,
+      gateway: payment.gateway,
+      nowpaymentsId: payment.nowpaymentsId,
+      payAddress: payment.payAddress,
+      payAmount: payment.payAmount,
+      payCurrency: payment.payCurrency,
+      network: payment.network,
+      invoiceUrl: payment.invoiceUrl,
+      expiresAt: payment.expiresAt,
+      marathonId: payment.marathonId,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    };
   }
 }

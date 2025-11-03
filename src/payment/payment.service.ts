@@ -1,37 +1,402 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import axios from 'axios';
+import { Repository, DataSource } from 'typeorm';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import { Marathon } from '../marathon/entities/marathon.entity';
 import { Payment } from './entities/payment.entity';
 import { PaymentStatus } from './enums/payment-status.enum';
+import { PaymentType } from './enums/payment-type.enum';
+import { NowPaymentsService } from './nowpayments.service';
+import { CreateWalletChargeDto } from './dto/create-wallet-charge.dto';
+import { CreateMarathonPaymentDto } from './dto/create-marathon-payment.dto';
+import { ProfileService } from '../profile/profile.service';
+import {
+  PaymentNotFoundException,
+  InvalidPaymentStatusException,
+  WebhookVerificationException,
+  PaymentExpiredException,
+  DuplicatePaymentException,
+  InsufficientMarathonCapacityException,
+  AlreadyMarathonMemberException,
+} from './exceptions/payment.exceptions';
 
 @Injectable()
 export class PaymentService {
-  private readonly nowPaymentsApiKey: string;
-  private readonly nowPaymentsApiUrl: string;
+  private readonly logger = new Logger(PaymentService.name);
 
   constructor(
     private readonly configService: ConfigService,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
     @InjectRepository(MarathonParticipant)
     private readonly participantRepository: Repository<MarathonParticipant>,
     @InjectRepository(Marathon)
     private readonly marathonRepository: Repository<Marathon>,
-    @InjectRepository(Payment)
-    private readonly paymentRepository: Repository<Payment>,
-  ) {
-    this.nowPaymentsApiKey = this.configService.get<string>('NOWPAYMENTS_API_KEY');
-    this.nowPaymentsApiUrl = this.configService.get<string>('NOWPAYMENTS_API_URL', 'https://api.nowpayments.io/v1');
+    private readonly nowPaymentsService: NowPaymentsService,
+    private readonly profileService: ProfileService,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  async createWalletChargePayment(userId: string, createWalletChargeDto: CreateWalletChargeDto) {
+    const { amount, currency = 'usdt' } = createWalletChargeDto;
+
+    // Check for existing pending payments
+    const existingPayment = await this.paymentRepository.findOne({
+      where: {
+        userId,
+        status: PaymentStatus.PENDING,
+        paymentType: PaymentType.WALLET_CHARGE,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (existingPayment) {
+      // Check if payment is expired
+      if (existingPayment.expiresAt && existingPayment.expiresAt < new Date()) {
+        this.logger.log(`Expiring old payment ${existingPayment.id}`);
+        existingPayment.status = PaymentStatus.CANCELLED;
+        await this.paymentRepository.save(existingPayment);
+      } else {
+        throw new ConflictException('You already have a pending wallet charge payment');
+      }
+    }
+
+    const orderId = `wallet-${userId}-${Date.now()}`;
+    const orderDescription = `Wallet charge for ${amount} USD`;
+
+    // Create invoice in NowPayments
+    const invoice = await this.nowPaymentsService.createInvoice({
+      priceAmount: amount,
+      priceCurrency: 'usd',
+      payCurrency: currency,
+      orderId,
+      orderDescription,
+      ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
+    });
+
+    this.logger.log(`Invoice created: ${invoice.payment_id} for order: ${orderId}`);
+
+    // Calculate expiration time (30 minutes from now)
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    // Create payment record
+    const payment = this.paymentRepository.create({
+      userId,
+      amount,
+      status: PaymentStatus.PENDING,
+      paymentType: PaymentType.WALLET_CHARGE,
+      nowpaymentsId: invoice.payment_id,
+      payAddress: invoice.pay_address,
+      payAmount: invoice.pay_amount,
+      payCurrency: invoice.pay_currency || currency,
+      network: invoice.network,
+      orderDescription,
+      invoiceUrl: invoice.invoice_id,
+      ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
+      expiresAt,
+    });
+
+    const savedPayment = await this.paymentRepository.save(payment);
+
+    this.logger.log(`Payment created: ${savedPayment.id} for user: ${userId}`);
+
+    return {
+      paymentId: savedPayment.id,
+      paymentUrl: invoice.invoice_id,
+      payAddress: invoice.pay_address,
+      payAmount: invoice.pay_amount,
+      payCurrency: invoice.pay_currency,
+      network: invoice.network,
+      expiresAt,
+    };
   }
 
+  async createMarathonPayment(userId: string, marathonId: string) {
+    // Find marathon
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Check if marathon is active
+    if (!marathon.isActive) {
+      throw new BadRequestException('Marathon is not active');
+    }
+
+    // Check capacity
+    if (marathon.currentPlayers >= marathon.maxPlayers) {
+      throw new InsufficientMarathonCapacityException();
+    }
+
+    // Check if user is already a participant
+    const existingParticipant = await this.participantRepository.findOne({
+      where: {
+        user: { id: userId },
+        marathon: { id: marathonId },
+      },
+    });
+
+    if (existingParticipant) {
+      throw new AlreadyMarathonMemberException();
+    }
+
+    // Check for existing pending marathon payment
+    const existingPayment = await this.paymentRepository.findOne({
+      where: {
+        userId,
+        marathonId,
+        status: PaymentStatus.PENDING,
+        paymentType: PaymentType.MARATHON_JOIN,
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (existingPayment) {
+      // Check if payment is expired
+      if (existingPayment.expiresAt && existingPayment.expiresAt < new Date()) {
+        this.logger.log(`Expiring old payment ${existingPayment.id}`);
+        existingPayment.status = PaymentStatus.CANCELLED;
+        await this.paymentRepository.save(existingPayment);
+      } else {
+        throw new ConflictException('You already have a pending payment for this marathon');
+      }
+    }
+
+    const orderId = `marathon-${marathonId}-${userId}-${Date.now()}`;
+    const orderDescription = `Join marathon: ${marathon.name}`;
+
+    // Create invoice in NowPayments
+    const invoice = await this.nowPaymentsService.createInvoice({
+      priceAmount: Number(marathon.entryFee),
+      priceCurrency: 'usd',
+      payCurrency: 'usdt',
+      orderId,
+      orderDescription,
+      ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
+    });
+
+    this.logger.log(`Invoice created: ${invoice.payment_id} for order: ${orderId}`);
+
+    // Calculate expiration time (30 minutes from now)
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    // Create payment record
+    const payment = this.paymentRepository.create({
+      userId,
+      marathonId,
+      amount: Number(marathon.entryFee),
+      status: PaymentStatus.PENDING,
+      paymentType: PaymentType.MARATHON_JOIN,
+      nowpaymentsId: invoice.payment_id,
+      payAddress: invoice.pay_address,
+      payAmount: invoice.pay_amount,
+      payCurrency: invoice.pay_currency || 'usdt',
+      network: invoice.network,
+      orderDescription,
+      invoiceUrl: invoice.invoice_id,
+      ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
+      expiresAt,
+    });
+
+    const savedPayment = await this.paymentRepository.save(payment);
+
+    this.logger.log(`Payment created: ${savedPayment.id} for user: ${userId}, marathon: ${marathonId}`);
+
+    return {
+      paymentId: savedPayment.id,
+      paymentUrl: invoice.invoice_id,
+      payAddress: invoice.pay_address,
+      payAmount: invoice.pay_amount,
+      payCurrency: invoice.pay_currency,
+      network: invoice.network,
+      expiresAt,
+    };
+  }
+
+  async handleWebhook(webhookData: any, signature: string): Promise<void> {
+    this.logger.log(`Received webhook: ${JSON.stringify(webhookData)}`);
+
+    // Verify IPN signature
+    const isValid = this.nowPaymentsService.verifyIpnSignature(webhookData, signature);
+    if (!isValid) {
+      this.logger.error('Webhook signature verification failed');
+      throw new WebhookVerificationException();
+    }
+
+    const { payment_id, payment_status, order_id } = webhookData;
+
+    // Find payment by nowpaymentsId
+    const payment = await this.paymentRepository.findOne({
+      where: { nowpaymentsId: payment_id },
+    });
+
+    if (!payment) {
+      this.logger.error(`Payment not found for NowPayments ID: ${payment_id}`);
+      throw new PaymentNotFoundException();
+    }
+
+    // Check if payment has already been processed (idempotency check)
+    if (payment.status === PaymentStatus.COMPLETED) {
+      this.logger.warn(`Payment ${payment.id} has already been processed`);
+      return;
+    }
+
+    // Check if payment is cancelled or failed
+    if (payment.status === PaymentStatus.CANCELLED || payment.status === PaymentStatus.FAILED) {
+      this.logger.warn(`Payment ${payment.id} is in ${payment.status} status and cannot be processed`);
+      return;
+    }
+
+    // Update webhook data
+    payment.webhookData = webhookData;
+
+    // Map NowPayments status to our status
+    const mappedStatus = this.nowPaymentsService.mapNowPaymentStatus(payment_status);
+    payment.status = mappedStatus as PaymentStatus;
+
+    await this.paymentRepository.save(payment);
+
+    // Process payment if status is COMPLETED
+    if (payment.status === PaymentStatus.COMPLETED) {
+      this.logger.log(`Processing completed payment: ${payment.id}`);
+
+      try {
+        if (payment.paymentType === PaymentType.WALLET_CHARGE) {
+          await this.processWalletCharge(payment);
+        } else if (payment.paymentType === PaymentType.MARATHON_JOIN) {
+          await this.processMarathonJoin(payment);
+        }
+      } catch (error) {
+        this.logger.error(`Error processing payment ${payment.id}:`, error);
+        // Update payment to failed status
+        payment.status = PaymentStatus.FAILED;
+        await this.paymentRepository.save(payment);
+        throw error;
+      }
+    }
+
+    this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+  }
+
+  private async processWalletCharge(payment: Payment): Promise<void> {
+    this.logger.log(`Processing wallet charge for payment: ${payment.id}`);
+
+    // Add balance to user's profile
+    await this.profileService.addBalance(payment.userId, payment.amount);
+
+    this.logger.log(`Wallet charged successfully: ${payment.amount} USD for user: ${payment.userId}`);
+  }
+
+  private async processMarathonJoin(payment: Payment): Promise<void> {
+    this.logger.log(`Processing marathon join for payment: ${payment.id}`);
+
+    // Use transaction to ensure data consistency
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Check marathon capacity again
+      const marathon = await queryRunner.manager.findOne(Marathon, {
+        where: { id: payment.marathonId },
+      });
+
+      if (!marathon) {
+        throw new NotFoundException(`Marathon with ID ${payment.marathonId} not found`);
+      }
+
+      if (marathon.currentPlayers >= marathon.maxPlayers) {
+        throw new InsufficientMarathonCapacityException();
+      }
+
+      // Check if user is already a participant
+      const existingParticipant = await queryRunner.manager.findOne(MarathonParticipant, {
+        where: {
+          user: { id: payment.userId },
+          marathon: { id: payment.marathonId },
+        },
+      });
+
+      if (existingParticipant) {
+        throw new AlreadyMarathonMemberException();
+      }
+
+      // Create participant
+      const participant = queryRunner.manager.create(MarathonParticipant, {
+        user: { id: payment.userId },
+        marathon: { id: payment.marathonId },
+        isActive: true,
+      });
+
+      await queryRunner.manager.save(MarathonParticipant, participant);
+
+      // Update marathon current players count
+      marathon.currentPlayers += 1;
+      await queryRunner.manager.save(Marathon, marathon);
+
+      await queryRunner.commitTransaction();
+      this.logger.log(`Marathon join processed successfully: user ${payment.userId} joined marathon ${payment.marathonId}`);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error('Error processing marathon join:', error);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async getPaymentById(paymentId: string, userId?: string): Promise<Payment> {
+    const where: any = { id: paymentId };
+    if (userId) {
+      where.userId = userId;
+    }
+
+    const payment = await this.paymentRepository.findOne({
+      where,
+      relations: ['user', 'marathon'],
+    });
+
+    if (!payment) {
+      throw new PaymentNotFoundException(paymentId);
+    }
+
+    return payment;
+  }
+
+  async getUserPayments(userId: string, page: number = 1, limit: number = 10, filters?: any): Promise<{ payments: Payment[]; total: number }> {
+    const where: any = { userId };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.paymentType) {
+      where.paymentType = filters.paymentType;
+    }
+
+    const [payments, total] = await this.paymentRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: (page - 1) * limit,
+      relations: ['marathon'],
+    });
+
+    return { payments, total };
+  }
+
+  // Legacy method for backward compatibility (can be removed if not needed)
   async createPayment(userId: string, amount: number): Promise<Payment> {
     const existingPayment = await this.paymentRepository.findOne({
       where: {
-        user: { id: userId },
+        userId,
         status: PaymentStatus.PENDING,
       },
+      order: { createdAt: 'DESC' },
     });
 
     if (existingPayment) {
@@ -39,37 +404,12 @@ export class PaymentService {
     }
 
     const payment = this.paymentRepository.create({
-      user: { id: userId },
+      userId,
       amount,
       status: PaymentStatus.PENDING,
+      paymentType: PaymentType.WALLET_CHARGE,
     });
 
     return await this.paymentRepository.save(payment);
   }
-
-  async handleWebhook(paymentData: any): Promise<void> {
-    const { order_id, payment_status } = paymentData;
-    
-    if (payment_status !== 'finished') {
-      return;
-    }
-
-    const [_, marathonId, __, userId] = order_id.split('-');
-    
-    const participant = this.participantRepository.create({
-      marathon: { id: marathonId },
-      user: { id: userId },
-      isActive: true,
-    });
-
-    await this.participantRepository.save(participant);
-
-    // Update marathon current players count
-    await this.marathonRepository
-      .createQueryBuilder()
-      .update(Marathon)
-      .set({ currentPlayers: () => 'currentPlayers + 1' })
-      .where('id = :id', { id: marathonId })
-      .execute();
-  }
-} 
+}

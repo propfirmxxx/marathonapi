@@ -85,45 +85,105 @@ export class UpdateUserAndProfileToUUID1710000000002 implements MigrationInterfa
     // Update UUIDs in all related tables
     await queryRunner.query(`
       DO $$ 
+      DECLARE
+        col_type text;
       BEGIN
         -- Update profile UUIDs
-        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'profile') THEN
-          UPDATE "profile" p
-          SET "userUuid" = m.uuid
-          FROM id_mapping m
-          WHERE p."userId" = m.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'profile') 
+           AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'profile' AND column_name = 'userId') THEN
+          -- Check column type and update accordingly
+          SELECT data_type INTO col_type
+          FROM information_schema.columns
+          WHERE table_name = 'profile' AND column_name = 'userId';
+          
+          IF col_type = 'integer' THEN
+            UPDATE "profile" p
+            SET "userUuid" = m.uuid
+            FROM id_mapping m
+            WHERE p."userId" = m.id;
+          ELSIF col_type = 'uuid' THEN
+            -- If userId is already UUID, we need to map it differently
+            -- Find the matching UUID in users table (userId already matches users.uuid)
+            UPDATE "profile" p
+            SET "userUuid" = p."userId"
+            WHERE p."userUuid" IS NULL;
+          END IF;
         END IF;
 
         -- Update wallet UUIDs
-        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'wallets') THEN
-          UPDATE "wallets" w
-          SET "userUuid" = m.uuid
-          FROM id_mapping m
-          WHERE w."user_id" = m.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'wallets')
+           AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'wallets' AND column_name = 'user_id') THEN
+          SELECT data_type INTO col_type
+          FROM information_schema.columns
+          WHERE table_name = 'wallets' AND column_name = 'user_id';
+          
+          IF col_type = 'integer' THEN
+            UPDATE "wallets" w
+            SET "userUuid" = m.uuid
+            FROM id_mapping m
+            WHERE w."user_id" = m.id;
+          ELSIF col_type = 'uuid' THEN
+            UPDATE "wallets" w
+            SET "userUuid" = w."user_id"
+            WHERE w."userUuid" IS NULL;
+          END IF;
         END IF;
 
         -- Update marathon participant UUIDs
-        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'marathon_participants') THEN
-          UPDATE "marathon_participants" mp
-          SET "userUuid" = m.uuid
-          FROM id_mapping m
-          WHERE mp."user_id" = m.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'marathon_participants')
+           AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'marathon_participants' AND column_name = 'user_id') THEN
+          SELECT data_type INTO col_type
+          FROM information_schema.columns
+          WHERE table_name = 'marathon_participants' AND column_name = 'user_id';
+          
+          IF col_type = 'integer' THEN
+            UPDATE "marathon_participants" mp
+            SET "userUuid" = m.uuid
+            FROM id_mapping m
+            WHERE mp."user_id" = m.id;
+          ELSIF col_type = 'uuid' THEN
+            UPDATE "marathon_participants" mp
+            SET "userUuid" = mp."user_id"
+            WHERE mp."userUuid" IS NULL;
+          END IF;
         END IF;
 
         -- Update notification user UUIDs
-        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notification_users') THEN
-          UPDATE "notification_users" nu
-          SET "userUuid" = m.uuid
-          FROM id_mapping m
-          WHERE nu."user_id" = m.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notification_users')
+           AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notification_users' AND column_name = 'user_id') THEN
+          SELECT data_type INTO col_type
+          FROM information_schema.columns
+          WHERE table_name = 'notification_users' AND column_name = 'user_id';
+          
+          IF col_type = 'integer' THEN
+            UPDATE "notification_users" nu
+            SET "userUuid" = m.uuid
+            FROM id_mapping m
+            WHERE nu."user_id" = m.id;
+          ELSIF col_type = 'uuid' THEN
+            UPDATE "notification_users" nu
+            SET "userUuid" = nu."user_id"
+            WHERE nu."userUuid" IS NULL;
+          END IF;
         END IF;
 
         -- Update notification read by UUIDs
-        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notification_read_by') THEN
-          UPDATE "notification_read_by" nrb
-          SET "userUuid" = m.uuid
-          FROM id_mapping m
-          WHERE nrb."user_id" = m.id;
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notification_read_by')
+           AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notification_read_by' AND column_name = 'user_id') THEN
+          SELECT data_type INTO col_type
+          FROM information_schema.columns
+          WHERE table_name = 'notification_read_by' AND column_name = 'user_id';
+          
+          IF col_type = 'integer' THEN
+            UPDATE "notification_read_by" nrb
+            SET "userUuid" = m.uuid
+            FROM id_mapping m
+            WHERE nrb."user_id" = m.id;
+          ELSIF col_type = 'uuid' THEN
+            UPDATE "notification_read_by" nrb
+            SET "userUuid" = nrb."user_id"
+            WHERE nrb."userUuid" IS NULL;
+          END IF;
         END IF;
       END $$;
     `);
