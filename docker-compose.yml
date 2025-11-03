@@ -3,7 +3,7 @@ services:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
-    image: devenio/marathonapi:latest
+    image: devenio/marathonapi:dev
     restart: unless-stopped
     ports:
       - "3000:3000"
