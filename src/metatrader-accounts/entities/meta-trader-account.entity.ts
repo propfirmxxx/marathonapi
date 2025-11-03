@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Check } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index, Check, ManyToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 
 export enum MetaTraderAccountStatus {
   DEPLOYED = 'deployed',
@@ -26,9 +27,17 @@ export class MetaTraderAccount {
   @Column()
   server: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Index()
   userId: string;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @Column({ nullable: true })
+  @Index()
+  marathonParticipantId: string;
 
   @Column({
     type: 'enum',
@@ -45,4 +54,5 @@ export class MetaTraderAccount {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}
+

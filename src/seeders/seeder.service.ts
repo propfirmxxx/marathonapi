@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { Seeder } from './seeder.interface';
 import { FaqSeeder } from './faq.seeder';
 import { MarathonSeeder } from './marathon.seeder';
+import { MetaTraderAccountSeeder } from './metatrader-account.seeder';
 
 @Injectable()
 export class SeederService {
@@ -10,7 +11,11 @@ export class SeederService {
   private readonly seeders: Seeder[];
 
   constructor(private readonly dataSource: DataSource) {
-    this.seeders = [new FaqSeeder(dataSource), new MarathonSeeder(dataSource)];
+    this.seeders = [
+      new FaqSeeder(dataSource),
+      new MarathonSeeder(dataSource),
+      new MetaTraderAccountSeeder(dataSource),
+    ];
   }
 
   /**

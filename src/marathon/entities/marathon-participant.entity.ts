@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Marathon } from './marathon.entity';
 import { User } from '../../users/entities/user.entity';
-import { Account } from '../../metaapi/entities/account.entity';
+import { MetaTraderAccount } from '../../metatrader-accounts/entities/meta-trader-account.entity';
 
 @Entity('marathon_participants')
 export class MarathonParticipant {
@@ -16,8 +16,9 @@ export class MarathonParticipant {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @OneToOne(() => Account, account => account.participant)
-  account: Account;
+  @ManyToOne(() => MetaTraderAccount, { nullable: true })
+  @JoinColumn({ name: 'metaTraderAccountId' })
+  metaTraderAccount: MetaTraderAccount;
 
   @Column({ nullable: true })
   metaTraderAccountId: string;
