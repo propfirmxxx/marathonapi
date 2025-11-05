@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -7,7 +7,7 @@ import { Marathon } from '../marathon/entities/marathon.entity';
 import { Payment } from './entities/payment.entity';
 import { PaymentStatus } from './enums/payment-status.enum';
 import { PaymentType } from './enums/payment-type.enum';
-import { NowPaymentsService } from './nowpayments.service';
+import { IPaymentProvider } from './interfaces/payment-provider.interface';
 import { CreateWalletChargeDto } from './dto/create-wallet-charge.dto';
 import { CreateMarathonPaymentDto } from './dto/create-marathon-payment.dto';
 import { ProfileService } from '../profile/profile.service';
@@ -34,7 +34,8 @@ export class PaymentService {
     private readonly participantRepository: Repository<MarathonParticipant>,
     @InjectRepository(Marathon)
     private readonly marathonRepository: Repository<Marathon>,
-    private readonly nowPaymentsService: NowPaymentsService,
+    @Inject('PAYMENT_PROVIDER')
+    private readonly paymentProvider: IPaymentProvider,
     private readonly profileService: ProfileService,
     private readonly metaTraderAccountService: MetaTraderAccountService,
     private readonly dataSource: DataSource,
@@ -60,15 +61,25 @@ export class PaymentService {
         existingPayment.status = PaymentStatus.CANCELLED;
         await this.paymentRepository.save(existingPayment);
       } else {
-        throw new ConflictException('You already have a pending wallet charge payment');
+        // Return existing payment instead of throwing error
+        this.logger.log(`Returning existing pending payment ${existingPayment.id}`);
+        return {
+          paymentId: existingPayment.id,
+          paymentUrl: existingPayment.invoiceUrl,
+          payAddress: existingPayment.payAddress,
+          payAmount: existingPayment.payAmount,
+          payCurrency: existingPayment.payCurrency,
+          network: existingPayment.network,
+          expiresAt: existingPayment.expiresAt,
+        };
       }
     }
 
     const orderId = `wallet-${userId}-${Date.now()}`;
     const orderDescription = `Wallet charge for ${amount} USD`;
 
-    // Create invoice in NowPayments
-    const invoice = await this.nowPaymentsService.createInvoice({
+    // Create invoice
+    const invoice = await this.paymentProvider.createInvoice({
       priceAmount: amount,
       priceCurrency: 'usd',
       payCurrency: currency,
@@ -81,6 +92,10 @@ export class PaymentService {
 
     // Calculate expiration time (30 minutes from now)
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    // Check if using mock payment service
+    const isTestMode = this.configService.get<string>('NODE_ENV') === 'development' && 
+                       this.configService.get<string>('USE_MOCK_PAYMENT') === 'true';
 
     // Create payment record
     const payment = this.paymentRepository.create({
@@ -97,6 +112,7 @@ export class PaymentService {
       invoiceUrl: invoice.invoice_id,
       ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
       expiresAt,
+      isTest: isTestMode,
     });
 
     const savedPayment = await this.paymentRepository.save(payment);
@@ -164,15 +180,25 @@ export class PaymentService {
         existingPayment.status = PaymentStatus.CANCELLED;
         await this.paymentRepository.save(existingPayment);
       } else {
-        throw new ConflictException('You already have a pending payment for this marathon');
+        // Return existing payment instead of throwing error
+        this.logger.log(`Returning existing pending payment ${existingPayment.id} for marathon ${marathonId}`);
+        return {
+          paymentId: existingPayment.id,
+          paymentUrl: existingPayment.invoiceUrl,
+          payAddress: existingPayment.payAddress,
+          payAmount: existingPayment.payAmount,
+          payCurrency: existingPayment.payCurrency,
+          network: existingPayment.network,
+          expiresAt: existingPayment.expiresAt,
+        };
       }
     }
 
     const orderId = `marathon-${marathonId}-${userId}-${Date.now()}`;
     const orderDescription = `Join marathon: ${marathon.name}`;
 
-    // Create invoice in NowPayments
-    const invoice = await this.nowPaymentsService.createInvoice({
+    // Create invoice
+    const invoice = await this.paymentProvider.createInvoice({
       priceAmount: Number(marathon.entryFee),
       priceCurrency: 'usd',
       payCurrency: 'usdttrc20',
@@ -185,6 +211,10 @@ export class PaymentService {
 
     // Calculate expiration time (30 minutes from now)
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    // Check if using mock payment service
+    const isTestMode = this.configService.get<string>('NODE_ENV') === 'development' && 
+                       this.configService.get<string>('USE_MOCK_PAYMENT') === 'true';
 
     // Create payment record
     const payment = this.paymentRepository.create({
@@ -202,6 +232,7 @@ export class PaymentService {
       invoiceUrl: invoice.invoice_id,
       ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
       expiresAt,
+      isTest: isTestMode,
     });
 
     const savedPayment = await this.paymentRepository.save(payment);
@@ -223,7 +254,7 @@ export class PaymentService {
     this.logger.log(`Received webhook: ${JSON.stringify(webhookData)}`);
 
     // Verify IPN signature
-    const isValid = this.nowPaymentsService.verifyIpnSignature(webhookData, signature);
+    const isValid = this.paymentProvider.verifyIpnSignature(webhookData, signature);
     if (!isValid) {
       this.logger.error('Webhook signature verification failed');
       throw new WebhookVerificationException();
@@ -256,8 +287,8 @@ export class PaymentService {
     // Update webhook data
     payment.webhookData = webhookData;
 
-    // Map NowPayments status to our status
-    const mappedStatus = this.nowPaymentsService.mapNowPaymentStatus(payment_status);
+    // Map payment status to our status
+    const mappedStatus = this.paymentProvider.mapNowPaymentStatus(payment_status);
     payment.status = mappedStatus as PaymentStatus;
 
     await this.paymentRepository.save(payment);

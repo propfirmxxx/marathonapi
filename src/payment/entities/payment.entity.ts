@@ -78,6 +78,10 @@ export class Payment {
   @Column({ type: 'jsonb', nullable: true })
   webhookData: Record<string, any>;
 
+  // Test payment flag (for development/testing)
+  @Column({ type: 'boolean', default: false })
+  isTest: boolean;
+
   // Marathon relation (nullable for wallet charge payments)
   @ManyToOne(() => Marathon, { nullable: true })
   marathon: Marathon;

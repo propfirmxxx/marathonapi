@@ -43,6 +43,9 @@ export class PaymentResponseDto {
   @ApiProperty({ description: 'Marathon ID if payment for marathon', required: false })
   marathonId?: string;
 
+  @ApiProperty({ description: 'Whether this is a test payment', required: false, default: false })
+  isTest?: boolean;
+
   @ApiProperty({ description: 'Payment created date' })
   createdAt: Date;
 

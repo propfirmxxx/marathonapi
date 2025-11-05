@@ -4,42 +4,10 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { NowPaymentStatus } from './enums/nowpayment-status.enum';
+import { IPaymentProvider, CreateInvoiceParams, PaymentResponse } from './interfaces/payment-provider.interface';
 
-interface CreateInvoiceParams {
-  priceAmount: number;
-  priceCurrency: string;
-  payCurrency?: string;
-  orderId: string;
-  orderDescription: string;
-  ipnCallbackUrl: string;
-  successUrl?: string;
-  cancelUrl?: string;
-  caseId?: string;
-}
-
-interface NowPaymentsResponse {
-  // Invoice endpoint response fields
-  id?: string;
-  token_id?: string;
-  invoice_url?: string;
-  // Payment endpoint response fields
-  payment_id?: string;
-  payment_status?: string;
-  pay_address?: string;
-  price_amount?: number;
-  price_currency?: string;
-  pay_amount?: number;
-  pay_currency?: string;
-  network?: string;
-  invoice_id?: string;
-  payin_extra_id?: string;
-  smart_contract?: string;
-  order_id?: string;
-  order_description?: string;
-  purchase_id?: string;
-  outcome_amount?: number;
-  outcome_currency?: string;
-}
+// Alias for backward compatibility
+type NowPaymentsResponse = PaymentResponse;
 
 interface CurrencyInfo {
   name: string;
@@ -47,7 +15,7 @@ interface CurrencyInfo {
 }
 
 @Injectable()
-export class NowPaymentsService {
+export class NowPaymentsService implements IPaymentProvider {
   private readonly logger = new Logger(NowPaymentsService.name);
   private readonly apiKey: string;
   private readonly apiUrl: string;
@@ -139,7 +107,7 @@ export class NowPaymentsService {
     }
   }
 
-  async createInvoice(params: CreateInvoiceParams): Promise<NowPaymentsResponse> {
+  async createInvoice(params: CreateInvoiceParams): Promise<PaymentResponse> {
     try {
       const invoiceData = {
         price_amount: params.priceAmount,
@@ -177,7 +145,7 @@ export class NowPaymentsService {
     }
   }
 
-  async getPaymentStatus(paymentId: string): Promise<NowPaymentsResponse> {
+  async getPaymentStatus(paymentId: string): Promise<PaymentResponse> {
     try {
       const response = await this.makeRequest<NowPaymentsResponse>('GET', `payment/${paymentId}`);
       return response;

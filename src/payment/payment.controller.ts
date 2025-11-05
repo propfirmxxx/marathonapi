@@ -180,6 +180,7 @@ export class PaymentController {
       invoiceUrl: payment.invoiceUrl,
       expiresAt: payment.expiresAt,
       marathonId: payment.marathonId,
+      isTest: payment.isTest || false,
       createdAt: payment.createdAt,
       updatedAt: payment.updatedAt,
     };
