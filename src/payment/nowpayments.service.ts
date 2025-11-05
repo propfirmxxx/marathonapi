@@ -18,6 +18,11 @@ interface CreateInvoiceParams {
 }
 
 interface NowPaymentsResponse {
+  // Invoice endpoint response fields
+  id?: string;
+  token_id?: string;
+  invoice_url?: string;
+  // Payment endpoint response fields
   payment_id?: string;
   payment_status?: string;
   pay_address?: string;
@@ -139,7 +144,7 @@ export class NowPaymentsService {
       const invoiceData = {
         price_amount: params.priceAmount,
         price_currency: params.priceCurrency,
-        pay_currency: params.payCurrency || 'usdt',
+        pay_currency: params.payCurrency || 'usdttrc20',
         order_id: params.orderId,
         order_description: params.orderDescription,
         ipn_callback_url: params.ipnCallbackUrl || this.webhookUrl,
@@ -153,9 +158,19 @@ export class NowPaymentsService {
 
       const response = await this.makeRequest<NowPaymentsResponse>('POST', 'invoice', invoiceData);
 
-      this.logger.log(`Invoice created successfully: ${response.payment_id}`);
+      // Map invoice response to standard format
+      // Invoice endpoint returns: id, invoice_url
+      // Payment endpoint returns: payment_id, invoice_id
+      const mappedResponse: NowPaymentsResponse = {
+        ...response,
+        payment_id: response.id || response.payment_id, // Map 'id' to 'payment_id'
+        invoice_id: response.invoice_url || response.invoice_id, // Map 'invoice_url' to 'invoice_id'
+      };
 
-      return response;
+      this.logger.log(`Invoice created successfully: ${mappedResponse.payment_id}`);
+      this.logger.debug(`Invoice URL: ${mappedResponse.invoice_id}, Payment ID: ${mappedResponse.payment_id}`);
+
+      return mappedResponse;
     } catch (error) {
       this.logger.error('Failed to create invoice', error);
       throw error;

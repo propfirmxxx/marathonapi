@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { MetaTraderAccount, MetaTraderAccountStatus } from './entities/meta-trader-account.entity';
 import { CreateMetaTraderAccountDto } from './dto/create-metatrader-account.dto';
 import { AssignAccountDto } from './dto/assign-account.dto';
@@ -8,11 +8,14 @@ import { MarathonParticipant } from '../marathon/entities/marathon-participant.e
 
 @Injectable()
 export class MetaTraderAccountService {
+  private readonly logger = new Logger(MetaTraderAccountService.name);
+
   constructor(
     @InjectRepository(MetaTraderAccount)
     private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     @InjectRepository(MarathonParticipant)
     private readonly participantRepository: Repository<MarathonParticipant>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createDto: CreateMetaTraderAccountDto): Promise<MetaTraderAccount> {
@@ -62,35 +65,65 @@ export class MetaTraderAccountService {
   }
 
   async assignToParticipant(accountId: string, assignDto: AssignAccountDto): Promise<MetaTraderAccount> {
-    // Check if account exists
-    const account = await this.findById(accountId);
+    // Use transaction to ensure data consistency
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Check if account is already assigned
-    if (account.marathonParticipantId) {
-      throw new ConflictException('This account is already assigned to a marathon participant');
+    try {
+      // Check if account exists and is available (within transaction)
+      const account = await queryRunner.manager.findOne(MetaTraderAccount, {
+        where: { id: accountId },
+        lock: { mode: 'pessimistic_write' }, // Lock to prevent race conditions
+      });
+
+      if (!account) {
+        throw new NotFoundException(`MetaTrader account with ID ${accountId} not found`);
+      }
+
+      // Check if account is already assigned
+      if (account.marathonParticipantId) {
+        throw new ConflictException('This account is already assigned to a marathon participant');
+      }
+
+      // Check if participant exists (within transaction)
+      const participant = await queryRunner.manager.findOne(MarathonParticipant, {
+        where: { id: assignDto.marathonParticipantId },
+        relations: ['user', 'marathon'],
+        lock: { mode: 'pessimistic_write' }, // Lock to prevent race conditions
+      });
+
+      if (!participant) {
+        throw new NotFoundException(`Marathon participant with ID ${assignDto.marathonParticipantId} not found`);
+      }
+
+      // Check if participant already has an account assigned
+      if (participant.metaTraderAccountId) {
+        throw new ConflictException('This participant already has a MetaTrader account assigned');
+      }
+
+      // Update both sides of the relationship atomically
+      account.marathonParticipantId = assignDto.marathonParticipantId;
+      account.userId = participant.user?.id || null;
+
+      participant.metaTraderAccountId = accountId;
+
+      // Save both entities within transaction
+      await queryRunner.manager.save(MetaTraderAccount, account);
+      await queryRunner.manager.save(MarathonParticipant, participant);
+
+      await queryRunner.commitTransaction();
+      this.logger.log(`MetaTrader account ${accountId} assigned to participant ${assignDto.marathonParticipantId}`);
+
+      // Return account with updated participant relation
+      return await this.findById(accountId);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      this.logger.error(`Error assigning account ${accountId} to participant:`, error);
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    // Check if participant exists
-    const participant = await this.participantRepository.findOne({
-      where: { id: assignDto.marathonParticipantId },
-      relations: ['user', 'marathon'],
-    });
-
-    if (!participant) {
-      throw new NotFoundException(`Marathon participant with ID ${assignDto.marathonParticipantId} not found`);
-    }
-
-    // Check if participant already has an account assigned
-    const existingAccount = await this.findByParticipantId(assignDto.marathonParticipantId);
-    if (existingAccount) {
-      throw new ConflictException('This participant already has a MetaTrader account assigned');
-    }
-
-    // Assign the account
-    account.marathonParticipantId = assignDto.marathonParticipantId;
-    account.userId = participant.user?.id || null;
-
-    return await this.metaTraderAccountRepository.save(account);
   }
 
   async unassignFromParticipant(accountId: string): Promise<MetaTraderAccount> {

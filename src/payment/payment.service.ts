@@ -11,6 +11,7 @@ import { NowPaymentsService } from './nowpayments.service';
 import { CreateWalletChargeDto } from './dto/create-wallet-charge.dto';
 import { CreateMarathonPaymentDto } from './dto/create-marathon-payment.dto';
 import { ProfileService } from '../profile/profile.service';
+import { MetaTraderAccountService } from '../metatrader-accounts/metatrader-account.service';
 import {
   PaymentNotFoundException,
   InvalidPaymentStatusException,
@@ -35,11 +36,12 @@ export class PaymentService {
     private readonly marathonRepository: Repository<Marathon>,
     private readonly nowPaymentsService: NowPaymentsService,
     private readonly profileService: ProfileService,
+    private readonly metaTraderAccountService: MetaTraderAccountService,
     private readonly dataSource: DataSource,
   ) {}
 
   async createWalletChargePayment(userId: string, createWalletChargeDto: CreateWalletChargeDto) {
-    const { amount, currency = 'usdt' } = createWalletChargeDto;
+    const { amount, currency = 'usdttrc20' } = createWalletChargeDto;
 
     // Check for existing pending payments
     const existingPayment = await this.paymentRepository.findOne({
@@ -103,7 +105,7 @@ export class PaymentService {
 
     return {
       paymentId: savedPayment.id,
-      paymentUrl: invoice.invoice_id,
+      paymentUrl: invoice.invoice_id || invoice.invoice_url || savedPayment.invoiceUrl,
       payAddress: invoice.pay_address,
       payAmount: invoice.pay_amount,
       payCurrency: invoice.pay_currency,
@@ -173,7 +175,7 @@ export class PaymentService {
     const invoice = await this.nowPaymentsService.createInvoice({
       priceAmount: Number(marathon.entryFee),
       priceCurrency: 'usd',
-      payCurrency: 'usdt',
+      payCurrency: 'usdttrc20',
       orderId,
       orderDescription,
       ipnCallbackUrl: this.configService.get<string>('PAYMENT_WEBHOOK_URL'),
@@ -194,7 +196,7 @@ export class PaymentService {
       nowpaymentsId: invoice.payment_id,
       payAddress: invoice.pay_address,
       payAmount: invoice.pay_amount,
-      payCurrency: invoice.pay_currency || 'usdt',
+      payCurrency: invoice.pay_currency || 'usdttrc20',
       network: invoice.network,
       orderDescription,
       invoiceUrl: invoice.invoice_id,
@@ -208,7 +210,7 @@ export class PaymentService {
 
     return {
       paymentId: savedPayment.id,
-      paymentUrl: invoice.invoice_id,
+      paymentUrl: invoice.invoice_id || invoice.invoice_url || savedPayment.invoiceUrl,
       payAddress: invoice.pay_address,
       payAmount: invoice.pay_amount,
       payCurrency: invoice.pay_currency,
@@ -340,6 +342,28 @@ export class PaymentService {
 
       await queryRunner.commitTransaction();
       this.logger.log(`Marathon join processed successfully: user ${payment.userId} joined marathon ${payment.marathonId}`);
+
+      // Try to automatically assign a MetaTrader account to the participant
+      // This is done outside the transaction to avoid blocking payment processing
+      // If no account is available, the payment is still successful
+      try {
+        const availableAccounts = await this.metaTraderAccountService.findAvailable();
+        
+        if (availableAccounts.length > 0) {
+          // Assign the first available account
+          const accountToAssign = availableAccounts[0];
+          await this.metaTraderAccountService.assignToParticipant(accountToAssign.id, {
+            marathonParticipantId: participant.id,
+          });
+          this.logger.log(`MetaTrader account ${accountToAssign.id} automatically assigned to participant ${participant.id}`);
+        } else {
+          this.logger.warn(`No available MetaTrader accounts found for participant ${participant.id}. Payment was successful but account assignment is pending.`);
+        }
+      } catch (error) {
+        // Log error but don't fail the payment - account can be assigned manually later
+        this.logger.error(`Failed to automatically assign MetaTrader account to participant ${participant.id}:`, error);
+        this.logger.warn(`Payment was successful but MetaTrader account assignment failed. Participant ID: ${participant.id}`);
+      }
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error('Error processing marathon join:', error);

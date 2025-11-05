@@ -15,8 +15,8 @@ export class CreateWalletChargeDto {
   amount: number;
 
   @ApiProperty({
-    description: 'Currency code (default: usdt)',
-    example: 'usdt',
+    description: 'Currency code (default: usdttrc20)',
+    example: 'usdttrc20',
     required: false,
   })
   @IsOptional()

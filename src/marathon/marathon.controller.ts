@@ -104,7 +104,7 @@ export class MarathonController {
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Post(':id/join')
   async joinMarathon(@Param('id') id: string, @Req() req: any) {
-    return this.paymentService.createPayment(id, req.user.id);
+    return this.paymentService.createMarathonPayment(req.user.id, id);
   }
 
   @ApiOperation({ summary: 'Get marathon participants' })

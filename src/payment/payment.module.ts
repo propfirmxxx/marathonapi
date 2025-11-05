@@ -10,6 +10,7 @@ import { Marathon } from '../marathon/entities/marathon.entity';
 import { UsersModule } from '../users/users.module';
 import { ProfileModule } from '../profile/profile.module';
 import { NowPaymentsService } from './nowpayments.service';
+import { MetaTraderAccountModule } from '../metatrader-accounts/metatrader-account.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { NowPaymentsService } from './nowpayments.service';
     TypeOrmModule.forFeature([Payment, MarathonParticipant, Marathon]),
     UsersModule,
     ProfileModule,
+    MetaTraderAccountModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentService, NowPaymentsService],
