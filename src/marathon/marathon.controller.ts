@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { MarathonService } from './marathon.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
+import { GetMarathonsDto } from './dto/get-marathons.dto';
 import { UserRole } from '@/users/entities/user.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '@/auth/guards/admin.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { GetUser } from '@/auth/decorators/get-user.decorator';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { 
   MarathonResponseDto, 
   MarathonListResponseDto, 
@@ -13,6 +15,7 @@ import {
   MarathonParticipantListResponseDto 
 } from './dto/marathon-response.dto';
 import { PaymentService } from '../payment/payment.service';
+import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
@@ -37,15 +40,41 @@ export class MarathonController {
     return this.marathonService.create(createMarathonDto);
   }
 
-  @ApiOperation({ summary: 'Get all marathons' })
+  @ApiOperation({ summary: 'Get all marathons with optional filters' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Returns all marathons',
-    type: MarathonListResponseDto
+    description: 'Returns filtered and paginated marathons',
+    type: PaginatedResponseDto,
   })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
+  @ApiQuery({ name: 'myMarathons', required: false, type: Boolean, description: 'Filter marathons where current user is a participant' })
+  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by marathon name' })
   @Get()
-  findAll() {
-    return this.marathonService.findAll();
+  async findAll(
+    @Query() query: GetMarathonsDto,
+    @GetUser('id') userId?: string,
+  ): Promise<PaginatedResponseDto<MarathonResponseDto>> {
+    const pageNum = query.page && Number(query.page) > 0 ? Number(query.page) : 1;
+    const limitNum = query.limit && Number(query.limit) > 0 ? Number(query.limit) : 10;
+    
+    const userIdForFilter = query.myMarathons ? userId : undefined;
+    
+    const { marathons, total } = await this.marathonService.findAllWithFilters(
+      pageNum,
+      limitNum,
+      query.isActive,
+      userIdForFilter,
+      query.search,
+    );
+
+    return {
+      data: marathons as any,
+      total,
+      page: pageNum,
+      limit: limitNum,
+    };
   }
 
   @ApiOperation({ summary: 'Get marathon by ID' })
@@ -115,7 +144,25 @@ export class MarathonController {
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Get(':id/participants')
-  getMarathonParticipants(@Param('id') id: string) {
-    return this.marathonService.getMarathonParticipants(id);
+  async getMarathonParticipants(@Param('id') id: string) {
+    const { participants, total } = await this.marathonService.getMarathonParticipants(id);
+    
+    return {
+      items: participants.map(p => ({
+        id: p.id,
+        marathonId: p.marathon.id,
+        userId: p.user.id,
+        joinedAt: p.createdAt,
+        status: p.isActive ? 'active' : 'inactive',
+        user: {
+          id: p.user.id,
+          firstName: p.user.profile?.firstName || '',
+          lastName: p.user.profile?.lastName || '',
+          email: p.user.email || '',
+        },
+        metaTraderAccountId: p.metaTraderAccountId,
+      })),
+      total,
+    };
   }
 } 

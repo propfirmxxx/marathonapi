@@ -26,6 +26,46 @@ export class MarathonService {
     });
   }
 
+  async findAllWithFilters(
+    page: number = 1,
+    limit: number = 10,
+    isActive?: boolean,
+    userId?: string,
+    search?: string,
+  ): Promise<{ marathons: Marathon[]; total: number }> {
+    let query = this.marathonRepository.createQueryBuilder('marathon');
+
+    if (userId) {
+      // Use inner join to filter marathons where user is a participant
+      query = query
+        .innerJoin('marathon.participants', 'filterParticipant', 'filterParticipant.user_id = :userId', { userId })
+        .leftJoinAndSelect('marathon.participants', 'participants');
+    } else {
+      query = query.leftJoinAndSelect('marathon.participants', 'participants');
+    }
+
+    query = query.orderBy('marathon.createdAt', 'DESC');
+
+    if (isActive !== undefined) {
+      query = query.andWhere('marathon.isActive = :isActive', { isActive });
+    }
+
+    if (search) {
+      query = query.andWhere('marathon.name LIKE :search', { search: `%${search}%` });
+    }
+
+    // Get total count before pagination
+    const total = await query.getCount();
+
+    // Apply pagination
+    const marathons = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return { marathons, total };
+  }
+
   async findOne(id: string): Promise<Marathon> {
     const marathon = await this.marathonRepository.findOne({
       where: { id },
@@ -75,10 +115,25 @@ export class MarathonService {
     return await this.participantRepository.save(participant);
   }
 
-  async getMarathonParticipants(marathonId: string): Promise<MarathonParticipant[]> {
-    return await this.participantRepository.find({
-      where: { marathon: { id: marathonId } },
-      relations: ['user'],
+  async getMarathonParticipants(marathonId: string): Promise<{ participants: MarathonParticipant[]; total: number }> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
     });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    const participants = await this.participantRepository.find({
+      where: { marathon: { id: marathonId } },
+      relations: ['user', 'user.profile', 'metaTraderAccount'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      participants,
+      total: participants.length,
+    };
   }
 } 
