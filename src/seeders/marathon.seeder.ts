@@ -273,11 +273,10 @@ export class MarathonSeeder extends BaseSeeder {
         joinDate.setDate(joinDate.getDate() - Math.floor(Math.random() * 7));
 
         const isActive = Math.random() > 0.15;
-        const metaTraderId = `MT${String(1000000 + participantIndex).padStart(6, '0')}`;
         const participantId = this.generateParticipantId(participantIndex);
 
         participantValues.push(
-          `('${participantId}', '${marathon.id}', '${userId}', '${metaTraderId}', ${isActive}, '${joinDate.toISOString()}', '${joinDate.toISOString()}')`,
+          `('${participantId}', '${marathon.id}', '${userId}', NULL, ${isActive}, '${joinDate.toISOString()}', '${joinDate.toISOString()}')`,
         );
         participantIndex++;
       }
