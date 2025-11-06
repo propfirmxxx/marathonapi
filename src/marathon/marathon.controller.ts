@@ -44,7 +44,15 @@ export class MarathonController {
   @ApiResponse({ 
     status: 200, 
     description: 'Returns filtered and paginated marathons',
-    type: PaginatedResponseDto,
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/MarathonResponseDto' } },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        limit: { type: 'number' }
+      }
+    }
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })

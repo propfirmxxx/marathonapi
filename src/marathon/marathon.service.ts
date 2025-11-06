@@ -51,7 +51,7 @@ export class MarathonService {
     }
 
     if (search) {
-      query = query.andWhere('marathon.name LIKE :search', { search: `%${search}%` });
+      query = query.andWhere('LOWER(marathon.name) LIKE LOWER(:search)', { search: `%${search}%` });
     }
 
     // Get total count before pagination
