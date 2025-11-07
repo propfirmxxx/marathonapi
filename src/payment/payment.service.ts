@@ -405,7 +405,7 @@ export class PaymentService {
   }
 
   async getPaymentById(paymentId: string, userId?: string): Promise<Payment> {
-    const where: any = { id: paymentId };
+    const where: any = { nowpaymentsId: paymentId };
     if (userId) {
       where.userId = userId;
     }

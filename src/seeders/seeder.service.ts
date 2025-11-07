@@ -4,6 +4,7 @@ import { Seeder } from './seeder.interface';
 import { FaqSeeder } from './faq.seeder';
 import { MarathonSeeder } from './marathon.seeder';
 import { MetaTraderAccountSeeder } from './metatrader-account.seeder';
+import { PaymentSeeder } from './payment.seeder';
 
 @Injectable()
 export class SeederService {
@@ -15,6 +16,7 @@ export class SeederService {
       new FaqSeeder(dataSource),
       new MarathonSeeder(dataSource),
       new MetaTraderAccountSeeder(dataSource),
+      new PaymentSeeder(dataSource),
     ];
   }
 
