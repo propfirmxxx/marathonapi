@@ -50,6 +50,28 @@ export abstract class BaseSeeder implements Seeder {
   }
 
   /**
+   * Check if a column exists on a table
+   */
+  protected async hasColumn(tableName: string, columnName: string): Promise<boolean> {
+    if (!this.dataSource.isInitialized) {
+      throw new Error('DataSource is not initialized');
+    }
+
+    const result = await this.dataSource.query(
+      `SELECT EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = $1 
+          AND column_name = $2
+      ) AS exists`,
+      [tableName, columnName],
+    );
+
+    return Boolean(result?.[0]?.exists);
+  }
+
+  /**
    * Execute raw SQL query
    */
   protected async query(sql: string, parameters?: any[]): Promise<any> {

@@ -4,6 +4,17 @@ import { Marathon } from '../marathon/entities/marathon.entity';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 
 export class MarathonSeeder extends BaseSeeder {
+  private readonly seededMarathonIds = [
+    'a1b2c3d4-e5f6-4789-a012-345678901001',
+    'a1b2c3d4-e5f6-4789-a012-345678901002',
+    'a1b2c3d4-e5f6-4789-a012-345678901003',
+    'a1b2c3d4-e5f6-4789-a012-345678901004',
+    'a1b2c3d4-e5f6-4789-a012-345678901005',
+    'a1b2c3d4-e5f6-4789-a012-345678901006',
+    'a1b2c3d4-e5f6-4789-a012-345678901007',
+    'a1b2c3d4-e5f6-4789-a012-345678901008',
+  ];
+
   getName(): string {
     return 'MarathonSeeder';
   }
@@ -23,6 +34,7 @@ export class MarathonSeeder extends BaseSeeder {
     if (hasParticipants) {
       await this.query(`DELETE FROM marathon_participants`);
     }
+    await this.clearSeededPayments();
     await this.query(`DELETE FROM marathons`);
 
     // Get current timestamp for date calculations
@@ -312,6 +324,32 @@ export class MarathonSeeder extends BaseSeeder {
     return `b1c2d3e4-f5a6-4000-a000-${hex}`;
   }
 
+  private async clearSeededPayments(): Promise<void> {
+    const hasPayments = await this.hasTable('payment');
+
+    if (!hasPayments || this.seededMarathonIds.length === 0) {
+      return;
+    }
+
+    const placeholders = this.seededMarathonIds.map((_, index) => `$${index + 1}`).join(', ');
+
+    const hasMarathonIdColumn = await this.hasColumn('payment', 'marathonId');
+    if (hasMarathonIdColumn) {
+      await this.query(
+        `DELETE FROM payment WHERE "marathonId" IN (${placeholders})`,
+        this.seededMarathonIds,
+      );
+    }
+
+    const hasLegacyMarathonIdColumn = await this.hasColumn('payment', 'marathon_id');
+    if (hasLegacyMarathonIdColumn) {
+      await this.query(
+        `DELETE FROM payment WHERE "marathon_id" IN (${placeholders})`,
+        this.seededMarathonIds,
+      );
+    }
+  }
+
   async clean(): Promise<void> {
     const hasMarathons = await this.hasTable('marathons');
     if (!hasMarathons) {
@@ -326,28 +364,16 @@ export class MarathonSeeder extends BaseSeeder {
       await this.query(`
         DELETE FROM marathon_participants 
         WHERE marathon_id IN (
-          'a1b2c3d4-e5f6-4789-a012-345678901001',
-          'a1b2c3d4-e5f6-4789-a012-345678901002',
-          'a1b2c3d4-e5f6-4789-a012-345678901003',
-          'a1b2c3d4-e5f6-4789-a012-345678901004',
-          'a1b2c3d4-e5f6-4789-a012-345678901005',
-          'a1b2c3d4-e5f6-4789-a012-345678901006',
-          'a1b2c3d4-e5f6-4789-a012-345678901007',
-          'a1b2c3d4-e5f6-4789-a012-345678901008'
+          '${this.seededMarathonIds.join(`','`)}'
         )
       `);
     }
 
+    await this.clearSeededPayments();
+
     await this.query(`
       DELETE FROM marathons WHERE id IN (
-        'a1b2c3d4-e5f6-4789-a012-345678901001',
-        'a1b2c3d4-e5f6-4789-a012-345678901002',
-        'a1b2c3d4-e5f6-4789-a012-345678901003',
-        'a1b2c3d4-e5f6-4789-a012-345678901004',
-        'a1b2c3d4-e5f6-4789-a012-345678901005',
-        'a1b2c3d4-e5f6-4789-a012-345678901006',
-        'a1b2c3d4-e5f6-4789-a012-345678901007',
-        'a1b2c3d4-e5f6-4789-a012-345678901008'
+        '${this.seededMarathonIds.join(`','`)}'
       )
     `);
 
