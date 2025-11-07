@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { BaseSeeder } from './base-seeder';
 import { Marathon } from '../marathon/entities/marathon.entity';
+import { PrizeStrategyType } from '../marathon/entities/prize-strategy.types';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 
 export class MarathonSeeder extends BaseSeeder {
@@ -90,6 +91,15 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 60,
         },
         currentPlayers: 85,
+        prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
+        prizeStrategyConfig: {
+          placements: [
+            {
+              position: 1,
+              percentage: 100,
+            },
+          ],
+        },
         createdAt: pastStartDate,
         updatedAt: pastEndDate,
       },
@@ -112,6 +122,15 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 90,
         },
         currentPlayers: 67,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 50 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 20 },
+          ],
+          equalSplitRemainder: true,
+        },
         createdAt: activeStartDate,
         updatedAt: now,
       },
@@ -134,6 +153,14 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 75,
         },
         currentPlayers: 23,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 50 },
+            { position: 2, percentage: 33.33 },
+            { position: 3, percentage: 16.67 },
+          ],
+        },
         createdAt: now,
         updatedAt: now,
       },
@@ -156,6 +183,17 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 120,
         },
         currentPlayers: 200,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 40 },
+            { position: 2, percentage: 25 },
+            { position: 3, percentage: 15 },
+            { position: 4, percentage: 10 },
+            { position: 5, percentage: 10 },
+          ],
+          equalSplitRemainder: false,
+        },
         createdAt: activeStartDate,
         updatedAt: now,
       },
@@ -178,6 +216,15 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 45,
         },
         currentPlayers: 32,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 50 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 20 },
+          ],
+          equalSplitRemainder: true,
+        },
         createdAt: now,
         updatedAt: now,
       },
@@ -200,6 +247,18 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 180,
         },
         currentPlayers: 156,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 35 },
+            { position: 2, percentage: 25 },
+            { position: 3, percentage: 15 },
+            { position: 4, percentage: 10 },
+            { position: 5, percentage: 8 },
+            { position: 6, percentage: 7 },
+          ],
+          equalSplitRemainder: true,
+        },
         createdAt: now,
         updatedAt: now,
       },
@@ -222,6 +281,17 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 300,
         },
         currentPlayers: 342,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 40 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 20 },
+            { position: 4, percentage: 6 },
+            { position: 5, percentage: 4 },
+          ],
+          equalSplitRemainder: false,
+        },
         createdAt: now,
         updatedAt: now,
       },
@@ -244,6 +314,15 @@ export class MarathonSeeder extends BaseSeeder {
           minTradeDuration: 30,
         },
         currentPlayers: 187,
+        prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
+        prizeStrategyConfig: {
+          placements: [
+            {
+              position: 1,
+              percentage: 100,
+            },
+          ],
+        },
         createdAt: now,
         updatedAt: now,
       },

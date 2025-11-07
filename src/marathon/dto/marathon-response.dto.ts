@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { PrizeStrategyType } from '../entities/prize-strategy.types';
+import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 
 export class MarathonResponseDto {
   @ApiProperty({
@@ -32,6 +34,20 @@ export class MarathonResponseDto {
     minimum: 0
   })
   awardsAmount: number;
+
+  @ApiProperty({
+    description: 'Prize distribution strategy type',
+    enum: PrizeStrategyType,
+    example: PrizeStrategyType.WINNER_TAKE_ALL,
+  })
+  prizeStrategyType: PrizeStrategyType;
+
+  @ApiProperty({
+    description: 'Prize distribution configuration',
+    type: PrizeStrategyConfigDto,
+    required: false,
+  })
+  prizeStrategyConfig?: PrizeStrategyConfigDto | null;
 
   @ApiProperty({
     description: 'Maximum number of participants',
@@ -179,3 +195,28 @@ export class MarathonParticipantListResponseDto {
   })
   total: number;
 } 
+
+export class PrizePayoutResponseDto {
+  @ApiProperty({ description: 'Participant identifier', example: 'participant-uuid' })
+  participantId: string;
+
+  @ApiProperty({ description: 'Finishing position', example: 1 })
+  position: number;
+
+  @ApiProperty({ description: 'Prize amount awarded', example: 5000 })
+  amount: number;
+
+  @ApiProperty({ description: 'Applied percentage share of the total pool', example: 50, required: false })
+  percentage?: number;
+}
+
+export class PrizeDistributionResponseDto {
+  @ApiProperty({ description: 'Marathon identifier', example: 'marathon-uuid' })
+  marathonId: string;
+
+  @ApiProperty({ description: 'Calculated payouts', type: [PrizePayoutResponseDto] })
+  payouts: PrizePayoutResponseDto[];
+
+  @ApiProperty({ description: 'Total amount distributed', example: 10000 })
+  totalDistributed: number;
+}

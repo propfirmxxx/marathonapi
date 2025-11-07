@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { MarathonParticipant } from './marathon-participant.entity';
+import { PrizeStrategyConfig, PrizeStrategyType } from './prize-strategy.types';
 
 @Entity('marathons')
 export class Marathon {
@@ -17,6 +18,12 @@ export class Marathon {
 
   @Column('decimal', { precision: 10, scale: 2 })
   awardsAmount: number;
+
+  @Column({ type: 'enum', enum: PrizeStrategyType, default: PrizeStrategyType.WINNER_TAKE_ALL })
+  prizeStrategyType: PrizeStrategyType;
+
+  @Column({ type: 'json', nullable: true })
+  prizeStrategyConfig: PrizeStrategyConfig | null;
 
   @Column()
   maxPlayers: number;

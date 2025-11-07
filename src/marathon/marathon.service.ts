@@ -5,6 +5,8 @@ import { Marathon } from './entities/marathon.entity';
 import { MarathonParticipant } from './entities/marathon-participant.entity';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
+import { PrizeDistributionService } from './prize-distribution.service';
+import { PrizePayout, PrizeResult, PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
 
 @Injectable()
 export class MarathonService {
@@ -13,17 +15,22 @@ export class MarathonService {
     private readonly marathonRepository: Repository<Marathon>,
     @InjectRepository(MarathonParticipant)
     private readonly participantRepository: Repository<MarathonParticipant>,
+    private readonly prizeDistributionService: PrizeDistributionService,
   ) {}
 
   async create(createMarathonDto: CreateMarathonDto): Promise<Marathon> {
-    const marathon = this.marathonRepository.create(createMarathonDto);
+    const { prizeStrategyType, prizeStrategyConfig, ...rest } = createMarathonDto;
+
+    const marathon = this.marathonRepository.create({
+      ...rest,
+      prizeStrategyType: prizeStrategyType ?? PrizeStrategyType.WINNER_TAKE_ALL,
+      prizeStrategyConfig: prizeStrategyConfig ?? this.getDefaultConfig(prizeStrategyType),
+    });
     return await this.marathonRepository.save(marathon);
   }
 
   async findAll(): Promise<Marathon[]> {
-    return await this.marathonRepository.find({
-      relations: ['participants'],
-    });
+    return await this.marathonRepository.find();
   }
 
   async findAllWithFilters(
@@ -36,12 +43,8 @@ export class MarathonService {
     let query = this.marathonRepository.createQueryBuilder('marathon');
 
     if (userId) {
-      // Use inner join to filter marathons where user is a participant
       query = query
-        .innerJoin('marathon.participants', 'filterParticipant', 'filterParticipant.user_id = :userId', { userId })
-        .leftJoinAndSelect('marathon.participants', 'participants');
-    } else {
-      query = query.leftJoinAndSelect('marathon.participants', 'participants');
+        .innerJoin('marathon.participants', 'filterParticipant', 'filterParticipant.user_id = :userId', { userId });
     }
 
     query = query.orderBy('marathon.createdAt', 'DESC');
@@ -81,7 +84,21 @@ export class MarathonService {
 
   async update(id: string, updateMarathonDto: UpdateMarathonDto): Promise<Marathon> {
     const marathon = await this.findOne(id);
-    Object.assign(marathon, updateMarathonDto);
+    const { prizeStrategyType, prizeStrategyConfig, ...rest } = updateMarathonDto;
+
+    Object.assign(marathon, rest);
+
+    if (prizeStrategyType !== undefined) {
+      marathon.prizeStrategyType = prizeStrategyType;
+      if (prizeStrategyConfig === undefined) {
+        marathon.prizeStrategyConfig = this.getDefaultConfig(prizeStrategyType);
+      }
+    }
+
+    if (prizeStrategyConfig !== undefined) {
+      marathon.prizeStrategyConfig = prizeStrategyConfig ?? this.getDefaultConfig(prizeStrategyType ?? marathon.prizeStrategyType);
+    }
+
     return await this.marathonRepository.save(marathon);
   }
 
@@ -135,5 +152,26 @@ export class MarathonService {
       participants,
       total: participants.length,
     };
+  }
+
+  async calculatePrizeDistribution(marathonId: string, results: PrizeResult[]): Promise<PrizePayout[]> {
+    const marathon = await this.findOne(marathonId);
+    return this.prizeDistributionService.calculate(marathon, results);
+  }
+
+  private getDefaultConfig(type?: PrizeStrategyType): PrizeStrategyConfig | null {
+    switch (type ?? PrizeStrategyType.WINNER_TAKE_ALL) {
+      case PrizeStrategyType.WINNER_TAKE_ALL:
+        return {
+          placements: [
+            {
+              position: 1,
+              percentage: 100,
+            },
+          ],
+        };
+      default:
+        return null;
+    }
   }
 } 

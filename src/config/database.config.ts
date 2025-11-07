@@ -14,7 +14,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
   // migrationsRun is set to false because we call runMigrations() explicitly in main.ts
   migrationsRun: true,
-  synchronize: true, // Never use synchronize - use migrations instead
+  synchronize: false, // Never use synchronize - use migrations instead
   ssl: process.env.DB_SSL === 'true' ? {
     rejectUnauthorized: false
   } : false,

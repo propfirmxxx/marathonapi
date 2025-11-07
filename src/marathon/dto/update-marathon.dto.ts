@@ -1,6 +1,8 @@
-import { IsString, IsNumber, IsDate, IsBoolean, IsObject, Min, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsDate, IsBoolean, IsObject, Min, IsNotEmpty, IsOptional, IsEnum, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { PrizeStrategyType } from '../entities/prize-strategy.types';
+import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 
 export class UpdateMarathonDto {
   @ApiProperty({ description: 'Marathon name', example: 'Summer Trading Challenge', required: false })
@@ -32,6 +34,25 @@ export class UpdateMarathonDto {
   @Min(1)
   @IsOptional()
   maxPlayers?: number;
+
+  @ApiProperty({
+    description: 'Prize distribution strategy type',
+    enum: PrizeStrategyType,
+    required: false,
+  })
+  @IsEnum(PrizeStrategyType)
+  @IsOptional()
+  prizeStrategyType?: PrizeStrategyType;
+
+  @ApiProperty({
+    description: 'Configuration options for the selected prize strategy',
+    type: PrizeStrategyConfigDto,
+    required: false,
+  })
+  @ValidateNested()
+  @Type(() => PrizeStrategyConfigDto)
+  @IsOptional()
+  prizeStrategyConfig?: PrizeStrategyConfigDto;
 
   @ApiProperty({ description: 'Marathon start date', example: '2024-06-01T00:00:00Z', required: false })
   @IsDate()

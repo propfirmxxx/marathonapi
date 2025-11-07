@@ -3,7 +3,6 @@ import { MarathonService } from './marathon.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { GetMarathonsDto } from './dto/get-marathons.dto';
-import { UserRole } from '@/users/entities/user.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '@/auth/guards/admin.guard';
 import { GetUser } from '@/auth/decorators/get-user.decorator';
@@ -12,10 +11,12 @@ import {
   MarathonResponseDto, 
   MarathonListResponseDto, 
   MarathonParticipantResponseDto, 
-  MarathonParticipantListResponseDto 
+  MarathonParticipantListResponseDto,
+  PrizeDistributionResponseDto,
 } from './dto/marathon-response.dto';
 import { PaymentService } from '../payment/payment.service';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
+import { CalculatePrizeDistributionDto } from './dto/calculate-prize-distribution.dto';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
@@ -110,6 +111,30 @@ export class MarathonController {
   update(@Param('id') id: string, @Body() updateMarathonDto: UpdateMarathonDto) {
     return this.marathonService.update(id, updateMarathonDto);
   }
+
+  // @ApiOperation({ summary: 'Calculate marathon prize distribution' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Prize distribution calculated successfully',
+  //   type: PrizeDistributionResponseDto,
+  // })
+  // @ApiBody({ type: CalculatePrizeDistributionDto })
+  // @ApiParam({ name: 'id', description: 'Marathon ID' })
+  // @Post(':id/prize-distribution')
+  // @UseGuards(AdminGuard)
+  // async calculatePrizeDistribution(
+  //   @Param('id') id: string,
+  //   @Body() body: CalculatePrizeDistributionDto,
+  // ): Promise<PrizeDistributionResponseDto> {
+  //   const payouts = await this.marathonService.calculatePrizeDistribution(id, body.results);
+  //   const totalDistributed = payouts.reduce((sum, payout) => sum + payout.amount, 0);
+
+  //   return {
+  //     marathonId: id,
+  //     payouts,
+  //     totalDistributed,
+  //   };
+  // }
 
   @ApiOperation({ summary: 'Delete marathon' })
   @ApiResponse({ 

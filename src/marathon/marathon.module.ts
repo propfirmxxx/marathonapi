@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module';
 import { PaymentModule } from '../payment/payment.module';
 import { AuthModule } from '../auth/auth.module';
 import { MetaTraderAccountModule } from '../metatrader-accounts/metatrader-account.module';
+import { PrizeDistributionService } from './prize-distribution.service';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { MetaTraderAccountModule } from '../metatrader-accounts/metatrader-accou
     MetaTraderAccountModule,
   ],
   controllers: [MarathonController],
-  providers: [MarathonService],
-  exports: [MarathonService],
+  providers: [MarathonService, PrizeDistributionService],
+  exports: [MarathonService, PrizeDistributionService],
 })
 export class MarathonModule {} 
