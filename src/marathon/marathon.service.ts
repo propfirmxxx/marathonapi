@@ -1,14 +1,13 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Marathon } from './entities/marathon.entity';
-import { MarathonParticipant } from './entities/marathon-participant.entity';
-import { CreateMarathonDto } from './dto/create-marathon.dto';
-import { UpdateMarathonDto } from './dto/update-marathon.dto';
-import { PrizeDistributionService } from './prize-distribution.service';
-import { PrizePayout, PrizeResult, PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
 import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { TokyoService } from '../tokyo/tokyo.service';
+import { CreateMarathonDto } from './dto/create-marathon.dto';
+import { UpdateMarathonDto } from './dto/update-marathon.dto';
+import { MarathonParticipant } from './entities/marathon-participant.entity';
+import { Marathon } from './entities/marathon.entity';
+import { PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
 
 @Injectable()
 export class MarathonService {
@@ -21,7 +20,6 @@ export class MarathonService {
     private readonly participantRepository: Repository<MarathonParticipant>,
     @InjectRepository(MetaTraderAccount)
     private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
-    private readonly prizeDistributionService: PrizeDistributionService,
     private readonly tokyoService: TokyoService,
   ) {}
 
@@ -166,11 +164,6 @@ export class MarathonService {
       total: participants.length,
       marathon,
     };
-  }
-
-  async calculatePrizeDistribution(marathonId: string, results: PrizeResult[]): Promise<PrizePayout[]> {
-    const marathon = await this.findOne(marathonId);
-    return this.prizeDistributionService.calculate(marathon, results);
   }
 
   private hasMarathonStarted(marathon: Marathon): boolean {

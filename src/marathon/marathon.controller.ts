@@ -1,23 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, Query } from '@nestjs/common';
-import { MarathonService } from './marathon.service';
-import { CreateMarathonDto } from './dto/create-marathon.dto';
-import { UpdateMarathonDto } from './dto/update-marathon.dto';
-import { GetMarathonsDto } from './dto/get-marathons.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { AdminGuard } from '@/auth/guards/admin.guard';
 import { GetUser } from '@/auth/decorators/get-user.decorator';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
-import {
-  MarathonResponseDto,
-  MarathonListResponseDto,
-  MarathonParticipantResponseDto,
-  MarathonParticipantListResponseDto,
-  PrizeDistributionResponseDto,
-} from './dto/marathon-response.dto';
-import { PaymentService } from '../payment/payment.service';
+import { AdminGuard } from '@/auth/guards/admin.guard';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
-import { CalculatePrizeDistributionDto } from './dto/calculate-prize-distribution.dto';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { PaymentService } from '../payment/payment.service';
+import { CreateMarathonDto } from './dto/create-marathon.dto';
+import { GetMarathonsDto } from './dto/get-marathons.dto';
+import {
+  MarathonParticipantListResponseDto,
+  MarathonResponseDto
+} from './dto/marathon-response.dto';
+import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
+import { MarathonService } from './marathon.service';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()

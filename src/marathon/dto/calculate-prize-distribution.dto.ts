@@ -26,13 +26,3 @@ export class PrizeResultInputDto {
   @IsNumber()
   score?: number;
 }
-
-export class CalculatePrizeDistributionDto {
-  @ApiProperty({ description: 'Final rankings for the marathon', type: [PrizeResultInputDto] })
-  @IsArray()
-  @ArrayNotEmpty()
-  @ValidateNested({ each: true })
-  @Type(() => PrizeResultInputDto)
-  results: PrizeResultInputDto[];
-}
-
