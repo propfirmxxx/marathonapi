@@ -1111,12 +1111,12 @@
     socket.io "4.8.1"
     tslib "2.8.1"
 
-"@nestjs/schedule@^5.0.0":
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/@nestjs/schedule/-/schedule-5.0.1.tgz#7704132a3909387abebf9241bee913cbf53e8d1e"
-  integrity sha512-kFoel84I4RyS2LNPH6yHYTKxB16tb3auAEciFuc788C3ph6nABkUfzX5IE+unjVaRX+3GuruJwurNepMlHXpQg==
+"@nestjs/schedule@^6.0.1":
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/@nestjs/schedule/-/schedule-6.0.1.tgz#048b34e5c16d2d9fa14a9df2bfa2d3b7fa8ef168"
+  integrity sha512-v3yO6cSPAoBSSyH67HWnXHzuhPhSNZhRmLY38JvCt2sqY8sPMOODpcU1D79iUMFf7k16DaMEbL4Mgx61ZhiC8Q==
   dependencies:
-    cron "3.5.0"
+    cron "4.3.3"
 
 "@nestjs/schematics@^11.0.0", "@nestjs/schematics@^11.0.1":
   version "11.0.9"
@@ -1393,13 +1393,6 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.4.tgz#0b92dcc0cc1c81f6f306a381f28e31b1a56536e9"
   integrity sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==
 
-"@types/amqplib@^0.10.4":
-  version "0.10.8"
-  resolved "https://registry.yarnpkg.com/@types/amqplib/-/amqplib-0.10.8.tgz#23f2945d055e9fd583da672aa5ec0c7350b9e4e6"
-  integrity sha512-vtDp8Pk1wsE/AuQ8/Rgtm6KUZYqcnTgNvEHwzCkX8rL7AGsC6zqAfKAAJhUZXFhM/Pp++tbnUHiam/8vVpPztA==
-  dependencies:
-    "@types/node" "*"
-
 "@types/babel__core@^7.1.14":
   version "7.20.5"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.20.5.tgz#3df15f27ba85319caa07ba08d0721889bb39c017"
@@ -1569,10 +1562,10 @@
     "@types/ms" "*"
     "@types/node" "*"
 
-"@types/luxon@~3.4.0":
-  version "3.4.2"
-  resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-3.4.2.tgz#e4fc7214a420173cea47739c33cdf10874694db7"
-  integrity sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==
+"@types/luxon@~3.7.0":
+  version "3.7.1"
+  resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-3.7.1.tgz#ef51b960ff86801e4e2de80c68813a96e529d531"
+  integrity sha512-H3iskjFIAn5SlJU7OuxUmTEpebK6TKB8rxZShDslBMZJ5u9S//KM1sbdAisiSrqwLQncVjnpi2OK2J51h+4lsg==
 
 "@types/methods@^1.1.4":
   version "1.1.4"
@@ -2147,7 +2140,7 @@ ajv@^6.12.4, ajv@^6.12.5:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
-amqplib@^0.10.5:
+amqplib@^0.10.4:
   version "0.10.9"
   resolved "https://registry.yarnpkg.com/amqplib/-/amqplib-0.10.9.tgz#5b744c21d624f9307d0399e4d339b7354675831c"
   integrity sha512-jwSftI4QjS3mizvnSnOrPGYiUnm1vI2OP1iXeOUz5pb74Ua0nbf6nPyyTzuiCLEE3fMpaJORXh2K/TQ08H5xGA==
@@ -2279,13 +2272,13 @@ available-typed-arrays@^1.0.7:
   dependencies:
     possible-typed-array-names "^1.0.0"
 
-axios@1.9.0:
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.9.0.tgz#25534e3b72b54540077d33046f77e3b8d7081901"
-  integrity sha512-re4CqKTJaURpzbLHtIi6XpDv20/CnpXOtjRY5/CU32L8gU8ek9UIivcfvSWvmKEngmVbrUtPpdDwWDWL7DNHvg==
+axios@^1.6.7:
+  version "1.13.2"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.13.2.tgz#9ada120b7b5ab24509553ec3e40123521117f687"
+  integrity sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==
   dependencies:
     follow-redirects "^1.15.6"
-    form-data "^4.0.0"
+    form-data "^4.0.4"
     proxy-from-env "^1.1.0"
 
 axios@^1.9.0:
@@ -2907,13 +2900,13 @@ create-require@^1.1.0:
   resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
-cron@3.5.0:
-  version "3.5.0"
-  resolved "https://registry.yarnpkg.com/cron/-/cron-3.5.0.tgz#e8caa384e998ed275e19598df4dbd0e8578c35d9"
-  integrity sha512-0eYZqCnapmxYcV06uktql93wNWdlTmmBFP2iYz+JPVcQqlyFYcn1lFuIk4R54pkOmE7mcldTAPZv6X5XA4Q46A==
+cron@4.3.3:
+  version "4.3.3"
+  resolved "https://registry.yarnpkg.com/cron/-/cron-4.3.3.tgz#d37cfcbc73ba34a50d9d9ce9b653ae60837377d7"
+  integrity sha512-B/CJj5yL3sjtlun6RtYHvoSB26EmQ2NUmhq9ZiJSyKIM4K/fqfh9aelDFlIayD2YMeFZqWLi9hHV+c+pq2Djkw==
   dependencies:
-    "@types/luxon" "~3.4.0"
-    luxon "~3.5.0"
+    "@types/luxon" "~3.7.0"
+    luxon "~3.7.0"
 
 cross-spawn@^7.0.3, cross-spawn@^7.0.6:
   version "7.0.6"
@@ -4785,10 +4778,10 @@ lru-cache@^5.1.1:
   dependencies:
     yallist "^3.0.2"
 
-luxon@~3.5.0:
-  version "3.5.0"
-  resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.5.0.tgz#6b6f65c5cd1d61d1fd19dbf07ee87a50bf4b8e20"
-  integrity sha512-rh+Zjr6DNfUYR3bPwJEnuwDdqMbxZW7LOQfUN4B54+Cl+0o5zaU9RJ6bcidfDtC1cWCZXQ+nvX8bf6bAji37QQ==
+luxon@~3.7.0:
+  version "3.7.2"
+  resolved "https://registry.yarnpkg.com/luxon/-/luxon-3.7.2.tgz#d697e48f478553cca187a0f8436aff468e3ba0ba"
+  integrity sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==
 
 magic-string@0.30.17:
   version "0.30.17"
