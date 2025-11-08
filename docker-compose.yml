@@ -81,6 +81,9 @@ services:
       - ./meta-configs:/app/meta-configs:ro
     networks:
       - marathon-network
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - RABBITMQ_QUEUE=socket_data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health || exit 1"]
       interval: 30s
@@ -196,8 +199,42 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    networks:
+      - marathon-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:15672/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   pgdata:
+    driver: local
+  rabbitmq-data:
     driver: local
 
 networks:
