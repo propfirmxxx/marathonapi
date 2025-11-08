@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Marathon } from './entities/marathon.entity';
@@ -7,15 +7,22 @@ import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { PrizeDistributionService } from './prize-distribution.service';
 import { PrizePayout, PrizeResult, PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
+import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
+import { TokyoService } from '../tokyo/tokyo.service';
 
 @Injectable()
 export class MarathonService {
+  private readonly logger = new Logger(MarathonService.name);
+
   constructor(
     @InjectRepository(Marathon)
     private readonly marathonRepository: Repository<Marathon>,
     @InjectRepository(MarathonParticipant)
     private readonly participantRepository: Repository<MarathonParticipant>,
+    @InjectRepository(MetaTraderAccount)
+    private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     private readonly prizeDistributionService: PrizeDistributionService,
+    private readonly tokyoService: TokyoService,
   ) {}
 
   async create(createMarathonDto: CreateMarathonDto): Promise<Marathon> {
@@ -132,7 +139,9 @@ export class MarathonService {
     return await this.participantRepository.save(participant);
   }
 
-  async getMarathonParticipants(marathonId: string): Promise<{ participants: MarathonParticipant[]; total: number }> {
+  async getMarathonParticipants(
+    marathonId: string,
+  ): Promise<{ participants: MarathonParticipant[]; total: number; marathon: Marathon }> {
     // Check if marathon exists
     const marathon = await this.marathonRepository.findOne({
       where: { id: marathonId },
@@ -144,19 +153,55 @@ export class MarathonService {
 
     const participants = await this.participantRepository.find({
       where: { marathon: { id: marathonId } },
-      relations: ['user', 'user.profile', 'metaTraderAccount'],
+      relations: ['marathon', 'user', 'user.profile', 'metaTraderAccount'],
       order: { createdAt: 'DESC' },
     });
+
+    if (this.hasMarathonStarted(marathon)) {
+      await this.deployParticipantAccounts(participants);
+    }
 
     return {
       participants,
       total: participants.length,
+      marathon,
     };
   }
 
   async calculatePrizeDistribution(marathonId: string, results: PrizeResult[]): Promise<PrizePayout[]> {
     const marathon = await this.findOne(marathonId);
     return this.prizeDistributionService.calculate(marathon, results);
+  }
+
+  private hasMarathonStarted(marathon: Marathon): boolean {
+    if (!marathon?.startDate) {
+      return false;
+    }
+
+    return marathon.startDate.getTime() <= Date.now();
+  }
+
+  private async deployParticipantAccounts(participants: MarathonParticipant[]): Promise<void> {
+    for (const participant of participants) {
+      const account = participant.metaTraderAccount;
+      if (!account?.login) {
+        continue;
+      }
+
+      if (account.status === MetaTraderAccountStatus.DEPLOYED) {
+        continue;
+      }
+
+      try {
+        await this.tokyoService.deployAccount(account.login);
+        account.status = MetaTraderAccountStatus.DEPLOYED;
+        await this.metaTraderAccountRepository.save(account);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to deploy MetaTrader account ${account.login} for participant ${participant.id}: ${error.message}`,
+        );
+      }
+    }
   }
 
   private getDefaultConfig(type?: PrizeStrategyType): PrizeStrategyConfig | null {

@@ -7,16 +7,17 @@ import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '@/auth/guards/admin.guard';
 import { GetUser } from '@/auth/decorators/get-user.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
-import { 
-  MarathonResponseDto, 
-  MarathonListResponseDto, 
-  MarathonParticipantResponseDto, 
+import {
+  MarathonResponseDto,
+  MarathonListResponseDto,
+  MarathonParticipantResponseDto,
   MarathonParticipantListResponseDto,
   PrizeDistributionResponseDto,
 } from './dto/marathon-response.dto';
 import { PaymentService } from '../payment/payment.service';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 import { CalculatePrizeDistributionDto } from './dto/calculate-prize-distribution.dto';
+import { LiveAccountDataService } from './live-account-data.service';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
@@ -26,6 +27,7 @@ export class MarathonController {
   constructor(
     private readonly marathonService: MarathonService,
     private readonly paymentService: PaymentService,
+    private readonly liveAccountDataService: LiveAccountDataService,
   ) {}
 
   @ApiOperation({ summary: 'Create a new marathon' })
@@ -112,30 +114,6 @@ export class MarathonController {
     return this.marathonService.update(id, updateMarathonDto);
   }
 
-  // @ApiOperation({ summary: 'Calculate marathon prize distribution' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Prize distribution calculated successfully',
-  //   type: PrizeDistributionResponseDto,
-  // })
-  // @ApiBody({ type: CalculatePrizeDistributionDto })
-  // @ApiParam({ name: 'id', description: 'Marathon ID' })
-  // @Post(':id/prize-distribution')
-  // @UseGuards(AdminGuard)
-  // async calculatePrizeDistribution(
-  //   @Param('id') id: string,
-  //   @Body() body: CalculatePrizeDistributionDto,
-  // ): Promise<PrizeDistributionResponseDto> {
-  //   const payouts = await this.marathonService.calculatePrizeDistribution(id, body.results);
-  //   const totalDistributed = payouts.reduce((sum, payout) => sum + payout.amount, 0);
-
-  //   return {
-  //     marathonId: id,
-  //     payouts,
-  //     totalDistributed,
-  //   };
-  // }
-
   @ApiOperation({ summary: 'Delete marathon' })
   @ApiResponse({ 
     status: 200, 
@@ -178,24 +156,73 @@ export class MarathonController {
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Get(':id/participants')
   async getMarathonParticipants(@Param('id') id: string) {
-    const { participants, total } = await this.marathonService.getMarathonParticipants(id);
-    
-    return {
-      items: participants.map(p => ({
+    const { participants, total, marathon } = await this.marathonService.getMarathonParticipants(id);
+    const marathonStarted = marathon.startDate ? marathon.startDate.getTime() <= Date.now() : false;
+
+    const items = participants.map((p) => {
+      const marathonId = p.marathon?.id ?? marathon.id;
+      const user = p.user;
+      const profile = user?.profile;
+
+      const base = {
         id: p.id,
-        marathonId: p.marathon.id,
-        userId: p.user.id,
+        marathonId,
+        userId: user?.id ?? '',
         joinedAt: p.createdAt,
         status: p.isActive ? 'active' : 'inactive',
         user: {
-          id: p.user.id,
-          firstName: p.user.profile?.firstName || '',
-          lastName: p.user.profile?.lastName || '',
-          email: p.user.email || '',
+          id: user?.id ?? '',
+          firstName: profile?.firstName || '',
+          lastName: profile?.lastName || '',
+          email: user?.email || '',
         },
         metaTraderAccountId: p.metaTraderAccountId,
-      })),
+      };
+
+      if (!marathonStarted) {
+        return base;
+      }
+
+      const account = p.metaTraderAccount;
+      const snapshot = account?.login ? this.liveAccountDataService.getSnapshot(account.login) : null;
+
+      return {
+        ...base,
+        currentBalance: snapshot?.balance ?? null,
+        profit: snapshot?.profit ?? null,
+        trades: snapshot?.positions ? snapshot.positions.length : null,
+        equity: snapshot?.equity ?? null,
+        metaTraderAccount: account
+          ? {
+              id: account.id,
+              login: account.login,
+              investorPassword: account.investorPassword ?? null,
+              server: account.server,
+              platform: account.platform,
+              status: account.status,
+              updatedAt: account.updatedAt ?? null,
+            }
+          : null,
+        liveData: snapshot
+          ? {
+              balance: snapshot.balance ?? null,
+              equity: snapshot.equity ?? null,
+              profit: snapshot.profit ?? null,
+              margin: snapshot.margin ?? null,
+              freeMargin: snapshot.freeMargin ?? null,
+              currency: snapshot.currency ?? null,
+              positions: snapshot.positions ?? null,
+              orders: snapshot.orders ?? null,
+              updatedAt: snapshot.updatedAt ?? null,
+            }
+          : null,
+      };
+    });
+
+    return {
+      items,
       total,
+      marathonStarted,
     };
   }
 } 

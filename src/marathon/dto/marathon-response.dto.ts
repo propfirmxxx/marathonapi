@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { PrizeStrategyType } from '../entities/prize-strategy.types';
 import { PrizeStrategyConfigDto } from './prize-strategy.dto';
+import { MetaTraderAccountStatus } from '../../metatrader-accounts/entities/meta-trader-account.entity';
 
 export class MarathonResponseDto {
   @ApiProperty({
@@ -101,6 +102,87 @@ export class MarathonResponseDto {
   updatedAt: Date;
 }
 
+export class MarathonParticipantMetaTraderAccountDto {
+  @ApiProperty({ description: 'MetaTrader account ID', example: 'account-uuid' })
+  id: string;
+
+  @ApiProperty({ description: 'MetaTrader account login', example: '12345678' })
+  login: string;
+
+  @ApiProperty({
+    description: 'Investor password',
+    example: 'investor123',
+    required: false,
+    nullable: true,
+  })
+  investorPassword?: string | null;
+
+  @ApiProperty({ description: 'MetaTrader server', example: 'MetaQuotes-Demo' })
+  server: string;
+
+  @ApiProperty({ description: 'Trading platform', example: 'mt5' })
+  platform: string;
+
+  @ApiProperty({
+    description: 'Deployment status',
+    enum: MetaTraderAccountStatus,
+    example: MetaTraderAccountStatus.DEPLOYED,
+  })
+  status: MetaTraderAccountStatus;
+
+  @ApiProperty({
+    description: 'Last updated timestamp',
+    example: '2024-04-22T13:00:00Z',
+    required: false,
+    nullable: true,
+  })
+  updatedAt?: Date | null;
+}
+
+export class MarathonParticipantLiveDataDto {
+  @ApiProperty({ description: 'Balance reported by MetaTrader', example: 10000, required: false, nullable: true })
+  balance?: number | null;
+
+  @ApiProperty({ description: 'Equity reported by MetaTrader', example: 10500, required: false, nullable: true })
+  equity?: number | null;
+
+  @ApiProperty({ description: 'Floating profit', example: 250, required: false, nullable: true })
+  profit?: number | null;
+
+  @ApiProperty({ description: 'Used margin', example: 1500, required: false, nullable: true })
+  margin?: number | null;
+
+  @ApiProperty({ description: 'Free margin', example: 8500, required: false, nullable: true })
+  freeMargin?: number | null;
+
+  @ApiProperty({ description: 'Account currency', example: 'USD', required: false, nullable: true })
+  currency?: string | null;
+
+  @ApiProperty({
+    description: 'Open positions',
+    type: [Object],
+    required: false,
+    nullable: true,
+  })
+  positions?: Record<string, any>[] | null;
+
+  @ApiProperty({
+    description: 'Pending orders',
+    type: [Object],
+    required: false,
+    nullable: true,
+  })
+  orders?: Record<string, any>[] | null;
+
+  @ApiProperty({
+    description: 'Timestamp of the last update pulled from MetaTrader',
+    example: '2024-04-22T13:05:00Z',
+    required: false,
+    nullable: true,
+  })
+  updatedAt?: Date | null;
+}
+
 export class MarathonParticipantResponseDto {
   @ApiProperty({
     description: 'Participant ID',
@@ -135,21 +217,35 @@ export class MarathonParticipantResponseDto {
 
   @ApiProperty({
     description: 'Current account balance',
-    example: 10000
+    example: 10000,
+    required: false,
+    nullable: true,
   })
-  currentBalance: number;
+  currentBalance?: number | null;
 
   @ApiProperty({
     description: 'Current profit/loss',
-    example: 500
+    example: 500,
+    required: false,
+    nullable: true,
   })
-  profit: number;
+  profit?: number | null;
 
   @ApiProperty({
     description: 'Number of trades',
-    example: 15
+    example: 15,
+    required: false,
+    nullable: true,
   })
-  trades: number;
+  trades?: number | null;
+
+  @ApiProperty({
+    description: 'Current account equity',
+    example: 11000,
+    required: false,
+    nullable: true,
+  })
+  equity?: number | null;
 
   @ApiProperty({
     description: 'User information',
@@ -166,6 +262,42 @@ export class MarathonParticipantResponseDto {
     lastName: string;
     email: string;
   };
+
+  @ApiProperty({
+    description: 'MetaTrader account information (excluding master password)',
+    required: false,
+    nullable: true,
+    type: () => MarathonParticipantMetaTraderAccountDto,
+  })
+  metaTraderAccount?: MarathonParticipantMetaTraderAccountDto | null;
+
+  @ApiProperty({
+    description: 'Live trading metrics received from MetaTrader',
+    required: false,
+    nullable: true,
+    type: () => MarathonParticipantLiveDataDto,
+  })
+  liveData?: MarathonParticipantLiveDataDto | null;
+}
+
+export class MarathonParticipantListResponseDto {
+  @ApiProperty({
+    description: 'List of participants',
+    type: [MarathonParticipantResponseDto],
+  })
+  items: MarathonParticipantResponseDto[];
+
+  @ApiProperty({
+    description: 'Total number of participants',
+    example: 1,
+  })
+  total: number;
+
+  @ApiProperty({
+    description: 'Indicates whether the marathon has started',
+    example: true,
+  })
+  marathonStarted: boolean;
 }
 
 export class MarathonListResponseDto {
@@ -182,19 +314,6 @@ export class MarathonListResponseDto {
   total: number;
 }
 
-export class MarathonParticipantListResponseDto {
-  @ApiProperty({
-    description: 'List of participants',
-    type: [MarathonParticipantResponseDto]
-  })
-  items: MarathonParticipantResponseDto[];
-
-  @ApiProperty({
-    description: 'Total number of participants',
-    example: 1
-  })
-  total: number;
-} 
 
 export class PrizePayoutResponseDto {
   @ApiProperty({ description: 'Participant identifier', example: 'participant-uuid' })

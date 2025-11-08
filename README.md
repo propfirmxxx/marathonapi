@@ -183,7 +183,20 @@ SWAGGER_PATH=swagger
 META_API_TOKEN=your_meta_api_token
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
+# Tokyo deployment service
+TOKYO_SERVICE_BASE_URL=https://tokyo-service.example.com
+
+# Live trading stream (RabbitMQ)
+RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+RABBITMQ_QUEUE=socket_data
+
 # Data Seeding (optional)
 # Set to 'true' to enable mock data seeding (FAQ and Marathon data)
 SEED_MOCK_DATA=false
 ```
+
+### Live trading & deployment notes
+
+- `TOKYO_SERVICE_BASE_URL` must resolve to the `ap-tokyo` service responsible for deploying participant MetaTrader containers. Accounts remain `undeployed` if the service is unreachable; the API logs a warning but still serves participant data.
+- `RABBITMQ_URL` and `RABBITMQ_QUEUE` configure the live data consumer. When these are missing or RabbitMQ is offline, the participants endpoint falls back to returning static user details until connectivity is restored.
+- Ensure the `socket_data` queue is durable and populated by the MetaTrader bridge (see `ap/ap-tokyo` and `ap/ap-berllin/DataPusher.mq5`) to surface balances, equity, open positions, and order history in marathon responses.
