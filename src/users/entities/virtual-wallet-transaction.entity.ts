@@ -28,7 +28,7 @@ export class VirtualWalletTransaction {
   @JoinColumn({ name: 'wallet_id' })
   wallet: VirtualWallet;
 
-  @Column({ type: 'uuid' })
+  @Column({ name: 'wallet_id', type: 'uuid' })
   walletId: string;
 
   @Column({ type: 'enum', enum: VirtualWalletTransactionType })
@@ -55,7 +55,7 @@ export class VirtualWalletTransaction {
   @Column({ type: 'jsonb', nullable: true })
   metadata: Record<string, any> | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
 
