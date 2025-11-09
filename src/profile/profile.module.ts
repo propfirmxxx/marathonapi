@@ -9,6 +9,7 @@ import { extname } from 'path';
 import { CloudStorageService } from '../services/cloud-storage.service';
 import { User } from '../users/entities/user.entity';
 import { NotificationModule } from '../notifications/notification.module';
+import { VirtualWalletModule } from '../virtual-wallet/virtual-wallet.module';
 
 @Module({
   imports: [
@@ -28,7 +29,8 @@ import { NotificationModule } from '../notifications/notification.module';
         callback(null, true);
       },
     }),
-    NotificationModule
+    NotificationModule,
+    VirtualWalletModule,
   ],
   controllers: [ProfileController],
   providers: [ProfileService, CloudStorageService],
