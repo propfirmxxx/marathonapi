@@ -148,6 +148,7 @@ export class MarathonService {
       where: {
         marathon: { id: marathonId },
         user: { id: userId },
+        isActive: true,
       },
     });
 
@@ -178,7 +179,7 @@ export class MarathonService {
     }
 
     const participants = await this.participantRepository.find({
-      where: { marathon: { id: marathonId } },
+      where: { marathon: { id: marathonId }, isActive: true },
       relations: ['marathon', 'user', 'user.profile', 'metaTraderAccount'],
       order: { createdAt: 'DESC' },
     });
