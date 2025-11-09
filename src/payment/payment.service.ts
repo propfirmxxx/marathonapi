@@ -155,6 +155,7 @@ export class PaymentService {
       where: {
         user: { id: userId },
         marathon: { id: marathonId },
+        isActive: true,
       },
     });
 
@@ -346,26 +347,35 @@ export class PaymentService {
         throw new InsufficientMarathonCapacityException();
       }
 
+      let participant: MarathonParticipant;
+
       // Check if user is already a participant
       const existingParticipant = await queryRunner.manager.findOne(MarathonParticipant, {
         where: {
           user: { id: payment.userId },
           marathon: { id: payment.marathonId },
         },
+        lock: { mode: 'pessimistic_write' },
       });
 
-      if (existingParticipant) {
+      if (existingParticipant?.isActive) {
         throw new AlreadyMarathonMemberException();
       }
 
-      // Create participant
-      const participant = queryRunner.manager.create(MarathonParticipant, {
-        user: { id: payment.userId },
-        marathon: { id: payment.marathonId },
-        isActive: true,
-      });
+      if (existingParticipant) {
+        existingParticipant.isActive = true;
+        existingParticipant.cancelledAt = null;
+        existingParticipant.refundTransactionId = null;
+        participant = await queryRunner.manager.save(MarathonParticipant, existingParticipant);
+      } else {
+        participant = queryRunner.manager.create(MarathonParticipant, {
+          user: { id: payment.userId },
+          marathon: { id: payment.marathonId },
+          isActive: true,
+        });
 
-      await queryRunner.manager.save(MarathonParticipant, participant);
+        await queryRunner.manager.save(MarathonParticipant, participant);
+      }
 
       // Update marathon current players count
       marathon.currentPlayers += 1;

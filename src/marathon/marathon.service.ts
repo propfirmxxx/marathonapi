@@ -148,12 +148,18 @@ export class MarathonService {
       where: {
         marathon: { id: marathonId },
         user: { id: userId },
-        isActive: true,
       },
     });
 
-    if (existingParticipant) {
+    if (existingParticipant?.isActive) {
       throw new ConflictException('User is already a participant in this marathon');
+    }
+
+    if (existingParticipant) {
+      existingParticipant.isActive = true;
+      existingParticipant.cancelledAt = null;
+      existingParticipant.refundTransactionId = null;
+      return await this.participantRepository.save(existingParticipant);
     }
 
     // Create new participant
