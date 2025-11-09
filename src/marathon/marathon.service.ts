@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { TokyoService } from '../tokyo/tokyo.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
@@ -100,6 +100,7 @@ export class MarathonService {
       where: {
         marathon: { id: id },
         user: { id: userId },
+        isActive: true,
       },
     });
 
