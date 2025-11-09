@@ -25,6 +25,19 @@ export class CronJobsService {
     );
   }
 
+  @Cron(CronExpression.EVERY_MINUTE, {
+    name: 'marathon.status.sync',
+  })
+  async syncMarathonStatuses(): Promise<void> {
+    await this.monitoring.track(
+      'marathon.status.sync',
+      CronExpression.EVERY_MINUTE,
+      async () => {
+        await this.marathonProvisioning.synchronizeMarathonStatuses();
+      },
+    );
+  }
+
   @Cron(CronExpression.EVERY_10_MINUTES, {
     name: 'system.maintenance.heartbeat',
   })

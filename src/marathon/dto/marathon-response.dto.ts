@@ -4,6 +4,7 @@ import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 import { MetaTraderAccountStatus } from '../../metatrader-accounts/entities/meta-trader-account.entity';
 import { MarathonRulesDto } from './marathon-rules.dto';
 import { MarathonRule, MarathonRules } from '../enums/marathon-rule.enum';
+import { MarathonStatus } from '../enums/marathon-status.enum';
 
 export class MarathonResponseDto {
   @ApiProperty({ description: 'Indicates whether the user is a participant of the marathon', example: true })
@@ -73,6 +74,13 @@ export class MarathonResponseDto {
     example: '2024-06-30T23:59:59Z'
   })
   endDate: Date;
+
+  @ApiProperty({
+    description: 'Current status of the marathon lifecycle',
+    enum: MarathonStatus,
+    example: MarathonStatus.ONGOING,
+  })
+  status: MarathonStatus;
 
   @ApiProperty({
     description: 'Marathon rules and conditions, keyed by predefined rule identifiers',

@@ -10,6 +10,8 @@ import { Marathon } from './entities/marathon.entity';
 import { PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
 import { VirtualWalletService } from '../virtual-wallet/virtual-wallet.service';
 import { VirtualWalletTransactionType } from '../users/entities/virtual-wallet-transaction.entity';
+import { MarathonStatus } from './enums/marathon-status.enum';
+import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
 
 @Injectable()
 export class MarathonService {
@@ -29,12 +31,13 @@ export class MarathonService {
   ) {}
 
   async create(createMarathonDto: CreateMarathonDto): Promise<Marathon> {
-    const { prizeStrategyType, prizeStrategyConfig, ...rest } = createMarathonDto;
+    const { prizeStrategyType, prizeStrategyConfig, status, ...rest } = createMarathonDto;
 
     const marathon = this.marathonRepository.create({
       ...rest,
       prizeStrategyType: prizeStrategyType ?? PrizeStrategyType.WINNER_TAKE_ALL,
       prizeStrategyConfig: prizeStrategyConfig ?? this.getDefaultConfig(prizeStrategyType),
+      status: status ?? calculateMarathonLifecycleStatus(rest.startDate, rest.endDate),
     });
     return await this.marathonRepository.save(marathon);
   }
@@ -105,7 +108,8 @@ export class MarathonService {
 
   async update(id: string, updateMarathonDto: UpdateMarathonDto): Promise<Marathon> {
     const marathon = await this.findOne(id);
-    const { prizeStrategyType, prizeStrategyConfig, ...rest } = updateMarathonDto;
+    const { prizeStrategyType, prizeStrategyConfig, status, ...rest } = updateMarathonDto;
+    const datesUpdated = 'startDate' in rest || 'endDate' in rest;
 
     Object.assign(marathon, rest);
 
@@ -117,7 +121,14 @@ export class MarathonService {
     }
 
     if (prizeStrategyConfig !== undefined) {
-      marathon.prizeStrategyConfig = prizeStrategyConfig ?? this.getDefaultConfig(prizeStrategyType ?? marathon.prizeStrategyType);
+      marathon.prizeStrategyConfig =
+        prizeStrategyConfig ?? this.getDefaultConfig(prizeStrategyType ?? marathon.prizeStrategyType);
+    }
+
+    if (status !== undefined) {
+      marathon.status = status;
+    } else if (datesUpdated && marathon.status !== MarathonStatus.CANCELED) {
+      marathon.status = calculateMarathonLifecycleStatus(marathon.startDate, marathon.endDate);
     }
 
     return await this.marathonRepository.save(marathon);

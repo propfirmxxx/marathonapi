@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { MarathonParticipant } from './marathon-participant.entity';
 import { PrizeStrategyConfig, PrizeStrategyType } from './prize-strategy.types';
 import { MarathonRules } from '../enums/marathon-rule.enum';
+import { MarathonStatus } from '../enums/marathon-status.enum';
 
 @Entity('marathons')
 export class Marathon {
@@ -34,6 +35,9 @@ export class Marathon {
 
   @Column({ type: 'timestamp' })
   endDate: Date;
+
+  @Column({ type: 'enum', enum: MarathonStatus, default: MarathonStatus.UPCOMING })
+  status: MarathonStatus;
 
   @Column({ default: true })
   isActive: boolean;

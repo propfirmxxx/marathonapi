@@ -1,12 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import {
   MetaTraderAccount,
   MetaTraderAccountStatus,
 } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { TokyoService } from '../tokyo/tokyo.service';
+import { Marathon } from '../marathon/entities/marathon.entity';
+import { MarathonStatus } from '../marathon/enums/marathon-status.enum';
+import { calculateMarathonLifecycleStatus } from '../marathon/utils/marathon-status.util';
 
 @Injectable()
 export class MarathonProvisioningService {
@@ -18,6 +21,8 @@ export class MarathonProvisioningService {
     private readonly participantRepository: Repository<MarathonParticipant>,
     @InjectRepository(MetaTraderAccount)
     private readonly accountRepository: Repository<MetaTraderAccount>,
+    @InjectRepository(Marathon)
+    private readonly marathonRepository: Repository<Marathon>,
     private readonly tokyoService: TokyoService,
   ) {}
 
@@ -59,6 +64,49 @@ export class MarathonProvisioningService {
 
     for (const participant of participantsPendingDeployment) {
       await this.deployAccountIfNeeded(participant.metaTraderAccount);
+    }
+  }
+
+  async synchronizeMarathonStatuses(): Promise<void> {
+    const now = new Date();
+    const candidates = await this.marathonRepository.find({
+      where: {
+        status: In([MarathonStatus.UPCOMING, MarathonStatus.ONGOING]),
+      },
+    });
+
+    const updates: Marathon[] = [];
+
+    for (const marathon of candidates) {
+      const nextStatus = calculateMarathonLifecycleStatus(marathon.startDate, marathon.endDate, now);
+
+      if (!marathon.isActive && nextStatus !== MarathonStatus.FINISHED) {
+        continue;
+      }
+
+      if (
+        nextStatus === MarathonStatus.ONGOING &&
+        marathon.status === MarathonStatus.UPCOMING
+      ) {
+        marathon.status = MarathonStatus.ONGOING;
+        updates.push(marathon);
+        continue;
+      }
+
+      if (
+        nextStatus === MarathonStatus.FINISHED &&
+        marathon.status !== MarathonStatus.FINISHED
+      ) {
+        marathon.status = MarathonStatus.FINISHED;
+        updates.push(marathon);
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.marathonRepository.save(updates);
+      updates.forEach((marathon) =>
+        this.logger.log(`Updated marathon ${marathon.id} status to ${marathon.status}`),
+      );
     }
   }
 

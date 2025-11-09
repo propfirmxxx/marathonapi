@@ -5,6 +5,7 @@ import { PrizeStrategyType } from '../entities/prize-strategy.types';
 import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 import { MarathonRulesDto } from './marathon-rules.dto';
 import { MarathonRule } from '../enums/marathon-rule.enum';
+import { MarathonStatus } from '../enums/marathon-status.enum';
 
 export class CreateMarathonDto {
   @ApiProperty({ description: 'Marathon name', example: 'Summer Trading Challenge' })
@@ -61,6 +62,17 @@ export class CreateMarathonDto {
   @IsDate()
   @Type(() => Date)
   endDate: Date;
+
+  @ApiProperty({
+    description: 'Current status of the marathon lifecycle',
+    enum: MarathonStatus,
+    example: MarathonStatus.UPCOMING,
+    default: MarathonStatus.UPCOMING,
+    required: false,
+  })
+  @IsEnum(MarathonStatus)
+  @IsOptional()
+  status?: MarathonStatus;
 
   @ApiProperty({
     description: 'Marathon rules and conditions, keyed by predefined rule identifiers',
