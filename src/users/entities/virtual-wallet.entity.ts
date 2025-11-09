@@ -20,7 +20,7 @@ export class VirtualWallet {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ type: 'uuid', unique: true })
+  @Column({ name: 'user_id', type: 'uuid', unique: true })
   userId: string;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
@@ -32,10 +32,10 @@ export class VirtualWallet {
   @OneToMany(() => VirtualWalletTransaction, transaction => transaction.wallet)
   transactions: VirtualWalletTransaction[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
 
