@@ -1,8 +1,10 @@
-import { IsString, IsNumber, IsDate, IsBoolean, IsObject, Min, IsNotEmpty, IsEnum, ValidateNested, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsDate, Min, IsNotEmpty, IsEnum, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import { PrizeStrategyType } from '../entities/prize-strategy.types';
 import { PrizeStrategyConfigDto } from './prize-strategy.dto';
+import { MarathonRulesDto } from './marathon-rules.dto';
+import { MarathonRule } from '../enums/marathon-rule.enum';
 
 export class CreateMarathonDto {
   @ApiProperty({ description: 'Marathon name', example: 'Summer Trading Challenge' })
@@ -60,14 +62,16 @@ export class CreateMarathonDto {
   @Type(() => Date)
   endDate: Date;
 
-  @ApiProperty({ 
-    description: 'Marathon rules and conditions',
+  @ApiProperty({
+    description: 'Marathon rules and conditions, keyed by predefined rule identifiers',
+    type: () => MarathonRulesDto,
     example: {
-      minTrades: 10,
-      maxDrawdown: 20,
-      minProfit: 5
-    }
+      [MarathonRule.MIN_TRADES]: 10,
+      [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+      [MarathonRule.MIN_PROFIT_PERCENT]: 5,
+    },
   })
-  @IsObject()
-  rules: Record<string, any>;
+  @ValidateNested()
+  @Type(() => MarathonRulesDto)
+  rules: MarathonRulesDto;
 } 

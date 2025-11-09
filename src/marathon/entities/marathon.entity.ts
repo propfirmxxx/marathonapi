@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { MarathonParticipant } from './marathon-participant.entity';
 import { PrizeStrategyConfig, PrizeStrategyType } from './prize-strategy.types';
+import { MarathonRules } from '../enums/marathon-rule.enum';
 
 @Entity('marathons')
 export class Marathon {
@@ -38,7 +39,7 @@ export class Marathon {
   isActive: boolean;
 
   @Column({ type: 'json' })
-  rules: Record<string, any>;
+  rules: MarathonRules;
 
   @Column({ default: 0 })
   currentPlayers: number;

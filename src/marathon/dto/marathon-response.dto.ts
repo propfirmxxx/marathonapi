@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PrizeStrategyType } from '../entities/prize-strategy.types';
 import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 import { MetaTraderAccountStatus } from '../../metatrader-accounts/entities/meta-trader-account.entity';
+import { MarathonRulesDto } from './marathon-rules.dto';
+import { MarathonRule, MarathonRules } from '../enums/marathon-rule.enum';
 
 export class MarathonResponseDto {
   @ApiProperty({ description: 'Indicates whether the user is a participant of the marathon', example: true })
@@ -73,18 +75,15 @@ export class MarathonResponseDto {
   endDate: Date;
 
   @ApiProperty({
-    description: 'Marathon rules and conditions',
+    description: 'Marathon rules and conditions, keyed by predefined rule identifiers',
+    type: () => MarathonRulesDto,
     example: {
-      minTrades: 10,
-      maxDrawdown: 20,
-      minProfit: 5
-    }
+      [MarathonRule.MIN_TRADES]: 10,
+      [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+      [MarathonRule.MIN_PROFIT_PERCENT]: 5,
+    },
   })
-  rules: {
-    minTrades: number;
-    maxDrawdown: number;
-    minProfit: number;
-  };
+  rules: MarathonRules;
 
   @ApiProperty({
     description: 'Marathon active status',
