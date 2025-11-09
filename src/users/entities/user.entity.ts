@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany, OneToOne, DeleteDateColumn } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Wallet } from './wallet.entity';
+import { VirtualWallet } from './virtual-wallet.entity';
 import { Profile } from '../../profile/entities/profile.entity';
 
 export enum UserRole {
@@ -38,6 +39,9 @@ export class User {
 
   @OneToMany(() => Wallet, wallet => wallet.user)
   wallets: Wallet[];
+
+  @OneToOne(() => VirtualWallet, virtualWallet => virtualWallet.user)
+  virtualWallet: VirtualWallet;
 
   @CreateDateColumn()
   createdAt: Date;

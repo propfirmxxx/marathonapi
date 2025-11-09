@@ -14,6 +14,7 @@ import {
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
+import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
@@ -92,8 +93,14 @@ export class MarathonController {
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.marathonService.findOne(id);
+  async findOne(@Param('id') id: string, @GetUser('id') userId: string) {
+    const isParticipant = await this.marathonService.isUserParticipantOfMarathon(id, userId);
+    const marathon = await this.marathonService.findOne(id);
+
+    return {
+      ...marathon,
+      isParticipant,
+    };
   }
 
   @ApiOperation({ summary: 'Update marathon' })
@@ -141,6 +148,18 @@ export class MarathonController {
   @Post(':id/join')
   async joinMarathon(@Param('id') id: string, @Req() req: any) {
     return this.paymentService.createMarathonPayment(req.user.id, id);
+  }
+
+  @ApiOperation({ summary: 'Cancel marathon participation (before start)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cancels participation and refunds 80% entry fee to virtual wallet',
+    type: CancelMarathonResponseDto,
+  })
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @Post(':id/cancel')
+  async cancelParticipation(@Param('id') id: string, @Req() req: any): Promise<CancelMarathonResponseDto> {
+    return this.marathonService.cancelParticipation(req.user.id, id);
   }
 
   @ApiOperation({ summary: 'Get marathon participants' })

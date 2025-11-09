@@ -1,6 +1,6 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { TokyoService } from '../tokyo/tokyo.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
@@ -8,10 +8,13 @@ import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { MarathonParticipant } from './entities/marathon-participant.entity';
 import { Marathon } from './entities/marathon.entity';
 import { PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
+import { VirtualWalletService } from '../virtual-wallet/virtual-wallet.service';
+import { VirtualWalletTransactionType } from '../users/entities/virtual-wallet-transaction.entity';
 
 @Injectable()
 export class MarathonService {
   private readonly logger = new Logger(MarathonService.name);
+  private readonly REFUND_RATE = 0.8;
 
   constructor(
     @InjectRepository(Marathon)
@@ -21,6 +24,8 @@ export class MarathonService {
     @InjectRepository(MetaTraderAccount)
     private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     private readonly tokyoService: TokyoService,
+    private readonly virtualWalletService: VirtualWalletService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createMarathonDto: CreateMarathonDto): Promise<Marathon> {
@@ -85,6 +90,17 @@ export class MarathonService {
     }
 
     return marathon;
+  }
+
+  async isUserParticipantOfMarathon(id: string, userId: string): Promise<boolean> {
+    const participant = await this.participantRepository.findOne({
+      where: {
+        marathon: { id: id },
+        user: { id: userId },
+      },
+    });
+
+    return !!participant;
   }
 
   async update(id: string, updateMarathonDto: UpdateMarathonDto): Promise<Marathon> {
@@ -166,6 +182,108 @@ export class MarathonService {
     };
   }
 
+  async cancelParticipation(userId: string, marathonId: string) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const participant = await queryRunner.manager.findOne(MarathonParticipant, {
+        where: {
+          marathon: { id: marathonId },
+          user: { id: userId },
+        },
+        relations: ['marathon'],
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!participant) {
+        throw new NotFoundException('Participant not found for this marathon');
+      }
+
+      if (!participant.isActive) {
+        throw new ConflictException('Participation already cancelled');
+      }
+
+      const marathon = participant.marathon
+        ? participant.marathon
+        : await queryRunner.manager.findOne(Marathon, {
+            where: { id: marathonId },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+      if (!marathon) {
+        throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+      }
+
+      if (this.hasMarathonStarted(marathon)) {
+        throw new BadRequestException('Cannot cancel participation after the marathon has started');
+      }
+
+      const refundAmount = this.calculateRefundAmount(Number(marathon.entryFee));
+
+      const metaTraderAccount = await queryRunner.manager.findOne(MetaTraderAccount, {
+        where: { marathonParticipantId: participant.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (metaTraderAccount) {
+        metaTraderAccount.marathonParticipantId = null;
+        metaTraderAccount.userId = null;
+        await queryRunner.manager.save(MetaTraderAccount, metaTraderAccount);
+      }
+
+      const now = new Date();
+      participant.isActive = false;
+      participant.cancelledAt = now;
+      participant.metaTraderAccountId = null;
+
+      const currentPlayers = Number(marathon.currentPlayers) || 0;
+      marathon.currentPlayers = currentPlayers > 0 ? currentPlayers - 1 : 0;
+
+      await queryRunner.manager.save(MarathonParticipant, participant);
+      await queryRunner.manager.save(Marathon, marathon);
+
+      const transaction = await this.virtualWalletService.credit(
+        {
+          userId,
+          amount: refundAmount,
+          type: VirtualWalletTransactionType.REFUND,
+          referenceType: 'marathon_participation',
+          referenceId: participant.id,
+          description: `Refund for cancelling marathon ${marathon.name}`,
+          metadata: {
+            marathonId,
+            participantId: participant.id,
+            refundedAt: now.toISOString(),
+            refundRate: this.REFUND_RATE,
+          },
+        },
+        queryRunner,
+      );
+
+      participant.refundTransactionId = transaction.id;
+      await queryRunner.manager.save(MarathonParticipant, participant);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        participantId: participant.id,
+        marathonId,
+        refundedAmount: refundAmount,
+        refundRate: this.REFUND_RATE,
+        refundTransactionId: transaction.id,
+        walletBalance: Number(transaction.balanceAfter),
+        cancelledAt: now,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
   private hasMarathonStarted(marathon: Marathon): boolean {
     if (!marathon?.startDate) {
       return false;
@@ -211,5 +329,11 @@ export class MarathonService {
       default:
         return null;
     }
+  }
+
+  private calculateRefundAmount(entryFee: number): number {
+    const normalizedEntryFee = Number(entryFee) || 0;
+    const refund = normalizedEntryFee * this.REFUND_RATE;
+    return Number((Math.round(refund * 100) / 100).toFixed(2));
   }
 } 

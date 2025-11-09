@@ -26,6 +26,12 @@ export class MarathonParticipant {
   @Column({ default: false })
   isActive: boolean;
 
+  @Column({ type: 'timestamp', nullable: true })
+  cancelledAt: Date;
+
+  @Column({ type: 'uuid', nullable: true })
+  refundTransactionId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

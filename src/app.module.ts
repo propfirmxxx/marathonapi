@@ -19,6 +19,7 @@ import { I18nModule } from './i18n/i18n.module';
 import { I18nMiddleware } from './i18n/i18n.middleware';
 import { FaqModule } from './faq/faq.module';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
+import { VirtualWalletModule } from './virtual-wallet/virtual-wallet.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { CronJobsModule } from './cron-jobs/cron-jobs.module';
     I18nModule,
     FaqModule,
     CronJobsModule,
+    VirtualWalletModule,
   ],
   controllers: [AppController],
   providers: [

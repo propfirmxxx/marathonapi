@@ -7,6 +7,7 @@ import { CloudStorageService } from '../services/cloud-storage.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { User } from '../users/entities/user.entity';
 import { NotificationService } from '../notifications/notification.service';
+import { VirtualWalletService } from '@/virtual-wallet/virtual-wallet.service';
 
 @Injectable()
 export class ProfileService {
@@ -17,9 +18,12 @@ export class ProfileService {
     private readonly userRepository: Repository<User>,
     private readonly cloudStorageService: CloudStorageService,
     private readonly notificationService: NotificationService,
+    private readonly virtualWalletService: VirtualWalletService,
   ) {}
 
   async getProfile(id: string): Promise<Profile & { unreadNotificationsCount: number }> {
+    const virtualWallet = await this.virtualWalletService.getWalletByUserId(id);
+    const balance = virtualWallet?.balance ?? 0;
     const profile = await this.profileRepository.findOne({
       where: { user: { id } },
       relations: ['user'],
@@ -38,7 +42,6 @@ export class ProfileService {
         createdAt: true,
         updatedAt: true,
         userId: true,
-        balance: true,
         user: {
           id: true,
           email: true,
@@ -55,7 +58,8 @@ export class ProfileService {
 
     return {
       ...profile,
-      unreadNotificationsCount
+      unreadNotificationsCount,
+      balance
     };
   }
 

@@ -4,6 +4,9 @@ import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 import { MetaTraderAccountStatus } from '../../metatrader-accounts/entities/meta-trader-account.entity';
 
 export class MarathonResponseDto {
+  @ApiProperty({ description: 'Indicates whether the user is a participant of the marathon', example: true })
+  isParticipant: boolean;
+
   @ApiProperty({
     description: 'Marathon ID',
     example: '1'
