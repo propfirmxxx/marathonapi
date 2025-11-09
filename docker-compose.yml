@@ -5,6 +5,23 @@ services:
     #   dockerfile: Dockerfile
     image: devenio/marathonapi:dev
     restart: unless-stopped
+    develop:
+      watch:
+        - action: sync
+          path: ./
+          target: /usr/src/app
+          ignore:
+            - node_modules/
+            - uploads/
+            - directus-database/
+            - directus-uploads/
+            - directus-extensions/
+            - meta-configs/
+            - pgdata/
+            - rabbitmq-data/
+            - .git/
+            - .env
+            - .env.compose
     ports:
       - "3000:3000"
     env_file:

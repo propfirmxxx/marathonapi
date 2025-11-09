@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
-type SchedulerCronJob = ReturnType<SchedulerRegistry['getCronJob']>;
+import type { CronJob } from 'cron';
 
 export type CronJobExecutionStatus = 'success' | 'failure';
 
@@ -148,7 +148,7 @@ export class CronMonitoringService {
     return this.computeNextRun(cronJob);
   }
 
-  private computeNextRun(cronJob: SchedulerCronJob): Date | null {
+  private computeNextRun(cronJob: CronJob): Date | null {
     try {
       if (typeof cronJob.nextDates !== 'function') {
         return null;
@@ -189,9 +189,7 @@ export class CronMonitoringService {
     return null;
   }
 
-  private extractScheduleExpression(
-    cronJob: SchedulerCronJob,
-  ): string | undefined {
+  private extractScheduleExpression(cronJob: CronJob): string | undefined {
     const raw = (cronJob as unknown as { cronTime?: { source?: string } })
       ?.cronTime?.source;
     return typeof raw === 'string' ? raw : undefined;
