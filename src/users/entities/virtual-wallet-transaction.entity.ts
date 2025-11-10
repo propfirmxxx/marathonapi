@@ -13,6 +13,7 @@ export enum VirtualWalletTransactionType {
   CREDIT = 'CREDIT',
   DEBIT = 'DEBIT',
   REFUND = 'REFUND',
+  WITHDRAWAL = 'WITHDRAWAL',
 }
 
 @Entity('virtual_wallet_transactions')
