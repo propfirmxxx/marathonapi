@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsObject } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateWalletDto {
@@ -69,4 +69,5 @@ export class WalletResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp' })
   updatedAt: Date;
-} 
+}
+

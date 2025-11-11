@@ -1,4 +1,4 @@
-import { VirtualWalletTransactionType } from '../../users/entities/virtual-wallet-transaction.entity';
+import { VirtualWalletTransactionType } from '../entities/virtual-wallet-transaction.entity';
 
 export interface WalletAdjustmentMetadata {
   [key: string]: unknown;

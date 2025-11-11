@@ -1,5 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from './user.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { User } from '@/users/entities/user.entity';
 
 @Entity('wallets')
 export class Wallet {
@@ -30,4 +38,5 @@ export class Wallet {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}
+

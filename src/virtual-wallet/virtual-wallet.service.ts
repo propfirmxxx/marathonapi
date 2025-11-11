@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, FindOptionsWhere, QueryRunner, Repository } from 'typeorm';
-import { VirtualWallet } from '../users/entities/virtual-wallet.entity';
+import { VirtualWallet } from './entities/virtual-wallet.entity';
 import {
   VirtualWalletTransaction,
   VirtualWalletTransactionType,
-} from '../users/entities/virtual-wallet-transaction.entity';
+} from './entities/virtual-wallet-transaction.entity';
 import { WalletAdjustmentOptions } from './dto/wallet-adjustment.dto';
 
 @Injectable()

@@ -8,8 +8,8 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Wallet } from '../../users/entities/wallet.entity';
+import { User } from '@/users/entities/user.entity';
+import { Wallet } from '@/wallet/entities/wallet.entity';
 import { WithdrawalStatus } from '../enums/withdrawal-status.enum';
 
 @Entity('withdrawals')

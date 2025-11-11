@@ -1,10 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Wallet } from './entities/wallet.entity';
-import { CreateWalletDto } from './dto/wallet.dto';
-import { UpdateWalletDto } from './dto/wallet.dto';
-import { classToPlain, instanceToPlain } from 'class-transformer';
+import { CreateWalletDto, UpdateWalletDto } from './dto/wallet.dto';
 
 @Injectable()
 export class WalletService {
@@ -14,24 +12,22 @@ export class WalletService {
   ) {}
 
   async create(userId: string, createWalletDto: CreateWalletDto): Promise<Wallet> {
-    // Check for existing wallet with same name
     const existingWalletWithName = await this.walletRepository.findOne({
-      where: { 
+      where: {
         name: createWalletDto.name,
-        user: { id: userId }
-      }
+        user: { id: userId },
+      },
     });
 
     if (existingWalletWithName) {
       throw new BadRequestException('A wallet with this name already exists');
     }
 
-    // Check for existing wallet with same address
     const existingWalletWithAddress = await this.walletRepository.findOne({
-      where: { 
+      where: {
         address: createWalletDto.address,
-        user: { id: userId }
-      }
+        user: { id: userId },
+      },
     });
 
     if (existingWalletWithAddress) {
@@ -43,15 +39,13 @@ export class WalletService {
       user: { id: userId },
     });
 
-    return await this.walletRepository.save(wallet);
+    return this.walletRepository.save(wallet);
   }
 
   async findAll(userId: string): Promise<Wallet[]> {
-    const wallets = await this.walletRepository.find({
+    return this.walletRepository.find({
       where: { user: { id: userId } },
     });
-
-    return wallets;
   }
 
   async findOne(userId: string, id: string): Promise<Wallet> {
@@ -69,12 +63,8 @@ export class WalletService {
   async update(userId: string, id: string, updateWalletDto: UpdateWalletDto): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
-    if (!wallet) {
-      throw new NotFoundException(`Wallet with ID ${id} not found`);
-    }
-
     Object.assign(wallet, updateWalletDto);
-    return await this.walletRepository.save(wallet);
+    return this.walletRepository.save(wallet);
   }
 
   async remove(userId: string, id: string): Promise<{ message: string }> {
@@ -88,34 +78,27 @@ export class WalletService {
 
     return {
       message: 'Wallet deleted successfully',
-    }
+    };
   }
 
   async activateWallet(userId: string, id: string): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
-    if (!wallet) {
-      throw new NotFoundException(`Wallet with ID ${id} not found`);
-    }
-
     wallet.isActive = true;
-    return await this.walletRepository.save(wallet);
+    return this.walletRepository.save(wallet);
   }
 
   async deactivateWallet(userId: string, id: string): Promise<Wallet> {
     const wallet = await this.findOne(userId, id);
 
-    if (!wallet) {
-      throw new NotFoundException(`Wallet with ID ${id} not found`);
-    }
-
     wallet.isActive = false;
-    return await this.walletRepository.save(wallet);
+    return this.walletRepository.save(wallet);
   }
 
   async getActiveWallets(userId: string): Promise<Wallet[]> {
-    return await this.walletRepository.find({
+    return this.walletRepository.find({
       where: { user: { id: userId }, isActive: true },
     });
   }
-} 
+}
+

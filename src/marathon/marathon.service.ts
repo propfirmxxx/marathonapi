@@ -9,7 +9,7 @@ import { MarathonParticipant } from './entities/marathon-participant.entity';
 import { Marathon } from './entities/marathon.entity';
 import { PrizeStrategyConfig, PrizeStrategyType } from './entities/prize-strategy.types';
 import { VirtualWalletService } from '../virtual-wallet/virtual-wallet.service';
-import { VirtualWalletTransactionType } from '../users/entities/virtual-wallet-transaction.entity';
+import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-wallet-transaction.entity';
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
 

@@ -9,9 +9,9 @@ import { DataSource, Repository } from 'typeorm';
 import { Withdrawal } from './entities/withdrawal.entity';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 import { WithdrawalStatus } from './enums/withdrawal-status.enum';
-import { VirtualWalletService } from '../virtual-wallet/virtual-wallet.service';
-import { WalletService } from '../users/wallet.service';
-import { VirtualWalletTransactionType } from '../users/entities/virtual-wallet-transaction.entity';
+import { VirtualWalletService } from '@/virtual-wallet/virtual-wallet.service';
+import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-wallet-transaction.entity';
+import { WalletService } from '@/wallet/wallet.service';
 
 @Injectable()
 export class WithdrawalsService {

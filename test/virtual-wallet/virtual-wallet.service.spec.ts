@@ -1,10 +1,10 @@
 import { ConflictException } from '@nestjs/common';
 import { DataSource, QueryRunner } from 'typeorm';
-import { VirtualWallet } from '../../src/users/entities/virtual-wallet.entity';
+import { VirtualWallet } from '../../src/virtual-wallet/entities/virtual-wallet.entity';
 import {
   VirtualWalletTransaction,
   VirtualWalletTransactionType,
-} from '../../src/users/entities/virtual-wallet-transaction.entity';
+} from '../../src/virtual-wallet/entities/virtual-wallet-transaction.entity';
 import { VirtualWalletService } from '../../src/virtual-wallet/virtual-wallet.service';
 
 type MockRepository<T> = Partial<Record<keyof T, jest.Mock>>;

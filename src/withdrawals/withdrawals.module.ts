@@ -4,14 +4,14 @@ import { WithdrawalsController } from './withdrawals.controller';
 import { WithdrawalsService } from './withdrawals.service';
 import { Withdrawal } from './entities/withdrawal.entity';
 import { VirtualWalletModule } from '../virtual-wallet/virtual-wallet.module';
-import { UsersModule } from '../users/users.module';
+import { WalletModule } from '../wallet/wallet.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Withdrawal]),
     VirtualWalletModule,
-    UsersModule,
+    WalletModule,
     AuthModule,
   ],
   controllers: [WithdrawalsController],

@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from './user.entity';
+import { User } from '@/users/entities/user.entity';
 import { VirtualWalletTransaction } from './virtual-wallet-transaction.entity';
 
 @Entity('virtual_wallets')

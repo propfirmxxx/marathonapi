@@ -1,7 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToMany, OneToOne, DeleteDateColumn } from 'typeorm';
+import {
+  BeforeInsert,
+  BeforeUpdate,
+  Column,
+  CreateDateColumn,
+  DeleteDateColumn,
+  Entity,
+  OneToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { Wallet } from './wallet.entity';
-import { VirtualWallet } from './virtual-wallet.entity';
+import { Wallet } from '@/wallet/entities/wallet.entity';
+import { VirtualWallet } from '@/virtual-wallet/entities/virtual-wallet.entity';
 import { Profile } from '../../profile/entities/profile.entity';
 
 export enum UserRole {

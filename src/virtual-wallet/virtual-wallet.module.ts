@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { VirtualWallet } from '../users/entities/virtual-wallet.entity';
-import { VirtualWalletTransaction } from '../users/entities/virtual-wallet-transaction.entity';
+import { VirtualWallet } from './entities/virtual-wallet.entity';
+import { VirtualWalletTransaction } from './entities/virtual-wallet-transaction.entity';
+import { VirtualWalletController } from './virtual-wallet.controller';
 import { VirtualWalletService } from './virtual-wallet.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([VirtualWallet, VirtualWalletTransaction])],
+  controllers: [VirtualWalletController],
   providers: [VirtualWalletService],
   exports: [VirtualWalletService],
 })

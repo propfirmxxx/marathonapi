@@ -1,8 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import { CreateWalletDto, UpdateWalletDto, WalletResponseDto } from './dto/wallet.dto';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 
 @ApiTags('Wallets')
 @ApiBearerAuth()
@@ -12,10 +29,10 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @ApiOperation({ summary: 'Create a new wallet' })
-  @ApiResponse({ 
-    status: 201, 
+  @ApiResponse({
+    status: 201,
     description: 'Wallet created successfully',
-    type: WalletResponseDto
+    type: WalletResponseDto,
   })
   @ApiBody({ type: CreateWalletDto })
   @Post()
@@ -24,10 +41,10 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Get all user wallets' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Returns all user wallets',
-    type: [WalletResponseDto]
+    type: [WalletResponseDto],
   })
   @Get()
   findAll(@Req() req: any) {
@@ -35,10 +52,10 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Get wallet by ID' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Returns the wallet',
-    type: WalletResponseDto
+    type: WalletResponseDto,
   })
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Get(':id')
@@ -47,10 +64,10 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Update wallet' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Wallet updated successfully',
-    type: WalletResponseDto
+    type: WalletResponseDto,
   })
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @ApiBody({ type: UpdateWalletDto })
@@ -60,9 +77,9 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Delete wallet' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Wallet deleted successfully'
+  @ApiResponse({
+    status: 200,
+    description: 'Wallet deleted successfully',
   })
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Delete(':id')
@@ -71,10 +88,10 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Set active wallet' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Wallet set as active successfully',
-    type: WalletResponseDto
+    type: WalletResponseDto,
   })
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Post(':id/activate')
@@ -83,10 +100,10 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Deactivate wallet' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Wallet deactivated successfully',
-    type: WalletResponseDto
+    type: WalletResponseDto,
   })
   @ApiParam({ name: 'id', description: 'Wallet ID' })
   @Post(':id/deactivate')
@@ -95,13 +112,14 @@ export class WalletController {
   }
 
   @ApiOperation({ summary: 'Get active wallet' })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Returns the active wallet',
-    type: WalletResponseDto
+    type: WalletResponseDto,
   })
   @Get('active')
   getActiveWallet(@Req() req: any) {
     return this.walletService.getActiveWallets(req.user.id);
   }
-} 
+}
+

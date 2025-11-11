@@ -21,6 +21,7 @@ import { FaqModule } from './faq/faq.module';
 import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { VirtualWalletModule } from './virtual-wallet/virtual-wallet.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { WithdrawalsModule } from './withdrawals/withdrawals.module';
     FaqModule,
     CronJobsModule,
     VirtualWalletModule,
+    WalletModule,
     WithdrawalsModule,
   ],
   controllers: [AppController],

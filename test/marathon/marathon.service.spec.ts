@@ -4,7 +4,7 @@ import { MarathonService } from '../../src/marathon/marathon.service';
 import { Marathon } from '../../src/marathon/entities/marathon.entity';
 import { MarathonParticipant } from '../../src/marathon/entities/marathon-participant.entity';
 import { MetaTraderAccount } from '../../src/metatrader-accounts/entities/meta-trader-account.entity';
-import { VirtualWalletTransactionType } from '../../src/users/entities/virtual-wallet-transaction.entity';
+import { VirtualWalletTransactionType } from '../../src/virtual-wallet/entities/virtual-wallet-transaction.entity';
 
 type MockRepository<T extends ObjectLiteral> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
