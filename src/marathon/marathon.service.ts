@@ -52,6 +52,7 @@ export class MarathonService {
     isActive?: boolean,
     userId?: string,
     search?: string,
+    status?: MarathonStatus,
   ): Promise<{ marathons: Marathon[]; total: number }> {
     let query = this.marathonRepository.createQueryBuilder('marathon');
 
@@ -68,6 +69,10 @@ export class MarathonService {
 
     if (search) {
       query = query.andWhere('LOWER(marathon.name) LIKE LOWER(:search)', { search: `%${search}%` });
+    }
+
+    if (status) {
+      query = query.andWhere('marathon.status = :status', { status });
     }
 
     // Get total count before pagination

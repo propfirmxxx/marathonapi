@@ -1,6 +1,7 @@
 import { IsOptional, IsBoolean, IsInt, Min, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { MarathonStatus } from '../enums/marathon-status.enum';
 
 export class GetMarathonsDto {
   @ApiProperty({
@@ -55,5 +56,14 @@ export class GetMarathonsDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter by marathon status',
+    example: 'ongoing',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  status?: MarathonStatus;
 }
 

@@ -59,6 +59,7 @@ export class MarathonController {
   @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
   @ApiQuery({ name: 'myMarathons', required: false, type: Boolean, description: 'Filter marathons where current user is a participant' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by marathon name' })
+  @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by marathon status' })
   @Get()
   async findAll(
     @Query() query: GetMarathonsDto,
@@ -75,6 +76,7 @@ export class MarathonController {
       query.isActive,
       userIdForFilter,
       query.search,
+      query.status,
     );
 
     return {
