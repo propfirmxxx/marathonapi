@@ -273,11 +273,7 @@ export class PaymentService {
       throw new PaymentNotFoundException();
     }
 
-    // Check if payment has already been processed (idempotency check)
-    if (payment.status === PaymentStatus.COMPLETED) {
-      this.logger.warn(`Payment ${payment.id} has already been processed`);
-      return;
-    }
+    const previousStatus = payment.status;
 
     // Check if payment is cancelled or failed
     if (payment.status === PaymentStatus.CANCELLED || payment.status === PaymentStatus.FAILED) {
@@ -294,23 +290,55 @@ export class PaymentService {
 
     await this.paymentRepository.save(payment);
 
-    // Process payment if status is COMPLETED
-    if (payment.status === PaymentStatus.COMPLETED) {
-      this.logger.log(`Processing completed payment: ${payment.id}`);
+    if (payment.status !== PaymentStatus.COMPLETED) {
+      this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+      return;
+    }
 
-      try {
-        if (payment.paymentType === PaymentType.WALLET_CHARGE) {
-          await this.processWalletCharge(payment);
-        } else if (payment.paymentType === PaymentType.MARATHON_JOIN) {
-          await this.processMarathonJoin(payment);
+    const alreadyCompleted = previousStatus === PaymentStatus.COMPLETED;
+
+    if (alreadyCompleted) {
+      this.logger.warn(`Payment ${payment.id} already marked as completed – verifying processing state`);
+
+      if (payment.paymentType === PaymentType.MARATHON_JOIN && payment.marathonId) {
+        const participantExists = await this.participantRepository.findOne({
+          where: {
+            marathon: { id: payment.marathonId },
+            user: { id: payment.userId },
+            isActive: true,
+          },
+        });
+
+        if (participantExists) {
+          this.logger.log(`Active participant ${participantExists.id} already present for payment ${payment.id}`);
+          this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+          return;
         }
-      } catch (error) {
-        this.logger.error(`Error processing payment ${payment.id}:`, error);
-        // Update payment to failed status
-        payment.status = PaymentStatus.FAILED;
-        await this.paymentRepository.save(payment);
-        throw error;
+
+        this.logger.warn(
+          `Active participant not found for completed payment ${payment.id}; reprocessing marathon join flow`,
+        );
+      } else {
+        this.logger.log(`Payment ${payment.id} already processed; skipping reprocessing`);
+        this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+        return;
       }
+    }
+
+    this.logger.log(`Processing completed payment: ${payment.id}`);
+
+    try {
+      if (payment.paymentType === PaymentType.WALLET_CHARGE) {
+        await this.processWalletCharge(payment);
+      } else if (payment.paymentType === PaymentType.MARATHON_JOIN) {
+        await this.processMarathonJoin(payment);
+      }
+    } catch (error) {
+      this.logger.error(`Error processing payment ${payment.id}:`, error);
+      // Update payment to failed status
+      payment.status = PaymentStatus.FAILED;
+      await this.paymentRepository.save(payment);
+      throw error;
     }
 
     this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
