@@ -32,7 +32,11 @@ export class CreateWithdrawalsTable1710000000014 implements MigrationInterface {
     await queryRunner.query(`
       DO $$
       BEGIN
-        IF NOT EXISTS (
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables WHERE table_name = 'users'
+        ) AND EXISTS (
+          SELECT 1 FROM information_schema.tables WHERE table_name = 'wallets'
+        ) AND NOT EXISTS (
           SELECT 1 FROM information_schema.tables WHERE table_name = 'withdrawals'
         ) THEN
           CREATE TABLE "withdrawals" (

@@ -248,15 +248,42 @@ export class MockPaymentService implements IPaymentProvider {
       }
 
       try {
-        const webhookData = {
+        const webhookData: Record<string, any> = {
           payment_id: payment.payment_id,
           payment_status: status,
           order_id: payment.order_id,
-          pay_amount: payment.pay_amount,
+          pay_address: payment.pay_address,
+          pay_amount: Number(payment.pay_amount),
           pay_currency: payment.pay_currency,
-          price_amount: payment.price_amount,
+          price_amount: Number(payment.price_amount),
           price_currency: payment.price_currency,
+          created_at:
+            payment.created_at?.toISOString?.() ??
+            payment.created_at?.toString?.() ??
+            new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_test: 1,
         };
+
+        if ((payment as any).order_description) {
+          webhookData.order_description = (payment as any).order_description;
+        }
+
+        if (payment.invoice_url) {
+          webhookData.invoice_id = payment.invoice_url;
+        }
+
+        if ((payment as any).network) {
+          webhookData.network = (payment as any).network;
+        }
+
+        if ((payment as any).outcome_amount) {
+          webhookData.outcome_amount = Number((payment as any).outcome_amount);
+        }
+
+        if ((payment as any).outcome_currency) {
+          webhookData.outcome_currency = (payment as any).outcome_currency;
+        }
 
         // Generate signature
         const sortedKeys = Object.keys(webhookData).sort();
@@ -282,20 +309,38 @@ export class MockPaymentService implements IPaymentProvider {
           finalUrl = `http://localhost:3000${webhookUrl.startsWith('/') ? webhookUrl : '/' + webhookUrl}`;
         }
 
-        this.logger.log(`[MOCK] Sending webhook to: ${finalUrl}`);
+        this.logger.log(`[MOCK] Preparing webhook call to: ${finalUrl}`);
 
-        await this.httpService.axiosRef.post(finalUrl, webhookData, {
-          headers: {
-            'x-nowpayments-sig': signature,
-            'Content-Type': 'application/json',
-          },
-          timeout: 5000, // 5 second timeout
-        }).catch((error) => {
-          // Log error but don't fail - webhook might be called later
-          this.logger.warn(`[MOCK] Webhook call failed (will retry): ${error.message}`);
-        });
+        const maxAttempts = 5;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            await this.httpService.axiosRef.post(finalUrl, webhookData, {
+              headers: {
+                'x-nowpayments-sig': signature,
+                'Content-Type': 'application/json',
+              },
+              timeout: 5000, // 5 second timeout
+            });
 
-        this.logger.log(`[MOCK] Webhook sent for payment ${paymentId} with status: ${status}`);
+            this.logger.log(
+              `[MOCK] Webhook sent for payment ${paymentId} with status: ${status} (attempt ${attempt})`,
+            );
+            break;
+          } catch (error) {
+            const message = error?.message ?? 'Unknown error';
+            if (attempt === maxAttempts) {
+              this.logger.error(
+                `[MOCK] Webhook failed for payment ${paymentId} after ${attempt} attempts: ${message}`,
+              );
+            } else {
+              const backoffMs = Math.min(5000, attempt * 2000);
+              this.logger.warn(
+                `[MOCK] Webhook attempt ${attempt} failed for payment ${paymentId}: ${message}. Retrying in ${backoffMs}ms`,
+              );
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            }
+          }
+        }
       } catch (error) {
         this.logger.error(`[MOCK] Failed to send webhook: ${error.message}`);
       }

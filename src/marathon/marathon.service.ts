@@ -263,17 +263,19 @@ export class MarathonService {
       await queryRunner.manager.save(MarathonParticipant, participant);
       await queryRunner.manager.save(Marathon, marathon);
 
+      const uniqueReferenceId = `${participant.id}:${now.getTime()}`;
+
       const transaction = await this.virtualWalletService.credit(
         {
           userId,
           amount: refundAmount,
           type: VirtualWalletTransactionType.REFUND,
           referenceType: 'marathon_participation',
-          referenceId: participant.id,
+          referenceId: uniqueReferenceId,
           description: `Refund for cancelling marathon ${marathon.name}`,
           metadata: {
-            marathonId,
             participantId: participant.id,
+            marathonId,
             refundedAt: now.toISOString(),
             refundRate: this.REFUND_RATE,
           },

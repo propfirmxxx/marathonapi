@@ -281,6 +281,16 @@ export class PaymentService {
       return;
     }
 
+    const orderContext = this.extractMarathonContextFromOrderId(order_id);
+
+    if (!payment.marathonId && orderContext?.marathonId) {
+      payment.marathonId = orderContext.marathonId;
+    }
+
+    if (!payment.userId && orderContext?.userId) {
+      payment.userId = orderContext.userId;
+    }
+
     // Update webhook data
     payment.webhookData = webhookData;
 
@@ -293,6 +303,11 @@ export class PaymentService {
     if (payment.status !== PaymentStatus.COMPLETED) {
       this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
       return;
+    }
+
+    if (payment.paymentType === PaymentType.MARATHON_JOIN && !payment.marathonId) {
+      this.logger.error(`Payment ${payment.id} completed without marathonId – cannot process marathon join`);
+      throw new NotFoundException(`Marathon reference missing for payment ${payment.id}`);
     }
 
     const alreadyCompleted = previousStatus === PaymentStatus.COMPLETED;
@@ -342,6 +357,25 @@ export class PaymentService {
     }
 
     this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+  }
+
+  private extractMarathonContextFromOrderId(orderId?: string): { marathonId?: string; userId?: string } | null {
+    if (!orderId || !orderId.startsWith('marathon-')) {
+      return null;
+    }
+
+    const parts = orderId.split('-');
+
+    if (parts.length < 3) {
+      return null;
+    }
+
+    const [, marathonId, userId] = parts;
+
+    return {
+      marathonId: marathonId || undefined,
+      userId: userId || undefined,
+    };
   }
 
   private async processWalletCharge(payment: Payment): Promise<void> {

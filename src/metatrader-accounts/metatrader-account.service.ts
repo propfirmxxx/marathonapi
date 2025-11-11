@@ -87,11 +87,13 @@ export class MetaTraderAccountService {
       }
 
       // Check if participant exists (within transaction)
-      const participant = await queryRunner.manager.findOne(MarathonParticipant, {
-        where: { id: assignDto.marathonParticipantId },
-        relations: ['user', 'marathon'],
-        lock: { mode: 'pessimistic_write' }, // Lock to prevent race conditions
-      });
+      const participant = await queryRunner.manager
+        .createQueryBuilder(MarathonParticipant, 'participant')
+        .innerJoinAndSelect('participant.user', 'user')
+        .innerJoinAndSelect('participant.marathon', 'marathon')
+        .where('participant.id = :id', { id: assignDto.marathonParticipantId })
+        .setLock('pessimistic_write')
+        .getOne();
 
       if (!participant) {
         throw new NotFoundException(`Marathon participant with ID ${assignDto.marathonParticipantId} not found`);
