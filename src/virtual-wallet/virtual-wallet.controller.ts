@@ -4,6 +4,11 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@ne
 import { GetUser } from '@/auth/decorators/get-user.decorator';
 import { VirtualWalletService } from './virtual-wallet.service';
 import { GetVirtualWalletTransactionsDto } from './dto/get-transactions.dto';
+import {
+  VirtualWalletBalanceResponseDto,
+  VirtualWalletResponseDto,
+  VirtualWalletTransactionResponseDto,
+} from './dto/virtual-wallet-response.dto';
 
 @ApiTags('Virtual Wallet')
 @ApiBearerAuth()
@@ -16,9 +21,10 @@ export class VirtualWalletController {
   @ApiResponse({
     status: 200,
     description: 'Returns the virtual wallet',
+    type: VirtualWalletResponseDto,
   })
   @Get()
-  async getWallet(@GetUser('id') userId: string) {
+  async getWallet(@GetUser('id') userId: string): Promise<VirtualWalletResponseDto> {
     const wallet = await this.virtualWalletService.getOrCreateWallet(userId);
 
     return {
@@ -34,9 +40,10 @@ export class VirtualWalletController {
   @ApiResponse({
     status: 200,
     description: 'Returns the virtual wallet balance',
+    type: VirtualWalletBalanceResponseDto,
   })
   @Get('balance')
-  async getBalance(@GetUser('id') userId: string) {
+  async getBalance(@GetUser('id') userId: string): Promise<VirtualWalletBalanceResponseDto> {
     return {
       balance: await this.virtualWalletService.getBalance(userId),
     };
@@ -46,6 +53,8 @@ export class VirtualWalletController {
   @ApiResponse({
     status: 200,
     description: 'Returns a list of recent transactions',
+    type: VirtualWalletTransactionResponseDto,
+    isArray: true,
   })
   @ApiQuery({
     name: 'limit',
@@ -57,7 +66,7 @@ export class VirtualWalletController {
   async getTransactions(
     @GetUser('id') userId: string,
     @Query() query: GetVirtualWalletTransactionsDto,
-  ) {
+  ): Promise<VirtualWalletTransactionResponseDto[]> {
     const limit = query.limit ?? 50;
     const transactions = await this.virtualWalletService.getTransactions(userId, limit);
 
