@@ -5,6 +5,7 @@ import { FaqSeeder } from './faq.seeder';
 import { MarathonSeeder } from './marathon.seeder';
 import { MetaTraderAccountSeeder } from './metatrader-account.seeder';
 import { PaymentSeeder } from './payment.seeder';
+import { UserSeeder } from './user.seeder';
 
 @Injectable()
 export class SeederService {
@@ -13,9 +14,10 @@ export class SeederService {
 
   constructor(private readonly dataSource: DataSource) {
     this.seeders = [
+      new UserSeeder(dataSource),
       new FaqSeeder(dataSource),
-      new MarathonSeeder(dataSource),
       new MetaTraderAccountSeeder(dataSource),
+      new MarathonSeeder(dataSource),
       new PaymentSeeder(dataSource),
     ];
   }

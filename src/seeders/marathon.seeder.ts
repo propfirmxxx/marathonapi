@@ -5,6 +5,8 @@ import { PrizeStrategyType } from '../marathon/entities/prize-strategy.types';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import { MarathonStatus } from '../marathon/enums/marathon-status.enum';
 import { MarathonRule } from '../marathon/enums/marathon-rule.enum';
+import { User } from '../users/entities/user.entity';
+import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
 
 export class MarathonSeeder extends BaseSeeder {
   private readonly seededMarathonIds = [
@@ -16,6 +18,7 @@ export class MarathonSeeder extends BaseSeeder {
     'a1b2c3d4-e5f6-4789-a012-345678901006',
     'a1b2c3d4-e5f6-4789-a012-345678901007',
     'a1b2c3d4-e5f6-4789-a012-345678901008',
+    'a1b2c3d4-e5f6-4789-a012-345678901009', // Test marathon
   ];
 
   getName(): string {
@@ -312,6 +315,35 @@ export class MarathonSeeder extends BaseSeeder {
         createdAt: now,
         updatedAt: now,
       },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901009',
+        name: 'Test Marathon',
+        description: 'Test marathon for testing purposes with two specific users and MetaTrader accounts.',
+        entryFee: 100.00,
+        awardsAmount: 10000.00,
+        maxPlayers: 2,
+        startDate: activeStartDate,
+        endDate: activeEndDate,
+        isActive: true,
+        status: MarathonStatus.ONGOING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 10,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 5,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
+        prizeStrategyConfig: {
+          placements: [
+            {
+              position: 1,
+              percentage: 100,
+            },
+          ],
+        },
+        createdAt: activeStartDate,
+        updatedAt: now,
+      },
     ]);
 
     await marathonRepository.save(marathons);
@@ -319,15 +351,19 @@ export class MarathonSeeder extends BaseSeeder {
     // Seed participants if users exist
     if (hasParticipants) {
       await this.seedParticipants(marathons);
+      // Seed test marathon participants with specific accounts
+      await this.seedTestMarathonParticipants();
     }
 
     this.logger.log('✓ Marathon data seeded successfully');
   }
 
   private async seedParticipants(marathons: Marathon[]): Promise<void> {
-    // Query existing users
+    // Query existing users, excluding test users
     const users = await this.query(`
-      SELECT id FROM users ORDER BY "createdAt" LIMIT 50
+      SELECT id FROM users 
+      WHERE email NOT IN ('testuser1@example.com', 'testuser2@example.com')
+      ORDER BY "createdAt" LIMIT 50
     `);
 
     if (!users || users.length === 0) {
@@ -341,7 +377,13 @@ export class MarathonSeeder extends BaseSeeder {
     const participantValues: string[] = [];
     let participantIndex = 0;
 
+    // Exclude test marathon (index 8) from regular participant seeding
     marathons.forEach((marathon, marathonIndex) => {
+      // Skip test marathon (it will be handled separately)
+      if (marathonIndex === 8) {
+        return;
+      }
+
       const participantCount = Math.min(participantCounts[marathonIndex] || 0, users.length);
 
       for (let i = 0; i < participantCount; i++) {
@@ -389,6 +431,130 @@ export class MarathonSeeder extends BaseSeeder {
     return `b1c2d3e4-f5a6-4000-a000-${hex}`;
   }
 
+  private async seedTestMarathonParticipants(): Promise<void> {
+    const marathonId = 'a1b2c3d4-e5f6-4789-a012-345678901009';
+    const manager = this.getManager();
+    const userRepository = manager.getRepository(User);
+    const accountRepository = manager.getRepository(MetaTraderAccount);
+    const marathonRepository = manager.getRepository(Marathon);
+    const participantRepository = manager.getRepository(MarathonParticipant);
+
+    // Find test users using repository
+    const testUsers = await userRepository.find({
+      where: [
+        { email: 'testuser1@example.com' },
+        { email: 'testuser2@example.com' },
+      ],
+      order: { email: 'ASC' },
+    });
+
+    if (!testUsers || testUsers.length !== 2) {
+      this.logger.warn(`Test users not found. Found ${testUsers?.length || 0} users. Skipping test marathon participant seeding.`);
+      return;
+    }
+
+    this.logger.log(`Found ${testUsers.length} test users: ${testUsers.map(u => u.email).join(', ')}`);
+
+    // Find test MetaTrader accounts using repository
+    const testAccounts = await accountRepository.find({
+      where: [
+        { login: '261632689' },
+        { login: '261632685' },
+      ],
+      order: { login: 'ASC' },
+    });
+
+    if (!testAccounts || testAccounts.length !== 2) {
+      this.logger.warn(`Test MetaTrader accounts not found. Found ${testAccounts?.length || 0} accounts. Skipping test marathon participant seeding.`);
+      return;
+    }
+
+    this.logger.log(`Found ${testAccounts.length} test accounts: ${testAccounts.map(a => a.login).join(', ')}`);
+
+    // Find marathon
+    const marathon = await marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      this.logger.warn(`Test marathon not found. Skipping test marathon participant seeding.`);
+      return;
+    }
+
+    // Check if participants already exist
+    const existingParticipants = await participantRepository
+      .createQueryBuilder('participant')
+      .where('participant.marathon_id = :marathonId', { marathonId })
+      .andWhere('participant.user_id IN (:...userIds)', { userIds: testUsers.map(u => u.id) })
+      .getMany();
+
+    if (existingParticipants.length > 0) {
+      this.logger.log(`Found ${existingParticipants.length} existing participants. Updating them...`);
+      
+      // Update existing participants
+      for (let i = 0; i < Math.min(existingParticipants.length, 2); i++) {
+        existingParticipants[i].isActive = true;
+        existingParticipants[i].metaTraderAccountId = testAccounts[i].id;
+        await participantRepository.save(existingParticipants[i]);
+      }
+
+      // Create missing participants if needed
+      if (existingParticipants.length < 2) {
+        const missingIndex = existingParticipants.length;
+        const newParticipant = participantRepository.create({
+          marathon: marathon,
+          user: testUsers[missingIndex],
+          metaTraderAccountId: testAccounts[missingIndex].id,
+          isActive: true,
+        });
+        await participantRepository.save(newParticipant);
+      }
+    } else {
+      // Create new participants
+      const participants = participantRepository.create([
+        {
+          marathon: marathon,
+          user: testUsers[0],
+          metaTraderAccountId: testAccounts[0].id,
+          isActive: true,
+        },
+        {
+          marathon: marathon,
+          user: testUsers[1],
+          metaTraderAccountId: testAccounts[1].id,
+          isActive: true,
+        },
+      ]);
+
+      await participantRepository.save(participants);
+      this.logger.log(`Created ${participants.length} new participants`);
+    }
+
+    // Get all participants for this marathon to update accounts
+    const allParticipants = await participantRepository
+      .createQueryBuilder('participant')
+      .leftJoinAndSelect('participant.user', 'user')
+      .where('participant.marathon_id = :marathonId', { marathonId })
+      .andWhere('participant.user_id IN (:...userIds)', { userIds: testUsers.map(u => u.id) })
+      .getMany();
+
+    // Update MetaTrader accounts to link them to participants
+    for (let i = 0; i < Math.min(allParticipants.length, 2); i++) {
+      const participant = allParticipants[i];
+      const account = testAccounts[i];
+      
+      account.marathonParticipantId = participant.id;
+      account.userId = testUsers[i].id;
+      await accountRepository.save(account);
+    }
+
+    // Update marathon currentPlayers count
+    marathon.currentPlayers = allParticipants.filter(p => p.isActive).length;
+    await marathonRepository.save(marathon);
+
+    this.logger.log(`✓ Test marathon participants seeded successfully. ${marathon.currentPlayers} active participants.`);
+  }
+
   private async clearSeededPayments(): Promise<void> {
     const hasPayments = await this.hasTable('payment');
 
@@ -426,6 +592,17 @@ export class MarathonSeeder extends BaseSeeder {
     const hasParticipants = await this.hasTable('marathon_participants');
 
     if (hasParticipants) {
+      // Reset MetaTrader accounts assigned to test marathon before deleting participants
+      await this.query(`
+        UPDATE metatrader_accounts 
+        SET "marathonParticipantId" = NULL,
+            "userId" = NULL
+        WHERE "marathonParticipantId" IN (
+          SELECT id FROM marathon_participants 
+          WHERE marathon_id = 'a1b2c3d4-e5f6-4789-a012-345678901009'
+        )
+      `);
+
       await this.query(`
         DELETE FROM marathon_participants 
         WHERE marathon_id IN (
