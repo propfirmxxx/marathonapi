@@ -16,25 +16,13 @@ export class MetaTraderAccountSeeder extends BaseSeeder {
 
     this.logger.log('Seeding MetaTrader account data...');
 
-    // Clear foreign key references first
-    const hasParticipants = await this.hasTable('marathon_participants');
-    if (hasParticipants) {
-      await this.query(`
-        UPDATE marathon_participants 
-        SET "metaTraderAccountId" = NULL 
-        WHERE "metaTraderAccountId" IS NOT NULL
-      `);
-    }
-
-    // Clear existing data
-    await this.query(`DELETE FROM metatrader_accounts`);
-
-    // Insert new data using repository
     const manager = this.getManager();
     const accountRepository = manager.getRepository(MetaTraderAccount);
 
     // Only keep the two test accounts: 261632685 and 261632689
-    const accounts = accountRepository.create([
+    // Using upsert to avoid deleting existing accounts that might be referenced
+    const testLogins = ['261632689', '261632685'];
+    const testAccountsData = [
       {
         name: 'Test Account 1',
         login: '261632689',
@@ -51,11 +39,30 @@ export class MetaTraderAccountSeeder extends BaseSeeder {
         platform: 'mt5',
         status: MetaTraderAccountStatus.UNDEPLOYED,
       },
-    ]);
+    ];
 
-    await accountRepository.save(accounts);
+    // Check if accounts already exist and upsert them
+    for (const accountData of testAccountsData) {
+      const existing = await accountRepository.findOne({
+        where: { login: accountData.login }
+      });
 
-    this.logger.log(`✓ ${accounts.length} MetaTrader account(s) seeded successfully`);
+      if (existing) {
+        // Update existing account
+        existing.name = accountData.name;
+        existing.masterPassword = accountData.masterPassword;
+        existing.server = accountData.server;
+        existing.platform = accountData.platform;
+        existing.status = accountData.status;
+        await accountRepository.save(existing);
+      } else {
+        // Create new account
+        const newAccount = accountRepository.create(accountData);
+        await accountRepository.save(newAccount);
+      }
+    }
+
+    this.logger.log(`✓ ${testAccountsData.length} MetaTrader account(s) seeded successfully`);
   }
 
   async clean(): Promise<void> {

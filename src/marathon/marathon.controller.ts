@@ -15,6 +15,7 @@ import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
 import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
+import { MarathonStatus } from './enums/marathon-status.enum';
 
 @ApiTags('Marathons')
 @ApiBearerAuth()
@@ -59,7 +60,7 @@ export class MarathonController {
   @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
   @ApiQuery({ name: 'myMarathons', required: false, type: Boolean, description: 'Filter marathons where current user is a participant' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by marathon name' })
-  @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by marathon status' })
+  @ApiQuery({ name: 'status', required: false, enum: MarathonStatus, example: MarathonStatus.UPCOMING, description: 'Filter by marathon status' })
   @Get()
   async findAll(
     @Query() query: GetMarathonsDto,

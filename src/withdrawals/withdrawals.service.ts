@@ -98,8 +98,8 @@ export class WithdrawalsService {
     let query = this.withdrawalRepository
       .createQueryBuilder('withdrawal')
       .leftJoinAndSelect('withdrawal.wallet', 'wallet')
-      .where('withdrawal.user_id = :userId', { userId })
-      .orderBy('withdrawal.created_at', 'DESC');
+      .where('withdrawal.userId = :userId', { userId })
+      .orderBy('withdrawal.createdAt', 'DESC');
 
     if (status) {
       query = query.andWhere('withdrawal.status = :status', { status });
@@ -107,7 +107,7 @@ export class WithdrawalsService {
 
     if (search) {
       query = query.andWhere(
-        '(LOWER(withdrawal.transaction_number) LIKE LOWER(:search) OR LOWER(withdrawal.description) LIKE LOWER(:search))',
+        '(LOWER(withdrawal.transactionNumber) LIKE LOWER(:search) OR LOWER(withdrawal.description) LIKE LOWER(:search))',
         { search: `%${search}%` },
       );
     }
@@ -149,8 +149,8 @@ export class WithdrawalsService {
     
     const count = await this.withdrawalRepository
       .createQueryBuilder('withdrawal')
-      .where('withdrawal.created_at >= :startOfDay', { startOfDay })
-      .andWhere('withdrawal.created_at < :endOfDay', { endOfDay })
+      .where('withdrawal.createdAt >= :startOfDay', { startOfDay })
+      .andWhere('withdrawal.createdAt < :endOfDay', { endOfDay })
       .getCount();
 
     const sequence = String(count + 1).padStart(4, '0');
