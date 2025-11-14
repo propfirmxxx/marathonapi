@@ -5,7 +5,7 @@
 [circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
 [circleci-url]: https://circleci.com/gh/nestjs/nest
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+<p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
     <p align="center">
 <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
 <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
@@ -200,3 +200,94 @@ SEED_MOCK_DATA=false
 - `TOKYO_SERVICE_BASE_URL` must resolve to the `ap-tokyo` service responsible for deploying participant MetaTrader containers. Accounts remain `undeployed` if the service is unreachable; the API logs a warning but still serves participant data.
 - `RABBITMQ_URL` and `RABBITMQ_QUEUE` configure the live data consumer. When these are missing or RabbitMQ is offline, the participants endpoint falls back to returning static user details until connectivity is restored.
 - Ensure the `socket_data` queue is durable and populated by the MetaTrader bridge (see `ap/ap-tokyo` and `ap/ap-berllin/DataPusher.mq5`) to surface balances, equity, open positions, and order history in marathon responses.
+
+## WebSocket Live Data Streaming
+
+The Marathon API provides real-time WebSocket streaming for MetaTrader account data with calculated leaderboard positions.
+
+### Connection
+
+Connect to the WebSocket endpoint with your JWT token:
+
+```javascript
+import io from 'socket.io-client';
+
+const token = 'your-jwt-token';
+const socket = io('http://localhost:3000/marathon-live', {
+  query: { token }
+});
+```
+
+### Subscription Options
+
+#### 1. Subscribe to Marathon (All Accounts)
+
+Receive updates for all accounts participating in a marathon:
+
+```javascript
+socket.emit('subscribe_marathon', { marathonId: 'marathon-uuid' });
+
+socket.on('marathon_leaderboard', (leaderboard) => {
+  console.log('Leaderboard:', leaderboard);
+  // leaderboard.entries contains all participants with rankings
+});
+```
+
+#### 2. Subscribe to Specific Account
+
+Receive updates for a single trading account:
+
+```javascript
+socket.emit('subscribe_account', { accountLogin: '261632689' });
+
+socket.on('account_update', (entry) => {
+  console.log('Account update:', entry);
+  // entry contains account data with current rank
+});
+```
+
+### Data Structure
+
+**Leaderboard Entry:**
+```json
+{
+  "participantId": "uuid",
+  "userId": "uuid",
+  "userName": "John Doe",
+  "accountLogin": "261632689",
+  "rank": 1,
+  "balance": 10150.25,
+  "equity": 10200.50,
+  "profit": 150.25,
+  "profitPercentage": 1.5,
+  "margin": 500.00,
+  "freeMargin": 9700.50,
+  "currency": "USD",
+  "leverage": 100,
+  "positions": [],
+  "orders": [],
+  "updatedAt": "2024-01-01T12:00:00Z",
+  "joinedAt": "2024-01-01T10:00:00Z"
+}
+```
+
+### Events
+
+**Client → Server:**
+- `subscribe_marathon` - Subscribe to marathon leaderboard
+- `subscribe_account` - Subscribe to specific account
+- `unsubscribe_marathon` - Unsubscribe from marathon
+- `unsubscribe_account` - Unsubscribe from account
+
+**Server → Client:**
+- `connected` - Connection established
+- `marathon_leaderboard` - Full leaderboard update
+- `account_update` - Individual account update
+- `subscribed` - Subscription confirmation
+- `unsubscribed` - Unsubscription confirmation
+- `error` - Error message
+
+### Documentation
+
+- Full WebSocket API documentation: See `docs/WEBSOCKET.md`
+- Swagger UI: `http://localhost:3000/swagger` → GET `/apiv1/marathons/websocket-docs`

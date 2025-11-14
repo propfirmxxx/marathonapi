@@ -243,4 +243,171 @@ export class MarathonController {
       marathonStarted,
     };
   }
+
+  @ApiOperation({ 
+    summary: 'WebSocket Live Data Documentation',
+    description: `
+## Marathon Live Data WebSocket
+
+Connect to real-time MetaTrader account data streams with calculated leaderboard positions.
+
+### Connection URL
+\`\`\`
+ws://localhost:3000/marathon-live?token=YOUR_JWT_TOKEN
+\`\`\`
+
+### Authentication
+Pass your JWT token as a query parameter when connecting.
+
+### Events to Emit (Client → Server)
+
+#### 1. subscribe_marathon
+Subscribe to all accounts in a marathon.
+\`\`\`json
+{
+  "marathonId": "uuid-of-marathon"
+}
+\`\`\`
+
+#### 2. subscribe_account
+Subscribe to a specific account.
+\`\`\`json
+{
+  "accountLogin": "261632689"
+}
+\`\`\`
+
+#### 3. unsubscribe_marathon
+Unsubscribe from a marathon.
+\`\`\`json
+{
+  "marathonId": "uuid-of-marathon"
+}
+\`\`\`
+
+#### 4. unsubscribe_account
+Unsubscribe from an account.
+\`\`\`json
+{
+  "accountLogin": "261632689"
+}
+\`\`\`
+
+### Events to Listen (Server → Client)
+
+#### 1. connected
+Confirmation of successful connection.
+
+#### 2. marathon_leaderboard
+Full leaderboard data for a subscribed marathon.
+\`\`\`json
+{
+  "marathonId": "uuid",
+  "marathonName": "Marathon Name",
+  "totalParticipants": 10,
+  "entries": [
+    {
+      "participantId": "uuid",
+      "userId": "uuid",
+      "userName": "John Doe",
+      "accountLogin": "261632689",
+      "rank": 1,
+      "balance": 10150.25,
+      "equity": 10200.50,
+      "profit": 150.25,
+      "profitPercentage": 1.5,
+      "margin": 500.00,
+      "freeMargin": 9700.50,
+      "currency": "USD",
+      "leverage": 100,
+      "positions": [],
+      "orders": [],
+      "updatedAt": "2024-01-01T12:00:00Z",
+      "joinedAt": "2024-01-01T10:00:00Z"
+    }
+  ],
+  "updatedAt": "2024-01-01T12:00:00Z"
+}
+\`\`\`
+
+#### 3. account_update
+Individual account update with calculated leaderboard position.
+\`\`\`json
+{
+  "participantId": "uuid",
+  "userId": "uuid",
+  "userName": "John Doe",
+  "accountLogin": "261632689",
+  "rank": 1,
+  "balance": 10150.25,
+  "equity": 10200.50,
+  "profit": 150.25,
+  "profitPercentage": 1.5,
+  "margin": 500.00,
+  "freeMargin": 9700.50,
+  "currency": "USD",
+  "leverage": 100,
+  "positions": [],
+  "orders": [],
+  "updatedAt": "2024-01-01T12:00:00Z",
+  "joinedAt": "2024-01-01T10:00:00Z"
+}
+\`\`\`
+
+#### 4. subscribed
+Confirmation of subscription.
+
+#### 5. unsubscribed
+Confirmation of unsubscription.
+
+#### 6. error
+Error message.
+
+### Example Client Code (JavaScript)
+
+\`\`\`javascript
+import io from 'socket.io-client';
+
+const token = 'your-jwt-token';
+const socket = io('http://localhost:3000/marathon-live', {
+  query: { token }
+});
+
+socket.on('connected', (data) => {
+  console.log('Connected:', data);
+  
+  // Subscribe to marathon
+  socket.emit('subscribe_marathon', { marathonId: 'marathon-uuid' });
+  
+  // Or subscribe to specific account
+  socket.emit('subscribe_account', { accountLogin: '261632689' });
+});
+
+socket.on('marathon_leaderboard', (leaderboard) => {
+  console.log('Leaderboard updated:', leaderboard);
+});
+
+socket.on('account_update', (entry) => {
+  console.log('Account updated:', entry);
+});
+
+socket.on('error', (error) => {
+  console.error('Error:', error);
+});
+\`\`\`
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'WebSocket documentation - not an actual endpoint'
+  })
+  @Get('websocket-docs')
+  getWebSocketDocs() {
+    return {
+      message: 'This endpoint provides documentation for the WebSocket API. See the Swagger UI for details.',
+      connectionUrl: 'ws://localhost:3000/marathon-live?token=YOUR_JWT_TOKEN',
+      namespace: 'marathon-live',
+      documentation: 'See detailed documentation in WEBSOCKET.md',
+    };
+  }
 } 

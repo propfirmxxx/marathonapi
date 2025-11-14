@@ -95,7 +95,8 @@ services:
       - "8888:8888"
       - "8000:8000"
     volumes:
-      - ./meta-configs:/app/meta-configs:ro
+      - ./meta-configs:/app/meta-configs
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - marathon-network
     environment:

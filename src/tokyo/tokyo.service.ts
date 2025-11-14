@@ -14,10 +14,24 @@ export class TokyoService {
     private readonly configService: ConfigService,
   ) {
     this.baseUrl = process.env.TOKYO_SERVICE_BASE_URL;
+    if (!this.baseUrl) {
+      this.logger.warn('TOKYO_SERVICE_BASE_URL is not set. Tokyo service integration will not work.');
+    } else {
+      this.logger.log(`Tokyo Service configured at: ${this.baseUrl}`);
+    }
   }
 
   async createAccount(login: string, password: string, server: string) {
+    if (!this.baseUrl) {
+      this.logger.error('Tokyo Service URL not configured. Please set TOKYO_SERVICE_BASE_URL environment variable.');
+      throw new HttpException(
+        'Tokyo Service not configured',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
     try {
+      this.logger.debug(`Attempting to create account ${login} at ${this.baseUrl}/account`);
       const response = await axios.post(`${this.baseUrl}/account`, {
         login,
         password,
@@ -25,7 +39,9 @@ export class TokyoService {
       });
       return response.data;
     } catch (error) {
-      this.logger.error(`Failed to create account ${login}: ${error.response?.data?.message || error.message}`);
+      this.logger.error(
+        `Create account request failed for ${login}. URL: ${this.baseUrl}/account, Error: ${error.message}, Code: ${error.code}`,
+      );
       throw new HttpException(
         error.response?.data?.message || 'Failed to create account in Tokyo service',
         error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
@@ -34,13 +50,25 @@ export class TokyoService {
   }
 
   async deployAccount(login: string) {
+    if (!this.baseUrl) {
+      this.logger.error('Tokyo Service URL not configured. Please set TOKYO_SERVICE_BASE_URL environment variable.');
+      throw new HttpException(
+        'Tokyo Service not configured',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
     try {
+      this.logger.debug(`Attempting to deploy account ${login} to ${this.baseUrl}/deploy`);
       const response = await axios.post(`${this.baseUrl}/deploy`, {
         login,
       });
 
       return response.data;
     } catch (error) {
+      this.logger.error(
+        `Deploy request failed for ${login}. URL: ${this.baseUrl}/deploy, Error: ${error.message}, Code: ${error.code}`,
+      );
       throw new HttpException(
         error.response?.data?.message || 'Failed to deploy account in Tokyo service',
         error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
@@ -53,12 +81,24 @@ export class TokyoService {
    * If deploy returns 404 (config not found), creates the account first then deploys again
    */
   async deployAccountWithAutoCreate(account: MetaTraderAccount): Promise<any> {
+    if (!this.baseUrl) {
+      this.logger.error('Tokyo Service URL not configured. Please set TOKYO_SERVICE_BASE_URL environment variable.');
+      throw new HttpException(
+        'Tokyo Service not configured',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
     try {
+      this.logger.debug(`Attempting to deploy account ${account.login} to ${this.baseUrl}/deploy`);
       const response = await axios.post(`${this.baseUrl}/deploy`, {
         login: account.login,
       });
       return response.data;
     } catch (error: any) {
+      this.logger.error(
+        `Deploy request failed for ${account.login}. URL: ${this.baseUrl}/deploy, Error: ${error.message}, Code: ${error.code}`,
+      );
       const errorStatus = error?.response?.status;
 
       // 404 means config file not found - create account then retry deploy

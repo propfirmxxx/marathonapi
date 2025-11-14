@@ -36,6 +36,6 @@ import { NotificationModule } from '../notifications/notification.module';
   ],
   providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy, AuthGuard, AdminGuard],
   controllers: [AuthController],
-  exports: [AuthService, AuthGuard, AdminGuard, TypeOrmModule],
+  exports: [AuthService, AuthGuard, AdminGuard, TypeOrmModule, JwtModule],
 })
 export class AuthModule {} 

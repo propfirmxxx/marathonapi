@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as amqp from 'amqplib';
+import { EventEmitter } from 'events';
 
 export interface AccountSnapshot {
   login: string;
@@ -25,6 +26,7 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   private readonly queue: string;
   private readonly url: string;
   private readonly snapshots = new Map<string, AccountSnapshot>();
+  private readonly eventEmitter = new EventEmitter();
 
   constructor(private readonly configService: ConfigService) {
     this.url = this.configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672/');
@@ -41,6 +43,18 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
 
   getSnapshot(login: string): AccountSnapshot | null {
     return this.snapshots.get(login) ?? null;
+  }
+
+  getAllSnapshots(): Map<string, AccountSnapshot> {
+    return new Map(this.snapshots);
+  }
+
+  onAccountUpdate(callback: (snapshot: AccountSnapshot) => void): void {
+    this.eventEmitter.on('account.update', callback);
+  }
+
+  removeAccountUpdateListener(callback: (snapshot: AccountSnapshot) => void): void {
+    this.eventEmitter.off('account.update', callback);
   }
 
   private async connect(attempt = 0): Promise<void> {
@@ -122,6 +136,9 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
         const snapshot: AccountSnapshot = this.mergeSnapshot(existing, payload);
 
         this.snapshots.set(login, snapshot);
+        
+        // Emit event for listeners
+        this.eventEmitter.emit('account.update', snapshot);
       } catch (error) {
         this.logger.warn(`Failed to process RabbitMQ payload "${segment}": ${error.message}`);
       }

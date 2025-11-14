@@ -12,6 +12,8 @@ import { Marathon } from './entities/marathon.entity';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonController } from './marathon.controller';
 import { MarathonService } from './marathon.service';
+import { MarathonLeaderboardService } from './marathon-leaderboard.service';
+import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
 
 @Module({
   imports: [
@@ -24,7 +26,12 @@ import { MarathonService } from './marathon.service';
     VirtualWalletModule,
   ],
   controllers: [MarathonController],
-  providers: [MarathonService, LiveAccountDataService],
-  exports: [MarathonService, LiveAccountDataService],
+  providers: [
+    MarathonService,
+    LiveAccountDataService,
+    MarathonLeaderboardService,
+    MarathonLiveDataGateway,
+  ],
+  exports: [MarathonService, LiveAccountDataService, MarathonLeaderboardService],
 })
 export class MarathonModule {} 
