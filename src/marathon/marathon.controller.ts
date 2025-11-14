@@ -410,4 +410,27 @@ socket.on('error', (error) => {
       documentation: 'See detailed documentation in WEBSOCKET.md',
     };
   }
+
+  @ApiOperation({ 
+    summary: 'Get RabbitMQ connection health status',
+    description: 'Returns the health status of RabbitMQ connection, message count, and snapshot statistics'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'RabbitMQ health status',
+    schema: {
+      type: 'object',
+      properties: {
+        connected: { type: 'boolean', description: 'Whether RabbitMQ is connected' },
+        queueName: { type: 'string', description: 'Name of the RabbitMQ queue' },
+        messageCount: { type: 'number', description: 'Total messages processed' },
+        snapshotCount: { type: 'number', description: 'Number of active account snapshots' },
+        lastMessageTime: { type: 'string', format: 'date-time', description: 'Time of last message received', nullable: true },
+      }
+    }
+  })
+  @Get('rabbitmq-health')
+  async getRabbitMQHealth() {
+    return await this.liveAccountDataService.getHealth();
+  }
 } 

@@ -199,7 +199,32 @@ SEED_MOCK_DATA=false
 
 - `TOKYO_SERVICE_BASE_URL` must resolve to the `ap-tokyo` service responsible for deploying participant MetaTrader containers. Accounts remain `undeployed` if the service is unreachable; the API logs a warning but still serves participant data.
 - `RABBITMQ_URL` and `RABBITMQ_QUEUE` configure the live data consumer. When these are missing or RabbitMQ is offline, the participants endpoint falls back to returning static user details until connectivity is restored.
-- Ensure the `socket_data` queue is durable and populated by the MetaTrader bridge (see `ap/ap-tokyo` and `ap/ap-berllin/DataPusher.mq5`) to surface balances, equity, open positions, and order history in marathon responses.
+- Ensure the `socket_data` queue is durable and populated by the MetaTrader bridge (Tokyo Service) with optimized message format. See [RabbitMQ Optimization Guide](./docs/RABBITMQ_OPTIMIZATION_SUMMARY.md) for details.
+
+### RabbitMQ Health Monitoring
+
+Check RabbitMQ connection status and metrics:
+
+```bash
+# Using curl
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:3000/apiv1/marathons/rabbitmq-health
+
+# Response
+{
+  "connected": true,
+  "queueName": "socket_data",
+  "messageCount": 1523,
+  "snapshotCount": 45,
+  "lastMessageTime": "2025-11-14T10:30:00.000Z"
+}
+```
+
+**📚 Tokyo Service Integration Documentation**:
+- [Quick Start Prompt](./docs/TOKYO_SERVICE_PROMPT.md) - Copy-paste ready code for Tokyo Service
+- [Complete Strategy Guide](./docs/TOKYO_SERVICE_RABBITMQ_STRATEGY.md) - Detailed RabbitMQ data management strategy
+- [Data Format Specification](./docs/TOKYO_SERVICE_DATA_FORMAT.md) - Message format requirements
+- [Optimization Summary](./docs/RABBITMQ_OPTIMIZATION_SUMMARY.md) - Complete list of improvements
 
 ## WebSocket Live Data Streaming
 
