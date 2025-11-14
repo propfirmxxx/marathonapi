@@ -175,7 +175,7 @@ export class MarathonProvisioningService {
     }
 
     try {
-      await this.tokyoService.deployAccount(account.login);
+      await this.tokyoService.deployAccountWithAutoCreate(account);
       account.status = MetaTraderAccountStatus.DEPLOYED;
       await this.accountRepository.save(account);
       this.logger.log(`Deployed MetaTrader account ${account.login} for participant ${account.marathonParticipantId}`);

@@ -330,7 +330,7 @@ export class MarathonService {
       }
 
       try {
-        await this.tokyoService.deployAccount(account.login);
+        await this.tokyoService.deployAccountWithAutoCreate(account);
         account.status = MetaTraderAccountStatus.DEPLOYED;
         await this.metaTraderAccountRepository.save(account);
       } catch (error) {

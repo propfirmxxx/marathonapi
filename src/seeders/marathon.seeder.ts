@@ -116,7 +116,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: activeStartDate,
         endDate: activeEndDate,
         isActive: true,
-        status: MarathonStatus.ONGOING,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 15,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 25,
@@ -145,7 +145,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: upcomingStartDate,
         endDate: upcomingEndDate,
         isActive: true,
-        status: MarathonStatus.UPCOMING,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 12,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 22,
@@ -173,7 +173,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: activeStartDate,
         endDate: activeEndDate,
         isActive: true,
-        status: MarathonStatus.ONGOING,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 20,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 30,
@@ -204,7 +204,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: upcomingStartDate,
         endDate: upcomingEndDate,
         isActive: true,
-        status: MarathonStatus.UPCOMING,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 8,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 15,
@@ -233,7 +233,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: future2StartDate,
         endDate: future2EndDate,
         isActive: true,
-        status: MarathonStatus.UPCOMING,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 25,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 15,
@@ -265,7 +265,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: future3StartDate,
         endDate: future3EndDate,
         isActive: false,
-        status: MarathonStatus.CANCELED,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 30,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 10,
@@ -296,7 +296,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: upcomingStartDate,
         endDate: upcomingEndDate,
         isActive: true,
-        status: MarathonStatus.UPCOMING,
+        status: MarathonStatus.FINISHED,
         rules: {
           [MarathonRule.MIN_TRADES]: 5,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 30,
