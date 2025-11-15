@@ -23,6 +23,7 @@ import { VirtualWalletModule } from './virtual-wallet/virtual-wallet.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { WalletModule } from './wallet/wallet.module';
 import { TokyoModule } from './tokyo/tokyo.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { TokyoModule } from './tokyo/tokyo.module';
     WalletModule,
     WithdrawalsModule,
     TokyoModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [
