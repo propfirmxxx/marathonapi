@@ -24,6 +24,7 @@ import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { WalletModule } from './wallet/wallet.module';
 import { TokyoModule } from './tokyo/tokyo.module';
 import { StatsModule } from './stats/stats.module';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { StatsModule } from './stats/stats.module';
           } as any),
         ]),
     TypeOrmModule.forRoot(databaseConfig),
+    CacheModule,
     UsersModule,
     AuthModule,
     EmailModule,

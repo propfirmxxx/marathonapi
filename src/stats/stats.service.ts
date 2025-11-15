@@ -18,9 +18,13 @@ import { MarathonStatsResponseDto } from './dto/marathon-stats-response.dto';
 import { OverviewStatsResponseDto } from './dto/overview-stats-response.dto';
 import { MarathonLeaderboardService } from '../marathon/marathon-leaderboard.service';
 import { LiveAccountDataService } from '../marathon/live-account-data.service';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class StatsService {
+  private readonly CACHE_PREFIX = 'stats';
+  private readonly CACHE_TTL = 300000; // 5 minutes for stats (they change frequently)
+
   constructor(
     @InjectRepository(Withdrawal)
     private readonly withdrawalRepository: Repository<Withdrawal>,
@@ -40,6 +44,7 @@ export class StatsService {
     private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     private readonly marathonLeaderboardService: MarathonLeaderboardService,
     private readonly liveAccountDataService: LiveAccountDataService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -57,6 +62,28 @@ export class StatsService {
    * Get withdrawal statistics for a user
    */
   async getWithdrawalStats(
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+    groupBy: GroupByPeriod = GroupByPeriod.MONTH,
+  ): Promise<WithdrawalStatsResponseDto> {
+    const cacheKey = this.cacheService.generateKey(
+      this.CACHE_PREFIX,
+      'withdrawal',
+      userId,
+      startDate || 'all',
+      endDate || 'all',
+      groupBy,
+    );
+
+    return await this.cacheService.wrap(
+      cacheKey,
+      async () => this.calculateWithdrawalStats(userId, startDate, endDate, groupBy),
+      this.CACHE_TTL,
+    );
+  }
+
+  private async calculateWithdrawalStats(
     userId: string,
     startDate?: string,
     endDate?: string,
@@ -194,6 +221,28 @@ export class StatsService {
    * Get marathon statistics for a user
    */
   async getMarathonStats(
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+    groupBy: GroupByPeriod = GroupByPeriod.MONTH,
+  ): Promise<MarathonStatsResponseDto> {
+    const cacheKey = this.cacheService.generateKey(
+      this.CACHE_PREFIX,
+      'marathon',
+      userId,
+      startDate || 'all',
+      endDate || 'all',
+      groupBy,
+    );
+
+    return await this.cacheService.wrap(
+      cacheKey,
+      async () => this.calculateMarathonStats(userId, startDate, endDate, groupBy),
+      this.CACHE_TTL,
+    );
+  }
+
+  private async calculateMarathonStats(
     userId: string,
     startDate?: string,
     endDate?: string,
@@ -496,6 +545,20 @@ export class StatsService {
    * Get comprehensive overview statistics for a user
    */
   async getOverviewStats(userId: string): Promise<OverviewStatsResponseDto> {
+    const cacheKey = this.cacheService.generateKey(
+      this.CACHE_PREFIX,
+      'overview',
+      userId,
+    );
+
+    return await this.cacheService.wrap(
+      cacheKey,
+      async () => this.calculateOverviewStats(userId),
+      this.CACHE_TTL,
+    );
+  }
+
+  private async calculateOverviewStats(userId: string): Promise<OverviewStatsResponseDto> {
     // Get virtual wallet balance
     const virtualWallet = await this.virtualWalletRepository.findOne({
       where: { userId },
