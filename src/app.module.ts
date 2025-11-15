@@ -22,6 +22,7 @@ import { CronJobsModule } from './cron-jobs/cron-jobs.module';
 import { VirtualWalletModule } from './virtual-wallet/virtual-wallet.module';
 import { WithdrawalsModule } from './withdrawals/withdrawals.module';
 import { WalletModule } from './wallet/wallet.module';
+import { TokyoModule } from './tokyo/tokyo.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { WalletModule } from './wallet/wallet.module';
     VirtualWalletModule,
     WalletModule,
     WithdrawalsModule,
+    TokyoModule,
   ],
   controllers: [AppController],
   providers: [
