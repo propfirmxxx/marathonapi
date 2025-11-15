@@ -2,14 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
+import { Marathon } from '../marathon/entities/marathon.entity';
+import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
+import { MarathonStatus } from '../marathon/enums/marathon-status.enum';
 import { GroupByPeriod } from './dto/get-withdrawal-stats.dto';
 import { WithdrawalStatsResponseDto } from './dto/withdrawal-stats-response.dto';
+import { MarathonStatsResponseDto } from './dto/marathon-stats-response.dto';
+import { MarathonLeaderboardService } from '../marathon/marathon-leaderboard.service';
+import { LiveAccountDataService } from '../marathon/live-account-data.service';
 
 @Injectable()
 export class StatsService {
   constructor(
     @InjectRepository(Withdrawal)
     private readonly withdrawalRepository: Repository<Withdrawal>,
+    @InjectRepository(Marathon)
+    private readonly marathonRepository: Repository<Marathon>,
+    @InjectRepository(MarathonParticipant)
+    private readonly participantRepository: Repository<MarathonParticipant>,
+    private readonly marathonLeaderboardService: MarathonLeaderboardService,
+    private readonly liveAccountDataService: LiveAccountDataService,
   ) {}
 
   /**
@@ -158,6 +170,264 @@ export class StatsService {
         },
       },
     };
+  }
+
+  /**
+   * Get marathon statistics for a user
+   */
+  async getMarathonStats(
+    userId: string,
+    startDate?: string,
+    endDate?: string,
+    groupBy: GroupByPeriod = GroupByPeriod.MONTH,
+  ): Promise<MarathonStatsResponseDto> {
+    // Determine date truncation based on groupBy
+    let dateTruncFormat: string;
+    switch (groupBy) {
+      case GroupByPeriod.WEEK:
+        dateTruncFormat = 'week';
+        break;
+      case GroupByPeriod.MONTH:
+        dateTruncFormat = 'month';
+        break;
+      case GroupByPeriod.YEAR:
+        dateTruncFormat = 'year';
+        break;
+      default:
+        dateTruncFormat = 'month';
+    }
+
+    // Get all participants for the user
+    const participantsQuery = this.participantRepository
+      .createQueryBuilder('participant')
+      .leftJoinAndSelect('participant.marathon', 'marathon')
+      .where('participant.user_id = :userId', { userId })
+      .andWhere('participant.isActive = :isActive', { isActive: true });
+
+    if (startDate) {
+      participantsQuery.andWhere('participant.created_at >= :startDate', {
+        startDate: new Date(startDate),
+      });
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      participantsQuery.andWhere('participant.created_at <= :endDate', {
+        endDate: endDateTime,
+      });
+    }
+
+    const participants = await participantsQuery.getMany();
+
+    // Get finished marathons where user participated
+    const finishedMarathons = participants.filter(
+      (p) => p.marathon.status === MarathonStatus.FINISHED,
+    );
+
+    // Get snapshots for all accounts
+    const allSnapshots = this.liveAccountDataService.getAllSnapshots();
+
+    // Calculate wins (user rank 1 in finished marathons)
+    // Use a map to cache leaderboards by marathon ID
+    const leaderboardCache = new Map<string, any>();
+    let wins = 0;
+    for (const participant of finishedMarathons) {
+      let leaderboard = leaderboardCache.get(participant.marathon.id);
+      if (!leaderboard) {
+        leaderboard = await this.marathonLeaderboardService.calculateLeaderboard(
+          participant.marathon.id,
+          allSnapshots,
+        );
+        if (leaderboard) {
+          leaderboardCache.set(participant.marathon.id, leaderboard);
+        }
+      }
+      if (leaderboard) {
+        const userEntry = leaderboard.entries.find(
+          (e) => e.userId === userId && e.rank === 1,
+        );
+        if (userEntry) {
+          wins++;
+        }
+      }
+    }
+
+    // Group participants by period for chart
+    const groupedData = await this.participantRepository
+      .createQueryBuilder('participant')
+      .select(
+        `DATE_TRUNC('${dateTruncFormat}', participant.created_at)`,
+        'period',
+      )
+      .addSelect('COUNT(participant.id)', 'count')
+      .where('participant.user_id = :userId', { userId })
+      .andWhere('participant.isActive = :isActive', { isActive: true });
+
+    if (startDate) {
+      groupedData.andWhere('participant.created_at >= :startDate', {
+        startDate: new Date(startDate),
+      });
+    }
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      groupedData.andWhere('participant.created_at <= :endDate', {
+        endDate: endDateTime,
+      });
+    }
+
+    const groupedParticipants = await groupedData
+      .groupBy(`DATE_TRUNC('${dateTruncFormat}', participant.created_at)`)
+      .orderBy('period', 'ASC')
+      .getRawMany();
+
+    // Calculate total marathons
+    const totalMarathons = participants.length;
+
+    // Calculate winrate
+    const winrate = totalMarathons > 0 ? (wins / totalMarathons) * 100 : 0;
+
+    // Format data for charts
+    const months: string[] = [];
+    const totalMarathonsSeries: number[] = [];
+    const winsSeries: number[] = [];
+    const winrateSeries: number[] = [];
+
+    // Group wins by period (reuse cached leaderboards)
+    const winsByPeriod = new Map<string, number>();
+    for (const participant of finishedMarathons) {
+      const period = new Date(participant.marathon.endDate);
+      let periodKey: string;
+      switch (groupBy) {
+        case GroupByPeriod.WEEK:
+          periodKey = this.getWeekKey(period);
+          break;
+        case GroupByPeriod.MONTH:
+          periodKey = `${period.getFullYear()}-${String(period.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case GroupByPeriod.YEAR:
+          periodKey = period.getFullYear().toString();
+          break;
+        default:
+          periodKey = `${period.getFullYear()}-${String(period.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      // Use cached leaderboard
+      const leaderboard = leaderboardCache.get(participant.marathon.id);
+      if (leaderboard) {
+        const userEntry = leaderboard.entries.find(
+          (e) => e.userId === userId && e.rank === 1,
+        );
+        if (userEntry) {
+          winsByPeriod.set(periodKey, (winsByPeriod.get(periodKey) || 0) + 1);
+        }
+      }
+    }
+
+    groupedParticipants.forEach((item, index) => {
+      const period = new Date(item.period);
+      let label: string;
+      switch (groupBy) {
+        case GroupByPeriod.WEEK:
+          label = this.formatWeekLabel(period);
+          break;
+        case GroupByPeriod.MONTH:
+          label = this.formatMonthLabel(period);
+          break;
+        case GroupByPeriod.YEAR:
+          label = period.getFullYear().toString();
+          break;
+        default:
+          label = this.formatMonthLabel(period);
+      }
+
+      months.push(label);
+      const count = parseInt(item.count || '0', 10);
+      totalMarathonsSeries.push(count);
+
+      // Get wins for this period
+      let periodKey: string;
+      switch (groupBy) {
+        case GroupByPeriod.WEEK:
+          periodKey = this.getWeekKey(period);
+          break;
+        case GroupByPeriod.MONTH:
+          periodKey = `${period.getFullYear()}-${String(period.getMonth() + 1).padStart(2, '0')}`;
+          break;
+        case GroupByPeriod.YEAR:
+          periodKey = period.getFullYear().toString();
+          break;
+        default:
+          periodKey = `${period.getFullYear()}-${String(period.getMonth() + 1).padStart(2, '0')}`;
+      }
+      const periodWins = winsByPeriod.get(periodKey) || 0;
+      winsSeries.push(periodWins);
+
+      // Calculate winrate for this period
+      const periodWinrate = count > 0 ? (periodWins / count) * 100 : 0;
+      winrateSeries.push(periodWinrate);
+    });
+
+    // Calculate overall changes
+    const totalMarathonsChange = this.calculateChange(
+      groupedParticipants.map((item) => parseInt(item.count || '0', 10)),
+    );
+    const winsChange = this.calculateChange(winsSeries);
+    const winrateChange = this.calculateChange(winrateSeries);
+
+    return {
+      overview: {
+        total_marathons: {
+          change: totalMarathonsChange,
+          value: totalMarathons,
+          chart: {
+            months,
+            series: totalMarathonsSeries,
+          },
+        },
+        marathons_won: {
+          change: winsChange,
+          value: wins,
+          chart: {
+            months,
+            series: winsSeries,
+          },
+        },
+        marathons_winrate: {
+          change: winrateChange,
+          value: winrate,
+          chart: {
+            months,
+            series: winrateSeries,
+          },
+        },
+      },
+    };
+  }
+
+  private calculateChange(series: number[]): string {
+    if (series.length < 2) {
+      return '0';
+    }
+    const first = series[0] || 0;
+    const last = series[series.length - 1] || 0;
+    if (first === 0) {
+      return last > 0 ? '+100' : '0';
+    }
+    const changePercent = ((last - first) / first) * 100;
+    return changePercent >= 0
+      ? `+${changePercent.toFixed(1)}`
+      : changePercent.toFixed(1);
+  }
+
+  private getWeekKey(date: Date): string {
+    const weekStart = new Date(date);
+    const dayOfWeek = weekStart.getDay();
+    const diff = weekStart.getDate() - dayOfWeek;
+    weekStart.setDate(diff);
+    return `${weekStart.getFullYear()}-W${Math.ceil(
+      (weekStart.getDate() + 1) / 7,
+    )}`;
   }
 
   private formatWeekLabel(date: Date): string {
