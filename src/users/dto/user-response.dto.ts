@@ -27,6 +27,12 @@ export class UserResponseDto {
   isActive: boolean;
 
   @ApiProperty({
+    description: 'User banned status',
+    example: false
+  })
+  isBanned: boolean;
+
+  @ApiProperty({
     description: 'Creation timestamp',
     example: '2024-04-22T12:00:00Z'
   })

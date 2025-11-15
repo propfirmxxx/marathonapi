@@ -34,6 +34,9 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isBanned: boolean;
+
   @Column({ 
     type: 'enum',
     enum: UserRole,

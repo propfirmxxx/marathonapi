@@ -47,4 +47,20 @@ export class UsersService {
     const user = await this.findOne(id);
     await this.userRepository.softDelete(user.id);
   }
+
+  async banUser(id: string): Promise<User> {
+    const user = await this.findOne(id);
+    user.isBanned = true;
+    const updatedUser = await this.userRepository.save(user);
+    delete updatedUser.password;
+    return updatedUser;
+  }
+
+  async unbanUser(id: string): Promise<User> {
+    const user = await this.findOne(id);
+    user.isBanned = false;
+    const updatedUser = await this.userRepository.save(user);
+    delete updatedUser.password;
+    return updatedUser;
+  }
 } 

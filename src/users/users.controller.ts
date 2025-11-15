@@ -63,4 +63,30 @@ export class UsersController {
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
+
+  @ApiOperation({ summary: 'Ban user' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User banned successfully',
+    type: UserResponseDto
+  })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @Post(':id/ban')
+  @UseGuards(AdminGuard)
+  banUser(@Param('id') id: string) {
+    return this.usersService.banUser(id);
+  }
+
+  @ApiOperation({ summary: 'Unban user' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'User unbanned successfully',
+    type: UserResponseDto
+  })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @Post(':id/unban')
+  @UseGuards(AdminGuard)
+  unbanUser(@Param('id') id: string) {
+    return this.usersService.unbanUser(id);
+  }
 } 

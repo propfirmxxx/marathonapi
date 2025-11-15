@@ -83,6 +83,10 @@ export class VirtualWalletService {
       throw new NotFoundException('Virtual wallet not found');
     }
 
+    if (wallet.isFrozen) {
+      throw new BadRequestException('Virtual wallet is frozen and cannot perform transactions');
+    }
+
     const balance = Number(wallet.balance);
     if (balance < amount) {
       throw new BadRequestException('Insufficient wallet balance');
@@ -115,8 +119,13 @@ export class VirtualWalletService {
           userId: options.userId,
           balance: 0,
           currency: 'USD',
+          isFrozen: false,
         });
         wallet = await queryRunner.manager.save(VirtualWallet, wallet);
+      }
+
+      if (wallet.isFrozen) {
+        throw new BadRequestException('Virtual wallet is frozen and cannot perform transactions');
       }
 
       if (options.referenceType && options.referenceId) {
@@ -176,6 +185,21 @@ export class VirtualWalletService {
         await queryRunner.release();
       }
     }
+  }
+
+  async freezeWallet(userId: string): Promise<VirtualWallet> {
+    const wallet = await this.getOrCreateWallet(userId);
+    wallet.isFrozen = true;
+    return this.walletRepository.save(wallet);
+  }
+
+  async unfreezeWallet(userId: string): Promise<VirtualWallet> {
+    const wallet = await this.getWalletByUserId(userId);
+    if (!wallet) {
+      throw new NotFoundException('Virtual wallet not found');
+    }
+    wallet.isFrozen = false;
+    return this.walletRepository.save(wallet);
   }
 
   private normalizeAmount(amount: number): number {

@@ -29,6 +29,9 @@ export class VirtualWallet {
   @Column({ length: 10, default: 'USD' })
   currency: string;
 
+  @Column({ default: false })
+  isFrozen: boolean;
+
   @OneToMany(() => VirtualWalletTransaction, transaction => transaction.wallet)
   transactions: VirtualWalletTransaction[];
 

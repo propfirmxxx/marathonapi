@@ -1,7 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Post, Param } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags, ApiParam } from '@nestjs/swagger';
 import { GetUser } from '@/auth/decorators/get-user.decorator';
+import { AdminGuard } from '@/auth/guards/admin.guard';
 import { VirtualWalletService } from './virtual-wallet.service';
 import { GetVirtualWalletTransactionsDto } from './dto/get-transactions.dto';
 import {
@@ -31,6 +32,7 @@ export class VirtualWalletController {
       id: wallet.id,
       balance: Number(wallet.balance),
       currency: wallet.currency,
+      isFrozen: wallet.isFrozen,
       createdAt: wallet.createdAt,
       updatedAt: wallet.updatedAt,
     };
@@ -82,6 +84,48 @@ export class VirtualWalletController {
       metadata: transaction.metadata,
       createdAt: transaction.createdAt,
     }));
+  }
+
+  @ApiOperation({ summary: 'Freeze virtual wallet (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Virtual wallet frozen successfully',
+    type: VirtualWalletResponseDto,
+  })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @Post('admin/:userId/freeze')
+  @UseGuards(AdminGuard)
+  async freezeWallet(@Param('userId') userId: string): Promise<VirtualWalletResponseDto> {
+    const wallet = await this.virtualWalletService.freezeWallet(userId);
+    return {
+      id: wallet.id,
+      balance: Number(wallet.balance),
+      currency: wallet.currency,
+      isFrozen: wallet.isFrozen,
+      createdAt: wallet.createdAt,
+      updatedAt: wallet.updatedAt,
+    };
+  }
+
+  @ApiOperation({ summary: 'Unfreeze virtual wallet (Admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Virtual wallet unfrozen successfully',
+    type: VirtualWalletResponseDto,
+  })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @Post('admin/:userId/unfreeze')
+  @UseGuards(AdminGuard)
+  async unfreezeWallet(@Param('userId') userId: string): Promise<VirtualWalletResponseDto> {
+    const wallet = await this.virtualWalletService.unfreezeWallet(userId);
+    return {
+      id: wallet.id,
+      balance: Number(wallet.balance),
+      currency: wallet.currency,
+      isFrozen: wallet.isFrozen,
+      createdAt: wallet.createdAt,
+      updatedAt: wallet.updatedAt,
+    };
   }
 }
 

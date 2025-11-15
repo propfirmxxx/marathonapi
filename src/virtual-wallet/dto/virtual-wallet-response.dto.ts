@@ -11,6 +11,9 @@ export class VirtualWalletResponseDto {
   @ApiProperty({ description: 'Wallet currency', example: 'USD' })
   currency: string;
 
+  @ApiProperty({ description: 'Whether the wallet is frozen', example: false })
+  isFrozen: boolean;
+
   @ApiProperty({ description: 'Creation timestamp' })
   createdAt: Date;
 

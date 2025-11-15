@@ -125,11 +125,15 @@ export class AuthService {
   async login(loginDto: LoginDto): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
-      select: ['id', 'email', 'password', 'isActive', 'role'],
+      select: ['id', 'email', 'password', 'isActive', 'isBanned', 'role'],
     });
 
     if (!user || !(await user.validatePassword(loginDto.password))) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.isBanned) {
+      throw new UnauthorizedException('User account is banned');
     }
 
     return this.generateTokens(user);
@@ -201,6 +205,10 @@ export class AuthService {
         })
         await this.userRepository.save(user);
       }
+    }
+
+    if (user.isBanned) {
+      throw new UnauthorizedException('User account is banned');
     }
 
     return user;
