@@ -6,6 +6,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { GetWithdrawalStatsDto, GroupByPeriod } from './dto/get-withdrawal-stats.dto';
 import { WithdrawalStatsResponseDto } from './dto/withdrawal-stats-response.dto';
 import { MarathonStatsResponseDto } from './dto/marathon-stats-response.dto';
+import { OverviewStatsResponseDto } from './dto/overview-stats-response.dto';
 
 @ApiTags('Stats')
 @ApiBearerAuth()
@@ -14,20 +15,17 @@ import { MarathonStatsResponseDto } from './dto/marathon-stats-response.dto';
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'Get statistics' })
+  @Get('overview')
+  @ApiOperation({ summary: 'Get comprehensive overview statistics for the current user' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Returns statistics',
-    schema: {
-      type: 'object',
-    }
+    description: 'Returns comprehensive overview statistics including financial, activity, and account stats',
+    type: OverviewStatsResponseDto,
   })
-  async getStats() {
-    const data = await this.statsService.getStats();
-    return {
-      data,
-    };
+  async getOverviewStats(
+    @GetUser('id') userId: string,
+  ): Promise<OverviewStatsResponseDto> {
+    return await this.statsService.getOverviewStats(userId);
   }
 
   @Get('withdrawals')

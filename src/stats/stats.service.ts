@@ -4,10 +4,18 @@ import { Repository } from 'typeorm';
 import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 import { Marathon } from '../marathon/entities/marathon.entity';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
+import { Payment } from '../payment/entities/payment.entity';
+import { VirtualWallet } from '../virtual-wallet/entities/virtual-wallet.entity';
+import { VirtualWalletTransaction, VirtualWalletTransactionType } from '../virtual-wallet/entities/virtual-wallet-transaction.entity';
+import { Ticket, TicketStatus } from '../tickets/entities/ticket.entity';
+import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { MarathonStatus } from '../marathon/enums/marathon-status.enum';
+import { PaymentType } from '../payment/enums/payment-type.enum';
+import { PaymentStatus } from '../payment/enums/payment-status.enum';
 import { GroupByPeriod } from './dto/get-withdrawal-stats.dto';
 import { WithdrawalStatsResponseDto } from './dto/withdrawal-stats-response.dto';
 import { MarathonStatsResponseDto } from './dto/marathon-stats-response.dto';
+import { OverviewStatsResponseDto } from './dto/overview-stats-response.dto';
 import { MarathonLeaderboardService } from '../marathon/marathon-leaderboard.service';
 import { LiveAccountDataService } from '../marathon/live-account-data.service';
 
@@ -20,6 +28,16 @@ export class StatsService {
     private readonly marathonRepository: Repository<Marathon>,
     @InjectRepository(MarathonParticipant)
     private readonly participantRepository: Repository<MarathonParticipant>,
+    @InjectRepository(Payment)
+    private readonly paymentRepository: Repository<Payment>,
+    @InjectRepository(VirtualWallet)
+    private readonly virtualWalletRepository: Repository<VirtualWallet>,
+    @InjectRepository(VirtualWalletTransaction)
+    private readonly virtualWalletTransactionRepository: Repository<VirtualWalletTransaction>,
+    @InjectRepository(Ticket)
+    private readonly ticketRepository: Repository<Ticket>,
+    @InjectRepository(MetaTraderAccount)
+    private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     private readonly marathonLeaderboardService: MarathonLeaderboardService,
     private readonly liveAccountDataService: LiveAccountDataService,
   ) {}
@@ -472,6 +490,139 @@ export class StatsService {
       'Dec',
     ];
     return monthNames[date.getMonth()];
+  }
+
+  /**
+   * Get comprehensive overview statistics for a user
+   */
+  async getOverviewStats(userId: string): Promise<OverviewStatsResponseDto> {
+    // Get virtual wallet balance
+    const virtualWallet = await this.virtualWalletRepository.findOne({
+      where: { userId },
+    });
+    const currentBalance = virtualWallet ? Number(virtualWallet.balance) : 0;
+
+    // Get total deposits (completed wallet charge payments)
+    const totalDepositsResult = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .select('COALESCE(SUM(payment.amount), 0)', 'total')
+      .where('payment.userId = :userId', { userId })
+      .andWhere('payment.paymentType = :type', { type: PaymentType.WALLET_CHARGE })
+      .andWhere('payment.status = :status', { status: PaymentStatus.COMPLETED })
+      .getRawOne();
+    const totalDeposits = parseFloat(totalDepositsResult?.total || '0');
+
+    // Get total marathon fees (completed marathon join payments)
+    const totalMarathonFeesResult = await this.paymentRepository
+      .createQueryBuilder('payment')
+      .select('COALESCE(SUM(payment.amount), 0)', 'total')
+      .where('payment.userId = :userId', { userId })
+      .andWhere('payment.paymentType = :type', { type: PaymentType.MARATHON_JOIN })
+      .andWhere('payment.status = :status', { status: PaymentStatus.COMPLETED })
+      .getRawOne();
+    const totalMarathonFees = parseFloat(totalMarathonFeesResult?.total || '0');
+
+    // Get total marathon earnings (CREDIT transactions from marathon prizes)
+    // Assuming marathon prize credits have referenceType 'marathon_prize' or similar
+    const totalMarathonEarningsResult = await this.virtualWalletTransactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoin('transaction.wallet', 'wallet')
+      .select('COALESCE(SUM(transaction.amount), 0)', 'total')
+      .where('wallet.userId = :userId', { userId })
+      .andWhere('transaction.type = :type', { type: VirtualWalletTransactionType.CREDIT })
+      .andWhere(
+        "(transaction.referenceType LIKE '%marathon%' OR transaction.description LIKE '%marathon%' OR transaction.description LIKE '%prize%')",
+      )
+      .getRawOne();
+    const totalMarathonEarnings = parseFloat(totalMarathonEarningsResult?.total || '0');
+
+    // Get total withdrawals
+    const totalWithdrawalsResult = await this.withdrawalRepository
+      .createQueryBuilder('withdrawal')
+      .select('COALESCE(SUM(withdrawal.amount), 0)', 'total')
+      .where('withdrawal.userId = :userId', { userId })
+      .getRawOne();
+    const totalWithdrawals = parseFloat(totalWithdrawalsResult?.total || '0');
+
+    // Calculate net profit
+    const netProfit = totalDeposits + totalMarathonEarnings - totalMarathonFees - totalWithdrawals;
+
+    // Get active marathons count (where user is participant)
+    const activeMarathonsCount = await this.participantRepository
+      .createQueryBuilder('participant')
+      .leftJoin('participant.marathon', 'marathon')
+      .where('participant.user_id = :userId', { userId })
+      .andWhere('participant.isActive = :isActive', { isActive: true })
+      .andWhere('marathon.status = :status', { status: MarathonStatus.ONGOING })
+      .getCount();
+
+    // Get upcoming marathons count (where user is participant)
+    const upcomingMarathonsCount = await this.participantRepository
+      .createQueryBuilder('participant')
+      .leftJoin('participant.marathon', 'marathon')
+      .where('participant.user_id = :userId', { userId })
+      .andWhere('participant.isActive = :isActive', { isActive: true })
+      .andWhere('marathon.status = :status', { status: MarathonStatus.UPCOMING })
+      .getCount();
+
+    // Get tickets count
+    const totalTickets = await this.ticketRepository.count({
+      where: { createdBy: { id: userId } },
+    });
+
+    // Get open tickets count (OPEN, IN_PROGRESS, WAITING_FOR_USER)
+    const openTickets = await this.ticketRepository.count({
+      where: {
+        createdBy: { id: userId },
+        status: TicketStatus.OPEN,
+      },
+    });
+    const inProgressTickets = await this.ticketRepository.count({
+      where: {
+        createdBy: { id: userId },
+        status: TicketStatus.IN_PROGRESS,
+      },
+    });
+    const waitingTickets = await this.ticketRepository.count({
+      where: {
+        createdBy: { id: userId },
+        status: TicketStatus.WAITING_FOR_USER,
+      },
+    });
+    const openTicketsCount = openTickets + inProgressTickets + waitingTickets;
+
+    // Get MetaTrader accounts count
+    const totalAccounts = await this.metaTraderAccountRepository.count({
+      where: { userId },
+    });
+
+    const deployedAccounts = await this.metaTraderAccountRepository.count({
+      where: {
+        userId,
+        status: MetaTraderAccountStatus.DEPLOYED,
+      },
+    });
+
+    return {
+      financial: {
+        current_balance: currentBalance,
+        total_deposits: totalDeposits,
+        total_marathon_fees: totalMarathonFees,
+        total_marathon_earnings: totalMarathonEarnings,
+        total_withdrawals: totalWithdrawals,
+        net_profit: netProfit,
+      },
+      activity: {
+        active_marathons: activeMarathonsCount,
+        upcoming_marathons: upcomingMarathonsCount,
+        total_tickets: totalTickets,
+        open_tickets: openTicketsCount,
+      },
+      accounts: {
+        total_accounts: totalAccounts,
+        deployed_accounts: deployedAccounts,
+      },
+    };
   }
 }
 
