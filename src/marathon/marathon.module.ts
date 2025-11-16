@@ -5,6 +5,7 @@ import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-a
 import { MetaTraderAccountModule } from '../metatrader-accounts/metatrader-account.module';
 import { PaymentModule } from '../payment/payment.module';
 import { TokyoModule } from '../tokyo/tokyo.module';
+import { TokyoDataModule } from '../tokyo-data/tokyo-data.module';
 import { UsersModule } from '../users/users.module';
 import { VirtualWalletModule } from '../virtual-wallet/virtual-wallet.module';
 import { MarathonParticipant } from './entities/marathon-participant.entity';
@@ -23,6 +24,7 @@ import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
     AuthModule,
     MetaTraderAccountModule,
     TokyoModule,
+    TokyoDataModule,
     VirtualWalletModule,
   ],
   controllers: [MarathonController],

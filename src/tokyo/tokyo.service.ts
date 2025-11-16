@@ -1,8 +1,9 @@
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
+import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 
 @Injectable()
 export class TokyoService {
@@ -12,6 +13,8 @@ export class TokyoService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => TokyoDataService))
+    private readonly tokyoDataService?: TokyoDataService,
   ) {
     this.baseUrl = process.env.TOKYO_SERVICE_BASE_URL;
     if (!this.baseUrl) {
@@ -258,7 +261,16 @@ export class TokyoService {
 
     try {
       const response = await axios.get(`${this.baseUrl}/account/${login}`);
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.data) {
+        this.tokyoDataService.updateFromTokyoAPI(login, data.data).catch((error) => {
+          this.logger.warn(`Failed to update database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error) {
       this.logger.error(`Get account data request failed for ${login}. URL: ${this.baseUrl}/account/${login}, Error: ${error.message}`);
       throw new HttpException(
@@ -279,7 +291,16 @@ export class TokyoService {
 
     try {
       const response = await axios.get(`${this.baseUrl}/account/${login}/positions`);
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.positions && Array.isArray(data.positions)) {
+        this.tokyoDataService.updateFromTokyoAPI(login, { positions: data.positions }).catch((error) => {
+          this.logger.warn(`Failed to update positions in database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error) {
       this.logger.error(`Get account positions request failed for ${login}. URL: ${this.baseUrl}/account/${login}/positions, Error: ${error.message}`);
       throw new HttpException(
@@ -300,7 +321,16 @@ export class TokyoService {
 
     try {
       const response = await axios.get(`${this.baseUrl}/account/${login}/orders`);
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.orders && Array.isArray(data.orders)) {
+        this.tokyoDataService.updateFromTokyoAPI(login, { orders: data.orders }).catch((error) => {
+          this.logger.warn(`Failed to update orders in database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error) {
       this.logger.error(`Get account orders request failed for ${login}. URL: ${this.baseUrl}/account/${login}/orders, Error: ${error.message}`);
       throw new HttpException(
@@ -421,7 +451,16 @@ export class TokyoService {
       if (from !== undefined) params.from = from;
       if (to !== undefined) params.to = to;
       const response = await axios.get(`${this.baseUrl}/account/${login}/history/balance`, { params });
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.data && Array.isArray(data.data)) {
+        this.tokyoDataService.updateFromTokyoAPI(login, { balance_history: data.data }).catch((error) => {
+          this.logger.warn(`Failed to update balance history in database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error: any) {
       this.logger.error(`Get balance history failed for ${login}: ${error.message}`);
       throw new HttpException(
@@ -440,7 +479,16 @@ export class TokyoService {
       if (from !== undefined) params.from = from;
       if (to !== undefined) params.to = to;
       const response = await axios.get(`${this.baseUrl}/account/${login}/history/equity`, { params });
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.data && Array.isArray(data.data)) {
+        this.tokyoDataService.updateFromTokyoAPI(login, { equity_history: data.data }).catch((error) => {
+          this.logger.warn(`Failed to update equity history in database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error: any) {
       this.logger.error(`Get equity history failed for ${login}: ${error.message}`);
       throw new HttpException(
@@ -459,7 +507,16 @@ export class TokyoService {
       if (from !== undefined) params.from = from;
       if (to !== undefined) params.to = to;
       const response = await axios.get(`${this.baseUrl}/account/${login}/performance`, { params });
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.data) {
+        this.tokyoDataService.updateFromTokyoAPI(login, data.data).catch((error) => {
+          this.logger.warn(`Failed to update performance in database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error: any) {
       this.logger.error(`Get performance report failed for ${login}: ${error.message}`);
       throw new HttpException(
@@ -497,7 +554,16 @@ export class TokyoService {
       if (from !== undefined) params.from = from;
       if (to !== undefined) params.to = to;
       const response = await axios.get(`${this.baseUrl}/account/${login}/history/trades`, { params });
-      return response.data;
+      const data = response.data;
+      
+      // Update database asynchronously if data is available
+      if (this.tokyoDataService && data?.data && Array.isArray(data.data)) {
+        this.tokyoDataService.updateFromTokyoAPI(login, { trades: data.data }).catch((error) => {
+          this.logger.warn(`Failed to update trade history in database for account ${login}: ${error.message}`);
+        });
+      }
+      
+      return data;
     } catch (error: any) {
       this.logger.error(`Get trade history failed for ${login}: ${error.message}`);
       throw new HttpException(

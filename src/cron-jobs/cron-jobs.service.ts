@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronMonitoringService } from './cron-monitoring.service';
 import { MarathonProvisioningService } from './marathon-provisioning.service';
+import { TokyoDataCronService } from '../tokyo-data/tokyo-data-cron.service';
 
 @Injectable()
 export class CronJobsService {
@@ -10,6 +11,7 @@ export class CronJobsService {
   constructor(
     private readonly monitoring: CronMonitoringService,
     private readonly marathonProvisioning: MarathonProvisioningService,
+    private readonly tokyoDataCron: TokyoDataCronService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE, {
@@ -47,6 +49,19 @@ export class CronJobsService {
       CronExpression.EVERY_10_MINUTES,
       async () => {
         this.logger.debug('Heartbeat cron job executed');
+      },
+    );
+  }
+
+  @Cron(CronExpression.EVERY_HOUR, {
+    name: 'tokyo.finished.marathons.update',
+  })
+  async updateFinishedMarathonData(): Promise<void> {
+    await this.monitoring.track(
+      'tokyo.finished.marathons.update',
+      CronExpression.EVERY_HOUR,
+      async () => {
+        await this.tokyoDataCron.updateFinishedMarathonData();
       },
     );
   }

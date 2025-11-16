@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as amqp from 'amqplib';
 import { EventEmitter } from 'events';
+import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 
 export interface AccountSnapshot {
   login: string;
@@ -30,8 +31,17 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   private readonly eventEmitter = new EventEmitter();
   private messageCount = 0;
   private lastMessageTime: Date | null = null;
+  private tokyoDataService: TokyoDataService | null = null;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(forwardRef(() => TokyoDataService))
+    tokyoDataService?: TokyoDataService,
+  ) {
+    // Use optional injection to avoid circular dependency
+    if (tokyoDataService) {
+      this.tokyoDataService = tokyoDataService;
+    }
     this.url = this.configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672/');
     this.queue = this.configService.get<string>('RABBITMQ_QUEUE', 'socket_data');
     this.enabled = this.configService.get<string>('RABBITMQ_ENABLED', 'true').toLowerCase() === 'true';
@@ -172,6 +182,13 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
         const snapshot: AccountSnapshot = this.mergeSnapshot(existing, payload);
 
         this.snapshots.set(login, snapshot);
+        
+        // Update database if TokyoDataService is available
+        if (this.tokyoDataService) {
+          this.tokyoDataService.updateFromRabbitMQ(snapshot).catch((error) => {
+            this.logger.warn(`Failed to update database for login ${login}: ${error.message}`);
+          });
+        }
         
         // Emit event for listeners
         this.eventEmitter.emit('account.update', snapshot);
