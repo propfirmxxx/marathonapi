@@ -27,6 +27,8 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   private readonly url: string;
   private readonly snapshots = new Map<string, AccountSnapshot>();
   private readonly eventEmitter = new EventEmitter();
+  private messageCount = 0;
+  private lastMessageTime: Date | null = null;
 
   constructor(private readonly configService: ConfigService) {
     this.url = this.configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672/');
@@ -55,6 +57,22 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
 
   removeAccountUpdateListener(callback: (snapshot: AccountSnapshot) => void): void {
     this.eventEmitter.off('account.update', callback);
+  }
+
+  getHealth(): {
+    connected: boolean;
+    queueName: string;
+    messageCount: number;
+    snapshotCount: number;
+    lastMessageTime: Date | null;
+  } {
+    return {
+      connected: this.connection !== null && this.channel !== null,
+      queueName: this.queue,
+      messageCount: this.messageCount,
+      snapshotCount: this.snapshots.size,
+      lastMessageTime: this.lastMessageTime,
+    };
   }
 
   private async connect(attempt = 0): Promise<void> {
@@ -120,6 +138,9 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
     if (!content) {
       return;
     }
+
+    this.messageCount++;
+    this.lastMessageTime = new Date();
 
     const segments = content.split(/\s*\n+\s*/).filter((segment) => segment.length > 0);
 

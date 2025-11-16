@@ -18,9 +18,7 @@ import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
 import { MarathonStatus } from './enums/marathon-status.enum';
 
 @ApiTags('Marathons')
-@ApiBearerAuth()
 @Controller('marathons')
-@UseGuards(AuthGuard('jwt'))
 export class MarathonController {
   constructor(
     private readonly marathonService: MarathonService,
@@ -34,14 +32,15 @@ export class MarathonController {
     description: 'Marathon created successfully',
     type: MarathonResponseDto
   })
+  @ApiBearerAuth()
   @ApiBody({ type: CreateMarathonDto })
   @Post()
-  @UseGuards(AdminGuard)
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   create(@Body() createMarathonDto: CreateMarathonDto) {
     return this.marathonService.create(createMarathonDto);
   }
 
-  @ApiOperation({ summary: 'Get all marathons with optional filters' })
+  @ApiOperation({ summary: 'Get all marathons with optional filters (public endpoint, authentication optional)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Returns filtered and paginated marathons',
@@ -58,18 +57,19 @@ export class MarathonController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'isActive', required: false, type: Boolean, description: 'Filter by active status' })
-  @ApiQuery({ name: 'myMarathons', required: false, type: Boolean, description: 'Filter marathons where current user is a participant' })
+  @ApiQuery({ name: 'myMarathons', required: false, type: Boolean, description: 'Filter marathons where current user is a participant (requires authentication)' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by marathon name' })
   @ApiQuery({ name: 'status', required: false, enum: MarathonStatus, example: MarathonStatus.UPCOMING, description: 'Filter by marathon status' })
   @Get()
   async findAll(
     @Query() query: GetMarathonsDto,
-    @GetUser('id') userId?: string,
+    @Req() req: any,
   ): Promise<PaginatedResponseDto<MarathonResponseDto>> {
     const pageNum = query.page && Number(query.page) > 0 ? Number(query.page) : 1;
     const limitNum = query.limit && Number(query.limit) > 0 ? Number(query.limit) : 10;
     
-    const userIdForFilter = query.myMarathons ? userId : undefined;
+    const userId = req.user?.id;
+    const userIdForFilter = query.myMarathons && userId ? userId : undefined;
     
     const { marathons, total } = await this.marathonService.findAllWithFilters(
       pageNum,
@@ -88,7 +88,7 @@ export class MarathonController {
     };
   }
 
-  @ApiOperation({ summary: 'Get marathon by ID' })
+  @ApiOperation({ summary: 'Get marathon by ID (public endpoint, authentication optional)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Returns the marathon',
@@ -96,8 +96,11 @@ export class MarathonController {
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Get(':id')
-  async findOne(@Param('id') id: string, @GetUser('id') userId: string) {
-    const isParticipant = await this.marathonService.isUserParticipantOfMarathon(id, userId);
+  async findOne(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user?.id;
+    const isParticipant = userId 
+      ? await this.marathonService.isUserParticipantOfMarathon(id, userId)
+      : false;
     const marathon = await this.marathonService.findOne(id);
 
     return {
@@ -112,10 +115,11 @@ export class MarathonController {
     description: 'Marathon updated successfully',
     type: MarathonResponseDto
   })
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @ApiBody({ type: UpdateMarathonDto })
   @Patch(':id')
-  @UseGuards(AdminGuard)
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   update(@Param('id') id: string, @Body() updateMarathonDto: UpdateMarathonDto) {
     return this.marathonService.update(id, updateMarathonDto);
   }
@@ -130,9 +134,10 @@ export class MarathonController {
       }
     }
   })
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Delete(':id')
-  @UseGuards(AdminGuard)
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
   remove(@Param('id') id: string) {
     return this.marathonService.remove(id);
   }
@@ -147,8 +152,10 @@ export class MarathonController {
       }
     }
   })
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Post(':id/join')
+  @UseGuards(AuthGuard('jwt'))
   async joinMarathon(@Param('id') id: string, @Req() req: any) {
     return this.paymentService.createMarathonPayment(req.user.id, id);
   }
@@ -159,13 +166,15 @@ export class MarathonController {
     description: 'Cancels participation and refunds 80% entry fee to virtual wallet',
     type: CancelMarathonResponseDto,
   })
+  @ApiBearerAuth()
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @Post(':id/cancel')
+  @UseGuards(AuthGuard('jwt'))
   async cancelParticipation(@Param('id') id: string, @Req() req: any): Promise<CancelMarathonResponseDto> {
     return this.marathonService.cancelParticipation(req.user.id, id);
   }
 
-  @ApiOperation({ summary: 'Get marathon participants' })
+  @ApiOperation({ summary: 'Get marathon participants (public endpoint, authentication optional)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Returns all participants of the marathon',
@@ -244,6 +253,8 @@ export class MarathonController {
     };
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ 
     summary: 'WebSocket Live Data Documentation',
     description: `
@@ -411,6 +422,8 @@ socket.on('error', (error) => {
     };
   }
 
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ 
     summary: 'Get RabbitMQ connection health status',
     description: 'Returns the health status of RabbitMQ connection, message count, and snapshot statistics'
