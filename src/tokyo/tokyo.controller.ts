@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { TokyoService } from './tokyo.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { LoginOnlyDto } from './dto/login-only.dto';
+import { AccountOwnershipGuard } from './guards/account-ownership.guard';
 import {
   AccountDeploymentResponseDto,
   MessageResponseDto,
@@ -85,6 +86,7 @@ export class TokyoController {
     type: AccountDataResponseDto,
   })
   @ApiParam({ name: 'login', description: 'Account login number', type: String })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login')
   getAccountData(@Param('login') login: string) {
     return this.tokyoService.getAccountData(login);
@@ -97,6 +99,7 @@ export class TokyoController {
     type: PositionsResponseDto,
   })
   @ApiParam({ name: 'login', description: 'Account login number', type: String })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/positions')
   getAccountPositions(@Param('login') login: string) {
     return this.tokyoService.getAccountPositions(login);
@@ -109,6 +112,7 @@ export class TokyoController {
     type: OrdersResponseDto,
   })
   @ApiParam({ name: 'login', description: 'Account login number', type: String })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/orders')
   getAccountOrders(@Param('login') login: string) {
     return this.tokyoService.getAccountOrders(login);
@@ -176,6 +180,7 @@ export class TokyoController {
   @ApiResponse({ status: 200, description: 'Successful Response', type: PingResponseDto })
   @ApiParam({ name: 'login', description: 'Account login number', type: String })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 5.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/ping')
   pingAccount(@Param('login') login: string, @Query('timeout') timeout?: number) {
     return this.tokyoService.pingAccount(login, timeout);
@@ -190,6 +195,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/history/rates')
   getHistoryRates(
     @Param('login') login: string,
@@ -212,6 +218,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/history/ticks')
   getHistoryTicks(
     @Param('login') login: string,
@@ -231,6 +238,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/history/balance')
   getBalanceHistory(
     @Param('login') login: string,
@@ -247,6 +255,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/history/equity')
   getEquityHistory(
     @Param('login') login: string,
@@ -263,6 +272,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/performance')
   getPerformanceReport(
     @Param('login') login: string,
@@ -279,6 +289,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/statement')
   getStatement(
     @Param('login') login: string,
@@ -295,6 +306,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/history/trades')
   getTradeHistory(
     @Param('login') login: string,
@@ -311,6 +323,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 30.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/statistics/symbols')
   getSymbolStatistics(
     @Param('login') login: string,
@@ -330,6 +343,7 @@ export class TokyoController {
   @ApiQuery({ name: 'from', required: false, type: Number, description: 'Epoch seconds from' })
   @ApiQuery({ name: 'to', required: false, type: Number, description: 'Epoch seconds to' })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 30.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/trades/minimal')
   getTradesMinimal(
     @Param('login') login: string,
@@ -345,6 +359,7 @@ export class TokyoController {
   @ApiParam({ name: 'login', description: 'Account login number', type: String })
   @ApiParam({ name: 'symbol', description: 'Symbol name', type: String })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/symbol/:symbol')
   getSymbolInfo(@Param('login') login: string, @Param('symbol') symbol: string, @Query('timeout') timeout?: number) {
     return this.tokyoService.getSymbolInfo(login, symbol, timeout);
@@ -355,6 +370,7 @@ export class TokyoController {
   @ApiParam({ name: 'login', description: 'Account login number', type: String })
   @ApiParam({ name: 'symbol', description: 'Symbol name', type: String })
   @ApiQuery({ name: 'timeout', required: false, type: Number, description: 'Timeout seconds', example: 10.0 })
+  @UseGuards(AuthGuard('jwt'), AccountOwnershipGuard)
   @Get('account/:login/symbol/:symbol/tick')
   getSymbolTick(@Param('login') login: string, @Param('symbol') symbol: string, @Query('timeout') timeout?: number) {
     return this.tokyoService.getSymbolTick(login, symbol, timeout);
