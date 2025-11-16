@@ -6,10 +6,11 @@ import { TokyoPerformance } from './entities/tokyo-performance.entity';
 import { TokyoBalanceHistory } from './entities/tokyo-balance-history.entity';
 import { TokyoEquityHistory } from './entities/tokyo-equity-history.entity';
 import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
+import { Marathon } from '../marathon/entities/marathon.entity';
+import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import { TokyoDataService } from './tokyo-data.service';
 import { TokyoDataCronService } from './tokyo-data-cron.service';
 import { TokyoModule } from '../tokyo/tokyo.module';
-import { MarathonModule } from '../marathon/marathon.module';
 
 @Module({
   imports: [
@@ -20,9 +21,10 @@ import { MarathonModule } from '../marathon/marathon.module';
       TokyoBalanceHistory,
       TokyoEquityHistory,
       MetaTraderAccount,
+      Marathon,
+      MarathonParticipant,
     ]),
     forwardRef(() => TokyoModule),
-    MarathonModule,
   ],
   providers: [TokyoDataService, TokyoDataCronService],
   exports: [TokyoDataService, TokyoDataCronService],

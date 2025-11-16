@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
@@ -24,7 +24,7 @@ import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
     AuthModule,
     MetaTraderAccountModule,
     TokyoModule,
-    TokyoDataModule,
+    forwardRef(() => TokyoDataModule),
     VirtualWalletModule,
   ],
   controllers: [MarathonController],

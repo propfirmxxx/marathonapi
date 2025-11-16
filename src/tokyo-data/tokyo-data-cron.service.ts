@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Marathon } from '../marathon/entities/marathon.entity';
@@ -16,6 +16,7 @@ export class TokyoDataCronService {
     private readonly marathonRepository: Repository<Marathon>,
     @InjectRepository(MarathonParticipant)
     private readonly participantRepository: Repository<MarathonParticipant>,
+    @Inject(forwardRef(() => TokyoService))
     private readonly tokyoService: TokyoService,
     private readonly tokyoDataService: TokyoDataService,
   ) {}
