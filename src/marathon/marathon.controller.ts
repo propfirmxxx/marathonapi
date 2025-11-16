@@ -12,6 +12,7 @@ import {
   MarathonResponseDto,
   MarathonLeaderboardResponseDto,
   MarathonPnLHistoryResponseDto,
+  MarathonTransactionHistoryResponseDto,
 } from './dto/marathon-response.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
@@ -285,6 +286,29 @@ export class MarathonController {
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
     return await this.marathonService.getMarathonPnLHistory(id, fromDate, toDate);
+  }
+
+  @ApiOperation({ summary: 'Get transaction history for marathon participants (public endpoint, authentication optional)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns transaction history for all participants',
+    type: MarathonTransactionHistoryResponseDto
+  })
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @ApiQuery({ name: 'from', required: false, type: String, description: 'Start date (ISO string)', example: '2024-01-01T00:00:00Z' })
+  @ApiQuery({ name: 'to', required: false, type: String, description: 'End date (ISO string)', example: '2024-12-31T23:59:59Z' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of transactions per participant', example: 100 })
+  @Get(':id/transactions')
+  async getMarathonTransactionHistory(
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+  ): Promise<MarathonTransactionHistoryResponseDto> {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    return await this.marathonService.getMarathonTransactionHistory(id, fromDate, toDate, limitNum);
   }
 
   @ApiBearerAuth()

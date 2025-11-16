@@ -13,7 +13,7 @@ import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
 import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
-import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto } from './dto/marathon-response.dto';
+import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTransactionHistoryResponseDto, ParticipantTransactionHistoryDto, TransactionDto } from './dto/marathon-response.dto';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 
 @Injectable()
@@ -534,6 +534,81 @@ export class MarathonService {
         accountLogin: participant.metaTraderAccount.login,
         initialBalance: Number(initialBalance.toFixed(2)),
         history: historyPoints,
+      });
+    }
+
+    return {
+      marathonId: marathon.id,
+      marathonName: marathon.name,
+      participants: participantsHistory,
+    };
+  }
+
+  /**
+   * Get transaction history for all participants in a marathon
+   */
+  async getMarathonTransactionHistory(
+    marathonId: string,
+    from?: Date,
+    to?: Date,
+    limit?: number,
+  ): Promise<MarathonTransactionHistoryResponseDto> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Set default date range to marathon period if not provided
+    const startDate = from || marathon.startDate;
+    const endDate = to || marathon.endDate || new Date();
+
+    // Get all active participants with their accounts
+    const participants = await this.participantRepository.find({
+      where: { marathon: { id: marathonId }, isActive: true },
+      relations: ['user', 'user.profile', 'metaTraderAccount'],
+    });
+
+    const participantsHistory: ParticipantTransactionHistoryDto[] = [];
+
+    for (const participant of participants) {
+      if (!participant.metaTraderAccount?.id) {
+        continue;
+      }
+
+      // Get transaction history for this account
+      const transactions = await this.tokyoDataService.getTransactionHistoryByDateRange(
+        participant.metaTraderAccount.id,
+        startDate,
+        endDate,
+        limit,
+      );
+
+      // Map transactions to DTO (only include requested fields)
+      const transactionDtos: TransactionDto[] = transactions.map((tx) => ({
+        type: tx.type ?? null,
+        volume: tx.volume ? Number(tx.volume) : null,
+        entry: tx.openPrice ? Number(tx.openPrice) : null,
+        openTime: tx.openTime ?? null,
+        symbol: tx.symbol ?? null,
+        profit: tx.profit ? Number(tx.profit) : null,
+      }));
+
+      // Get user name
+      const userName = participant.user.profile?.firstName
+        ? `${participant.user.profile.firstName} ${participant.user.profile.lastName || ''}`.trim()
+        : participant.user.email;
+
+      participantsHistory.push({
+        participantId: participant.id,
+        userId: participant.user.id,
+        userName,
+        accountLogin: participant.metaTraderAccount.login,
+        totalTransactions: transactionDtos.length,
+        transactions: transactionDtos,
       });
     }
 

@@ -461,6 +461,33 @@ export class TokyoDataService {
   }
 
   /**
+   * Get transaction history with date range filter
+   */
+  async getTransactionHistoryByDateRange(
+    accountId: string,
+    from?: Date,
+    to?: Date,
+    limit?: number,
+  ): Promise<TokyoTransactionHistory[]> {
+    const query = this.transactionHistoryRepository
+      .createQueryBuilder('transaction')
+      .where('transaction.metaTraderAccountId = :accountId', { accountId })
+      .orderBy('transaction.openTime', 'DESC');
+
+    if (from) {
+      query.andWhere('transaction.openTime >= :from', { from });
+    }
+    if (to) {
+      query.andWhere('transaction.openTime <= :to', { to });
+    }
+    if (limit) {
+      query.take(limit);
+    }
+
+    return query.getMany();
+  }
+
+  /**
    * Get balance history
    */
   async getBalanceHistory(

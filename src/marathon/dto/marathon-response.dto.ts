@@ -431,3 +431,54 @@ export class MarathonPnLHistoryResponseDto {
   @ApiProperty({ description: 'Participants P&L history', type: [ParticipantPnLHistoryDto] })
   participants: ParticipantPnLHistoryDto[];
 }
+
+export class TransactionDto {
+  @ApiProperty({ description: 'Trade type', example: 'BUY', nullable: true })
+  type?: string | null;
+
+  @ApiProperty({ description: 'Volume', example: 0.1, nullable: true })
+  volume?: number | null;
+
+  @ApiProperty({ description: 'Entry price (open price)', example: 1.0850, nullable: true })
+  entry?: number | null;
+
+  @ApiProperty({ description: 'Open time', example: '2024-01-01T12:00:00Z', nullable: true })
+  openTime?: Date | null;
+
+  @ApiProperty({ description: 'Symbol', example: 'EURUSD', nullable: true })
+  symbol?: string | null;
+
+  @ApiProperty({ description: 'Profit', example: 50.00, nullable: true })
+  profit?: number | null;
+}
+
+export class ParticipantTransactionHistoryDto {
+  @ApiProperty({ description: 'Participant ID', example: 'participant-uuid' })
+  participantId: string;
+
+  @ApiProperty({ description: 'User ID', example: 'user-uuid' })
+  userId: string;
+
+  @ApiProperty({ description: 'User name', example: 'John Doe' })
+  userName: string;
+
+  @ApiProperty({ description: 'Account login', example: '12345678' })
+  accountLogin: string;
+
+  @ApiProperty({ description: 'Total transactions', example: 45 })
+  totalTransactions: number;
+
+  @ApiProperty({ description: 'Transaction history', type: [TransactionDto] })
+  transactions: TransactionDto[];
+}
+
+export class MarathonTransactionHistoryResponseDto {
+  @ApiProperty({ description: 'Marathon ID', example: 'marathon-uuid' })
+  marathonId: string;
+
+  @ApiProperty({ description: 'Marathon name', example: 'Summer Trading Challenge' })
+  marathonName: string;
+
+  @ApiProperty({ description: 'Participants transaction history', type: [ParticipantTransactionHistoryDto] })
+  participants: ParticipantTransactionHistoryDto[];
+}
