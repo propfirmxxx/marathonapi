@@ -11,6 +11,7 @@ import {
   MarathonParticipantListResponseDto,
   MarathonResponseDto,
   MarathonLeaderboardResponseDto,
+  MarathonPnLHistoryResponseDto,
 } from './dto/marathon-response.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
@@ -264,6 +265,26 @@ export class MarathonController {
   @Get(':id/leaderboard')
   async getMarathonLeaderboard(@Param('id') id: string): Promise<MarathonLeaderboardResponseDto> {
     return await this.marathonService.getMarathonLeaderboard(id);
+  }
+
+  @ApiOperation({ summary: 'Get P&L history for marathon participants (public endpoint, authentication optional)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns P&L history for all participants',
+    type: MarathonPnLHistoryResponseDto
+  })
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @ApiQuery({ name: 'from', required: false, type: String, description: 'Start date (ISO string)', example: '2024-01-01T00:00:00Z' })
+  @ApiQuery({ name: 'to', required: false, type: String, description: 'End date (ISO string)', example: '2024-12-31T23:59:59Z' })
+  @Get(':id/pnl-history')
+  async getMarathonPnLHistory(
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ): Promise<MarathonPnLHistoryResponseDto> {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    return await this.marathonService.getMarathonPnLHistory(id, fromDate, toDate);
   }
 
   @ApiBearerAuth()

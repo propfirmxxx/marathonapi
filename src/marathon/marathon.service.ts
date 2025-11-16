@@ -13,7 +13,8 @@ import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
 import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
-import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto } from './dto/marathon-response.dto';
+import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto } from './dto/marathon-response.dto';
+import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 
 @Injectable()
 export class MarathonService {
@@ -31,6 +32,7 @@ export class MarathonService {
     private readonly performanceRepository: Repository<TokyoPerformance>,
     private readonly tokyoService: TokyoService,
     private readonly virtualWalletService: VirtualWalletService,
+    private readonly tokyoDataService: TokyoDataService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -438,6 +440,107 @@ export class MarathonService {
       marathonName: marathon.name,
       totalParticipants: entries.length,
       entries,
+    };
+  }
+
+  /**
+   * Get P&L history for all participants in a marathon
+   */
+  async getMarathonPnLHistory(
+    marathonId: string,
+    from?: Date,
+    to?: Date,
+  ): Promise<MarathonPnLHistoryResponseDto> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Set default date range to marathon period if not provided
+    const startDate = from || marathon.startDate;
+    const endDate = to || marathon.endDate || new Date();
+
+    // Get all active participants with their accounts
+    const participants = await this.participantRepository.find({
+      where: { marathon: { id: marathonId }, isActive: true },
+      relations: ['user', 'user.profile', 'metaTraderAccount'],
+    });
+
+    const participantsHistory: ParticipantPnLHistoryDto[] = [];
+
+    for (const participant of participants) {
+      if (!participant.metaTraderAccount?.id) {
+        continue;
+      }
+
+      // Get balance history for this account
+      const balanceHistory = await this.tokyoDataService.getBalanceHistory(
+        participant.metaTraderAccount.id,
+        startDate,
+        endDate,
+      );
+
+      if (balanceHistory.length === 0) {
+        continue;
+      }
+
+      // Get initial balance (use first balance point in the history as initial balance)
+      // This represents the starting balance at the beginning of the period
+      let initialBalance = 0;
+      if (balanceHistory.length > 0) {
+        // Use first balance point as initial balance
+        initialBalance = Number(balanceHistory[0].balance);
+        
+        // Try to get more accurate initial balance from performance data if available
+        const performance = await this.performanceRepository.findOne({
+          where: { metaTraderAccountId: participant.metaTraderAccount.id },
+        });
+        
+        // If we have performance data with balance and profit, use it for more accuracy
+        if (performance?.balance && performance?.profit !== null && performance?.profit !== undefined) {
+          const calculatedInitialBalance = Number(performance.balance) - Number(performance.profit);
+          // Use the calculated initial balance if it's reasonable (positive and close to first balance)
+          if (calculatedInitialBalance > 0 && Math.abs(calculatedInitialBalance - initialBalance) < initialBalance * 0.1) {
+            initialBalance = calculatedInitialBalance;
+          }
+        }
+      }
+
+      // Calculate P&L history points from balance history
+      const historyPoints: PnLHistoryPointDto[] = balanceHistory.map((point) => {
+        const balance = Number(point.balance);
+        const pnl = balance - initialBalance;
+        
+        return {
+          timestamp: point.time,
+          pnl: Number(pnl.toFixed(2)),
+          balance: Number(balance.toFixed(2)),
+        };
+      });
+
+      // Get user name
+      const userName = participant.user.profile?.firstName
+        ? `${participant.user.profile.firstName} ${participant.user.profile.lastName || ''}`.trim()
+        : participant.user.email;
+
+      participantsHistory.push({
+        participantId: participant.id,
+        userId: participant.user.id,
+        userName,
+        accountLogin: participant.metaTraderAccount.login,
+        initialBalance: Number(initialBalance.toFixed(2)),
+        history: historyPoints,
+      });
+    }
+
+    return {
+      marathonId: marathon.id,
+      marathonName: marathon.name,
+      participants: participantsHistory,
     };
   }
 } 

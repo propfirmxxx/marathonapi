@@ -389,3 +389,45 @@ export class MarathonLeaderboardResponseDto {
   @ApiProperty({ description: 'Leaderboard entries', type: [MarathonLeaderboardEntryDto] })
   entries: MarathonLeaderboardEntryDto[];
 }
+
+export class PnLHistoryPointDto {
+  @ApiProperty({ description: 'Timestamp', example: '2024-01-01T12:00:00Z' })
+  timestamp: Date;
+
+  @ApiProperty({ description: 'Profit & Loss at this point', example: 1500.50 })
+  pnl: number;
+
+  @ApiProperty({ description: 'Balance at this point', example: 11500.50 })
+  balance: number;
+}
+
+export class ParticipantPnLHistoryDto {
+  @ApiProperty({ description: 'Participant ID', example: 'participant-uuid' })
+  participantId: string;
+
+  @ApiProperty({ description: 'User ID', example: 'user-uuid' })
+  userId: string;
+
+  @ApiProperty({ description: 'User name', example: 'John Doe' })
+  userName: string;
+
+  @ApiProperty({ description: 'Account login', example: '12345678' })
+  accountLogin: string;
+
+  @ApiProperty({ description: 'Initial balance', example: 10000 })
+  initialBalance: number;
+
+  @ApiProperty({ description: 'P&L history points', type: [PnLHistoryPointDto] })
+  history: PnLHistoryPointDto[];
+}
+
+export class MarathonPnLHistoryResponseDto {
+  @ApiProperty({ description: 'Marathon ID', example: 'marathon-uuid' })
+  marathonId: string;
+
+  @ApiProperty({ description: 'Marathon name', example: 'Summer Trading Challenge' })
+  marathonName: string;
+
+  @ApiProperty({ description: 'Participants P&L history', type: [ParticipantPnLHistoryDto] })
+  participants: ParticipantPnLHistoryDto[];
+}
