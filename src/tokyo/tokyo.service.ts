@@ -337,4 +337,281 @@ export class TokyoService {
       );
     }
   }
+
+  // ==================== MT5 Query Passthrough Methods ====================
+
+  async pingAccount(login: string, timeout: number = 5.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const response = await axios.get(`${this.baseUrl}/account/${login}/ping`, {
+        params: { timeout },
+      });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Ping request failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to ping account',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getHistoryRates(
+    login: string,
+    symbol: string,
+    timeframe: number,
+    count: number = 100,
+    from?: number,
+    to?: number,
+    timeout: number = 10.0,
+  ) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { symbol, timeframe, count, timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/history/rates`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get history rates failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get history rates',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getHistoryTicks(
+    login: string,
+    symbol: string,
+    count: number = 1000,
+    flags: number = 0,
+    from?: number,
+    to?: number,
+    timeout: number = 10.0,
+  ) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { symbol, count, flags, timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/history/ticks`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get history ticks failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get history ticks',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getBalanceHistory(login: string, from?: number, to?: number, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/history/balance`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get balance history failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get balance history',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getEquityHistory(login: string, from?: number, to?: number, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/history/equity`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get equity history failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get equity history',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getPerformanceReport(login: string, from?: number, to?: number, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/performance`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get performance report failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get performance report',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getStatement(login: string, from?: number, to?: number, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/statement`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get statement failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get statement',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getTradeHistory(login: string, from?: number, to?: number, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/history/trades`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get trade history failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get trade history',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getSymbolStatistics(login: string, from?: number, to?: number, timeout: number = 30.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/statistics/symbols`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get symbol statistics failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get symbol statistics',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getTradesMinimal(login: string, from?: number, to?: number, timeout: number = 30.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const params: any = { timeout };
+      if (from !== undefined) params.from = from;
+      if (to !== undefined) params.to = to;
+      const response = await axios.get(`${this.baseUrl}/account/${login}/trades/minimal`, { params });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get trades minimal failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get trades minimal',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getSymbolInfo(login: string, symbol: string, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const response = await axios.get(`${this.baseUrl}/account/${login}/symbol/${symbol}`, {
+        params: { timeout },
+      });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get symbol info failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get symbol info',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getSymbolTick(login: string, symbol: string, timeout: number = 10.0) {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const response = await axios.get(`${this.baseUrl}/account/${login}/symbol/${symbol}/tick`, {
+        params: { timeout },
+      });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get symbol tick failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get symbol tick',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getDebugConnections() {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const response = await axios.get(`${this.baseUrl}/debug/connections`);
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Get debug connections failed: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to get debug connections',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async debugPush(login: string, text: string = 'PING_TEST') {
+    if (!this.baseUrl) {
+      throw new HttpException('Tokyo Service not configured', HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    try {
+      const response = await axios.get(`${this.baseUrl}/debug/push/${login}`, {
+        params: { text },
+      });
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Debug push failed for ${login}: ${error.message}`);
+      throw new HttpException(
+        error.response?.data?.error || 'Failed to debug push',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 } 
