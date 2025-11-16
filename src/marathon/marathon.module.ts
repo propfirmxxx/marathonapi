@@ -15,10 +15,11 @@ import { MarathonController } from './marathon.controller';
 import { MarathonService } from './marathon.service';
 import { MarathonLeaderboardService } from './marathon-leaderboard.service';
 import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
+import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount]),
+    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance]),
     UsersModule,
     PaymentModule,
     AuthModule,

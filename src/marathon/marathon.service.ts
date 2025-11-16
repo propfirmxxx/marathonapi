@@ -12,6 +12,8 @@ import { VirtualWalletService } from '../virtual-wallet/virtual-wallet.service';
 import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-wallet-transaction.entity';
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
+import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
+import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto } from './dto/marathon-response.dto';
 
 @Injectable()
 export class MarathonService {
@@ -25,6 +27,8 @@ export class MarathonService {
     private readonly participantRepository: Repository<MarathonParticipant>,
     @InjectRepository(MetaTraderAccount)
     private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
+    @InjectRepository(TokyoPerformance)
+    private readonly performanceRepository: Repository<TokyoPerformance>,
     private readonly tokyoService: TokyoService,
     private readonly virtualWalletService: VirtualWalletService,
     private readonly dataSource: DataSource,
@@ -361,5 +365,79 @@ export class MarathonService {
     const normalizedEntryFee = Number(entryFee) || 0;
     const refund = normalizedEntryFee * this.REFUND_RATE;
     return Number((Math.round(refund * 100) / 100).toFixed(2));
+  }
+
+  /**
+   * Get leaderboard for a marathon based on P&L
+   */
+  async getMarathonLeaderboard(marathonId: string): Promise<MarathonLeaderboardResponseDto> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Get all active participants with their accounts
+    const participants = await this.participantRepository.find({
+      where: { marathon: { id: marathonId }, isActive: true },
+      relations: ['user', 'user.profile', 'metaTraderAccount'],
+    });
+
+    const entries: MarathonLeaderboardEntryDto[] = [];
+
+    for (const participant of participants) {
+      if (!participant.metaTraderAccount?.id) {
+        continue;
+      }
+
+      // Get performance data
+      const performance = await this.performanceRepository.findOne({
+        where: { metaTraderAccountId: participant.metaTraderAccount.id },
+      });
+
+      // Calculate P&L (totalNetProfit), totalTrades, and winrate
+      const pnl = performance?.totalNetProfit ?? 0;
+      const totalTrades = performance?.totalTrades ?? 0;
+      const profitTrades = performance?.profitTrades ?? 0;
+      
+      // Calculate winrate: (profitTrades / totalTrades) * 100
+      const winrate = totalTrades > 0 
+        ? Number(((profitTrades / totalTrades) * 100).toFixed(2))
+        : 0;
+
+      // Get user name
+      const userName = participant.user.profile?.firstName
+        ? `${participant.user.profile.firstName} ${participant.user.profile.lastName || ''}`.trim()
+        : participant.user.email;
+
+      entries.push({
+        rank: 0, // Will be assigned after sorting
+        participantId: participant.id,
+        userId: participant.user.id,
+        userName,
+        accountLogin: participant.metaTraderAccount.login,
+        pnl: Number(pnl),
+        totalTrades,
+        winrate,
+      });
+    }
+
+    // Sort by P&L descending (highest first)
+    entries.sort((a, b) => b.pnl - a.pnl);
+
+    // Assign ranks
+    entries.forEach((entry, index) => {
+      entry.rank = index + 1;
+    });
+
+    return {
+      marathonId: marathon.id,
+      marathonName: marathon.name,
+      totalParticipants: entries.length,
+      entries,
+    };
   }
 } 

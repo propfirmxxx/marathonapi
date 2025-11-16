@@ -349,3 +349,43 @@ export class PrizeDistributionResponseDto {
   @ApiProperty({ description: 'Total amount distributed', example: 10000 })
   totalDistributed: number;
 }
+
+export class MarathonLeaderboardEntryDto {
+  @ApiProperty({ description: 'Rank in leaderboard', example: 1 })
+  rank: number;
+
+  @ApiProperty({ description: 'Participant ID', example: 'participant-uuid' })
+  participantId: string;
+
+  @ApiProperty({ description: 'User ID', example: 'user-uuid' })
+  userId: string;
+
+  @ApiProperty({ description: 'User name', example: 'John Doe' })
+  userName: string;
+
+  @ApiProperty({ description: 'Account login', example: '12345678' })
+  accountLogin: string;
+
+  @ApiProperty({ description: 'Profit & Loss (P&L)', example: 1500.50 })
+  pnl: number;
+
+  @ApiProperty({ description: 'Total number of trades', example: 45 })
+  totalTrades: number;
+
+  @ApiProperty({ description: 'Win rate percentage', example: 65.5 })
+  winrate: number;
+}
+
+export class MarathonLeaderboardResponseDto {
+  @ApiProperty({ description: 'Marathon ID', example: 'marathon-uuid' })
+  marathonId: string;
+
+  @ApiProperty({ description: 'Marathon name', example: 'Summer Trading Challenge' })
+  marathonName: string;
+
+  @ApiProperty({ description: 'Total number of participants', example: 50 })
+  totalParticipants: number;
+
+  @ApiProperty({ description: 'Leaderboard entries', type: [MarathonLeaderboardEntryDto] })
+  entries: MarathonLeaderboardEntryDto[];
+}

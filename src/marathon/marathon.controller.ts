@@ -9,7 +9,8 @@ import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { GetMarathonsDto } from './dto/get-marathons.dto';
 import {
   MarathonParticipantListResponseDto,
-  MarathonResponseDto
+  MarathonResponseDto,
+  MarathonLeaderboardResponseDto,
 } from './dto/marathon-response.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
@@ -251,6 +252,18 @@ export class MarathonController {
       total,
       marathonStarted,
     };
+  }
+
+  @ApiOperation({ summary: 'Get marathon leaderboard (public endpoint, authentication optional)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns leaderboard sorted by P&L',
+    type: MarathonLeaderboardResponseDto
+  })
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @Get(':id/leaderboard')
+  async getMarathonLeaderboard(@Param('id') id: string): Promise<MarathonLeaderboardResponseDto> {
+    return await this.marathonService.getMarathonLeaderboard(id);
   }
 
   @ApiBearerAuth()
