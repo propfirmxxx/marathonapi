@@ -25,6 +25,7 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   private channel: amqp.Channel | null = null;
   private readonly queue: string;
   private readonly url: string;
+  private readonly enabled: boolean;
   private readonly snapshots = new Map<string, AccountSnapshot>();
   private readonly eventEmitter = new EventEmitter();
   private messageCount = 0;
@@ -33,9 +34,14 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     this.url = this.configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672/');
     this.queue = this.configService.get<string>('RABBITMQ_QUEUE', 'socket_data');
+    this.enabled = this.configService.get<string>('RABBITMQ_ENABLED', 'true').toLowerCase() === 'true';
   }
 
   async onModuleInit() {
+    if (!this.enabled) {
+      this.logger.warn('RabbitMQ is disabled via RABBITMQ_ENABLED environment variable');
+      return;
+    }
     await this.connect();
   }
 
@@ -60,6 +66,7 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   }
 
   getHealth(): {
+    enabled: boolean;
     connected: boolean;
     queueName: string;
     messageCount: number;
@@ -67,7 +74,8 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
     lastMessageTime: Date | null;
   } {
     return {
-      connected: this.connection !== null && this.channel !== null,
+      enabled: this.enabled,
+      connected: this.enabled && this.connection !== null && this.channel !== null,
       queueName: this.queue,
       messageCount: this.messageCount,
       snapshotCount: this.snapshots.size,
@@ -76,6 +84,10 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async connect(attempt = 0): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+
     if (!this.url) {
       this.logger.warn('RABBITMQ_URL not configured, live data will be unavailable.');
       return;
@@ -109,6 +121,9 @@ export class LiveAccountDataService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async reconnect() {
+    if (!this.enabled) {
+      return;
+    }
     await this.closeConnection();
     await this.connect();
   }

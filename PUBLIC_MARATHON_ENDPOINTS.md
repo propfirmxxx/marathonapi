@@ -70,11 +70,18 @@ All the following endpoints now have explicit authentication guards:
 - Added `messageCount` property to track total messages received
 - Added `lastMessageTime` property to track when last message was received
 - Implemented `getHealth()` method that returns:
+  - `enabled`: boolean - Whether RabbitMQ is enabled
   - `connected`: boolean - RabbitMQ connection status
   - `queueName`: string - Name of the queue
   - `messageCount`: number - Total messages processed
   - `snapshotCount`: number - Number of active account snapshots
   - `lastMessageTime`: Date | null - Time of last message
+
+#### RabbitMQ Enable/Disable Feature
+- Added `RABBITMQ_ENABLED` environment variable to control RabbitMQ connection
+- When set to `false`, the service will not attempt to connect to RabbitMQ
+- Default value is `true` (enabled)
+- Useful for development or testing environments where RabbitMQ is not available
 
 ## API Usage Examples
 
@@ -129,6 +136,33 @@ fetch('http://localhost:3000/apiv1/marathons/{marathonId}/join', {
 3. **Protected Operations**: All write operations and administrative tasks require authentication
 4. **Backward Compatible**: Existing authenticated clients continue to work without changes
 
+## Environment Variables
+
+### RabbitMQ Configuration
+
+```bash
+# Enable/disable RabbitMQ connection (default: true)
+RABBITMQ_ENABLED=true
+
+# RabbitMQ connection URL
+RABBITMQ_URL=amqp://guest:guest@localhost:5672/
+
+# RabbitMQ queue name
+RABBITMQ_QUEUE=socket_data
+```
+
+### Example: Disable RabbitMQ for Development
+
+Add to your `.env` file:
+```bash
+RABBITMQ_ENABLED=false
+```
+
+This will prevent the application from attempting to connect to RabbitMQ, which is useful when:
+- RabbitMQ is not available in your development environment
+- Testing without live data feeds
+- Running the API without MetaTrader integration
+
 ## Testing
 
 The changes have been tested with:
@@ -142,4 +176,5 @@ The changes have been tested with:
 - No breaking changes for existing authenticated clients
 - Frontend applications can now display marathon lists and details without requiring user login
 - Authentication still required for user-specific operations (join, cancel, my marathons)
+- New `RABBITMQ_ENABLED` environment variable added (optional, defaults to `true`)
 

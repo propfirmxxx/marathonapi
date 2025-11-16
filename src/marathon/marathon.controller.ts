@@ -434,6 +434,7 @@ socket.on('error', (error) => {
     schema: {
       type: 'object',
       properties: {
+        enabled: { type: 'boolean', description: 'Whether RabbitMQ is enabled via RABBITMQ_ENABLED env variable' },
         connected: { type: 'boolean', description: 'Whether RabbitMQ is connected' },
         queueName: { type: 'string', description: 'Name of the RabbitMQ queue' },
         messageCount: { type: 'number', description: 'Total messages processed' },
