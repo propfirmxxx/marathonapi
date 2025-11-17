@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository, In } from 'typeorm';
 import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { TokyoService } from '../tokyo/tokyo.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
@@ -13,6 +13,9 @@ import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
 import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
+import { TokyoTransactionHistory } from '../tokyo-data/entities/tokyo-transaction-history.entity';
+import { TokyoBalanceHistory } from '../tokyo-data/entities/tokyo-balance-history.entity';
+import { TokyoEquityHistory } from '../tokyo-data/entities/tokyo-equity-history.entity';
 import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTransactionHistoryResponseDto, ParticipantTransactionHistoryDto, TransactionDto, ParticipantAnalysisDto, PerformanceMetricsDto, DrawdownMetricsDto, FloatingRiskDto, EquityBalanceHistoryPointDto, SymbolStatsDto, TradeHistoryDto } from './dto/marathon-response.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
@@ -32,6 +35,12 @@ export class MarathonService {
     private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     @InjectRepository(TokyoPerformance)
     private readonly performanceRepository: Repository<TokyoPerformance>,
+    @InjectRepository(TokyoTransactionHistory)
+    private readonly transactionHistoryRepository: Repository<TokyoTransactionHistory>,
+    @InjectRepository(TokyoBalanceHistory)
+    private readonly balanceHistoryRepository: Repository<TokyoBalanceHistory>,
+    @InjectRepository(TokyoEquityHistory)
+    private readonly equityHistoryRepository: Repository<TokyoEquityHistory>,
     private readonly tokyoService: TokyoService,
     private readonly virtualWalletService: VirtualWalletService,
     private readonly tokyoDataService: TokyoDataService,
@@ -838,6 +847,466 @@ export class MarathonService {
         startDate,
         endDate,
       );
+
+      // Apply symbol filter if specified
+      if (query.tradeSymbols?.length) {
+        transactions = transactions.filter(tx => 
+          tx.symbol && query.tradeSymbols!.includes(tx.symbol.toUpperCase())
+        );
+      }
+
+      // Apply profit filters
+      if (query.onlyProfitableTrades) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) > 0);
+      } else if (query.onlyLosingTrades) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) < 0);
+      }
+
+      if (query.minProfit !== undefined) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) >= query.minProfit!);
+      }
+
+      if (query.maxProfit !== undefined) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) <= query.maxProfit!);
+      }
+
+      // Calculate stats per symbol if requested
+      if (shouldInclude(AnalysisSection.STATS_PER_SYMBOL)) {
+        const symbolStatsMap = new Map<string, {
+          totalTrades: number;
+          winTrades: number;
+          lossTrades: number;
+          profit: number;
+        }>();
+
+        transactions.forEach((tx) => {
+          if (!tx.symbol) return;
+
+          const stats = symbolStatsMap.get(tx.symbol) || {
+            totalTrades: 0,
+            winTrades: 0,
+            lossTrades: 0,
+            profit: 0,
+          };
+
+          stats.totalTrades++;
+          const profit = Number(tx.profit ?? 0);
+          stats.profit += profit;
+
+          if (profit > 0) {
+            stats.winTrades++;
+          } else if (profit < 0) {
+            stats.lossTrades++;
+          }
+
+          symbolStatsMap.set(tx.symbol, stats);
+        });
+
+        let statsPerSymbol: SymbolStatsDto[] = Array.from(symbolStatsMap.entries()).map(([symbol, stats]) => {
+          const symbolWinrate = stats.totalTrades > 0
+            ? Number(((stats.winTrades / stats.totalTrades) * 100).toFixed(2))
+            : 0;
+          const averageProfit = stats.totalTrades > 0
+            ? Number((stats.profit / stats.totalTrades).toFixed(2))
+            : 0;
+
+          return {
+            symbol,
+            totalTrades: stats.totalTrades,
+            winTrades: stats.winTrades,
+            lossTrades: stats.lossTrades,
+            winrate: symbolWinrate,
+            profit: Number(stats.profit.toFixed(2)),
+            averageProfit,
+          };
+        });
+
+        // Sort by total trades descending
+        statsPerSymbol.sort((a, b) => b.totalTrades - a.totalTrades);
+
+        // Apply top symbols limit if specified
+        if (query.topSymbolsLimit && statsPerSymbol.length > query.topSymbolsLimit) {
+          statsPerSymbol = statsPerSymbol.slice(0, query.topSymbolsLimit);
+        }
+
+        result.statsPerSymbol = statsPerSymbol;
+      }
+
+      // Map trade history if requested
+      if (shouldInclude(AnalysisSection.TRADE_HISTORY)) {
+        // Apply sorting
+        if (query.tradeHistorySortBy) {
+          transactions = this.sortTransactions(transactions, query.tradeHistorySortBy);
+        }
+
+        // Apply limit
+        if (query.tradeHistoryLimit && transactions.length > query.tradeHistoryLimit) {
+          transactions = transactions.slice(0, query.tradeHistoryLimit);
+        }
+
+        const tradeHistory: TradeHistoryDto[] = transactions.map((tx) => ({
+          positionId: tx.positionId ?? null,
+          orderTicket: tx.orderTicket ?? null,
+          type: tx.type ?? null,
+          symbol: tx.symbol ?? null,
+          volume: tx.volume ? Number(tx.volume) : null,
+          openPrice: tx.openPrice ? Number(tx.openPrice) : null,
+          closePrice: tx.closePrice ? Number(tx.closePrice) : null,
+          openTime: tx.openTime ?? null,
+          closeTime: tx.closeTime ?? null,
+          profit: tx.profit ? Number(tx.profit) : null,
+          commission: tx.commission ? Number(tx.commission) : null,
+          swap: tx.swap ? Number(tx.swap) : null,
+          stopLoss: tx.stopLoss ? Number(tx.stopLoss) : null,
+          takeProfit: tx.takeProfit ? Number(tx.takeProfit) : null,
+        }));
+
+        result.tradeHistory = tradeHistory;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get aggregated analysis for a user across all their participants and accounts
+   * Aggregates data from all marathons and accounts as if they were one account
+   */
+  async getUserAggregatedAnalysis(
+    userId: string,
+    query: ParticipantAnalysisQueryDto,
+  ): Promise<Partial<ParticipantAnalysisDto>> {
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+
+    // Get all participants for the user across all marathons
+    const participants = await this.participantRepository.find({
+      where: { 
+        user: { id: userId },
+        isActive: true,
+      },
+      relations: ['user', 'user.profile', 'metaTraderAccount', 'marathon'],
+    });
+
+    if (participants.length === 0) {
+      throw new NotFoundException(`No active participants found for user ${userId}`);
+    }
+
+    // Get all account IDs
+    const accountIds = participants
+      .map(p => p.metaTraderAccount?.id)
+      .filter((id): id is string => id !== null && id !== undefined);
+
+    if (accountIds.length === 0) {
+      throw new NotFoundException(`No MetaTrader accounts found for user ${userId}`);
+    }
+
+    const user = participants[0].user;
+    const userName = user.profile?.firstName
+      ? `${user.profile.firstName} ${user.profile.lastName || ''}`.trim()
+      : user.email;
+
+    // Determine which sections to include
+    const sections = query.sections?.length 
+      ? query.sections 
+      : Object.values(AnalysisSection);
+    
+    const shouldInclude = (section: AnalysisSection) => sections.includes(section);
+
+    // Initialize result
+    const result: Partial<ParticipantAnalysisDto> = {
+      userId: user.id,
+      userName,
+      accountLogin: null, // Multiple accounts, so no single login
+    };
+
+    // Set date range - if not provided, use marathon date ranges
+    let startDate: Date | undefined = from ? new Date(from) : undefined;
+    let endDate: Date = to ? new Date(to) : new Date();
+
+    // If date range not provided, calculate from marathon periods
+    if (!from || !to) {
+      const marathonDates = participants
+        .map(p => p.marathon)
+        .filter((m): m is Marathon => m !== null && m !== undefined)
+        .map(m => ({ start: m.startDate, end: m.endDate || new Date() }));
+
+      if (marathonDates.length > 0) {
+        const earliestStart = marathonDates.reduce((earliest, current) => 
+          current.start < earliest.start ? current : earliest
+        );
+        const latestEnd = marathonDates.reduce((latest, current) => 
+          current.end > latest.end ? current : latest
+        );
+
+        if (!from) {
+          startDate = earliestStart.start;
+        }
+        if (!to) {
+          endDate = latestEnd.end;
+        }
+      }
+    }
+
+    // Get performance data from all accounts
+    const needsPerformanceData = shouldInclude(AnalysisSection.PERFORMANCE) || 
+                                  shouldInclude(AnalysisSection.DRAWDOWN) ||
+                                  !query.sections;
+    
+    let aggregatedPerformance: {
+      totalTrades: number;
+      profitTrades: number;
+      lossTrades: number;
+      totalNetProfit: number;
+      grossProfit: number;
+      grossLoss: number;
+      balanceDrawdownAbsolute: number;
+      balanceDrawdownMaximal: number;
+      balanceDrawdownRelativePercent: number;
+    } = {
+      totalTrades: 0,
+      profitTrades: 0,
+      lossTrades: 0,
+      totalNetProfit: 0,
+      grossProfit: 0,
+      grossLoss: 0,
+      balanceDrawdownAbsolute: 0,
+      balanceDrawdownMaximal: 0,
+      balanceDrawdownRelativePercent: 0,
+    };
+
+    if (needsPerformanceData) {
+      const performances = await this.performanceRepository.find({
+        where: { metaTraderAccountId: In(accountIds) },
+      });
+
+      // Aggregate performance metrics
+      performances.forEach(perf => {
+        aggregatedPerformance.totalTrades += perf.totalTrades ?? 0;
+        aggregatedPerformance.profitTrades += perf.profitTrades ?? 0;
+        aggregatedPerformance.lossTrades += perf.lossTrades ?? 0;
+        aggregatedPerformance.totalNetProfit += Number(perf.totalNetProfit ?? 0);
+        aggregatedPerformance.grossProfit += Number(perf.grossProfit ?? 0);
+        aggregatedPerformance.grossLoss += Number(perf.grossLoss ?? 0);
+        
+        // For drawdown, take the maximum
+        const drawdownAbsolute = Number(perf.balanceDrawdownAbsolute ?? 0);
+        const drawdownMaximal = Number(perf.balanceDrawdownMaximal ?? 0);
+        if (drawdownAbsolute > aggregatedPerformance.balanceDrawdownAbsolute) {
+          aggregatedPerformance.balanceDrawdownAbsolute = drawdownAbsolute;
+        }
+        if (drawdownMaximal > aggregatedPerformance.balanceDrawdownMaximal) {
+          aggregatedPerformance.balanceDrawdownMaximal = drawdownMaximal;
+        }
+        const drawdownPercent = Number(perf.balanceDrawdownRelativePercent ?? 0);
+        if (drawdownPercent > aggregatedPerformance.balanceDrawdownRelativePercent) {
+          aggregatedPerformance.balanceDrawdownRelativePercent = drawdownPercent;
+        }
+      });
+    }
+
+    const winrate = aggregatedPerformance.totalTrades > 0 
+      ? Number(((aggregatedPerformance.profitTrades / aggregatedPerformance.totalTrades) * 100).toFixed(2))
+      : 0;
+
+    const profitFactor = aggregatedPerformance.grossLoss !== 0
+      ? Number((aggregatedPerformance.grossProfit / Math.abs(aggregatedPerformance.grossLoss)).toFixed(2))
+      : aggregatedPerformance.grossProfit > 0 ? null : null;
+
+    const expectedPayoff = aggregatedPerformance.totalTrades > 0
+      ? Number((aggregatedPerformance.totalNetProfit / aggregatedPerformance.totalTrades).toFixed(2))
+      : null;
+
+    // Add performance metrics if requested
+    if (shouldInclude(AnalysisSection.PERFORMANCE)) {
+      result.performance = {
+        winrate,
+        totalNetProfit: aggregatedPerformance.totalNetProfit !== 0 ? aggregatedPerformance.totalNetProfit : null,
+        grossProfit: aggregatedPerformance.grossProfit !== 0 ? aggregatedPerformance.grossProfit : null,
+        grossLoss: aggregatedPerformance.grossLoss !== 0 ? aggregatedPerformance.grossLoss : null,
+        profitFactor,
+        expectedPayoff,
+        sharpeRatio: null, // Cannot calculate aggregated sharpe ratio easily
+        recoveryFactor: null, // Cannot calculate aggregated recovery factor easily
+      };
+      result.totalTrades = aggregatedPerformance.totalTrades;
+      result.winTrades = aggregatedPerformance.profitTrades;
+      result.lossTrades = aggregatedPerformance.lossTrades;
+    }
+
+    // Add drawdown metrics if requested
+    if (shouldInclude(AnalysisSection.DRAWDOWN)) {
+      result.drawdown = {
+        balanceDrawdownAbsolute: aggregatedPerformance.balanceDrawdownAbsolute !== 0 ? aggregatedPerformance.balanceDrawdownAbsolute : null,
+        balanceDrawdownMaximal: aggregatedPerformance.balanceDrawdownMaximal !== 0 ? aggregatedPerformance.balanceDrawdownMaximal : null,
+        balanceDrawdownRelativePercent: aggregatedPerformance.balanceDrawdownRelativePercent !== 0 ? aggregatedPerformance.balanceDrawdownRelativePercent : null,
+      };
+    }
+
+    // Get live data for floating risk and open positions/orders
+    const needsLiveData = shouldInclude(AnalysisSection.FLOATING_RISK) ||
+                          shouldInclude(AnalysisSection.OPEN_POSITIONS) ||
+                          shouldInclude(AnalysisSection.OPEN_ORDERS);
+    
+    if (needsLiveData) {
+      const allSnapshots = this.liveAccountDataService.getAllSnapshots();
+      let totalFloatingPnL = 0;
+      let totalEquity = 0;
+      let totalBalance = 0;
+      let totalOpenPositions: any[] = [];
+      let totalOpenOrders: any[] = [];
+
+      // Aggregate live data from all accounts
+      participants.forEach(participant => {
+        const accountLogin = participant.metaTraderAccount?.login;
+        if (accountLogin) {
+          const snapshot = allSnapshots.get(accountLogin);
+          if (snapshot) {
+            totalFloatingPnL += Number(snapshot.profit ?? 0);
+            totalEquity += Number(snapshot.equity ?? 0);
+            totalBalance += Number(snapshot.balance ?? 0);
+            if (snapshot.positions) {
+              totalOpenPositions = totalOpenPositions.concat(snapshot.positions);
+            }
+            if (snapshot.orders) {
+              totalOpenOrders = totalOpenOrders.concat(snapshot.orders);
+            }
+          }
+        }
+      });
+
+      // Add floating risk if requested
+      if (shouldInclude(AnalysisSection.FLOATING_RISK)) {
+        let totalOpenVolume: number | null = null;
+        if (totalOpenPositions && totalOpenPositions.length > 0) {
+          totalOpenVolume = totalOpenPositions.reduce((sum, pos) => {
+            const volume = pos.volume ?? 0;
+            return sum + Number(volume);
+          }, 0);
+        }
+
+        const floatingRiskPercent = totalEquity !== 0 && totalFloatingPnL !== null
+          ? Number(((Math.abs(totalFloatingPnL) / totalEquity) * 100).toFixed(2))
+          : null;
+
+        result.floatingRisk = {
+          floatingPnL: totalFloatingPnL !== 0 ? totalFloatingPnL : null,
+          floatingRiskPercent,
+          openPositionsCount: totalOpenPositions?.length ?? 0,
+          totalOpenVolume,
+        };
+      }
+
+      // Add open positions if requested
+      if (shouldInclude(AnalysisSection.OPEN_POSITIONS)) {
+        result.openPositions = query.includeDetailedPositions ? totalOpenPositions : totalOpenPositions;
+        result.currentBalance = totalBalance !== 0 ? totalBalance : null;
+        result.currentEquity = totalEquity !== 0 ? totalEquity : null;
+      }
+
+      // Add open orders if requested
+      if (shouldInclude(AnalysisSection.OPEN_ORDERS)) {
+        result.openOrders = totalOpenOrders;
+      }
+    }
+
+    // Get equity and balance history from all accounts
+    if (shouldInclude(AnalysisSection.EQUITY_BALANCE_HISTORY)) {
+      // Query balance history from all accounts
+      const balanceHistoryQuery = this.balanceHistoryRepository
+        .createQueryBuilder('history')
+        .where('history.metaTraderAccountId IN (:...accountIds)', { accountIds })
+        .orderBy('history.time', 'ASC');
+
+      if (startDate) {
+        balanceHistoryQuery.andWhere('history.time >= :startDate', { startDate });
+      }
+      if (endDate) {
+        balanceHistoryQuery.andWhere('history.time <= :endDate', { endDate });
+      }
+
+      const balanceHistory = await balanceHistoryQuery.getMany();
+
+      // Query equity history from all accounts
+      const equityHistoryQuery = this.equityHistoryRepository
+        .createQueryBuilder('history')
+        .where('history.metaTraderAccountId IN (:...accountIds)', { accountIds })
+        .orderBy('history.time', 'ASC');
+
+      if (startDate) {
+        equityHistoryQuery.andWhere('history.time >= :startDate', { startDate });
+      }
+      if (endDate) {
+        equityHistoryQuery.andWhere('history.time <= :endDate', { endDate });
+      }
+
+      const equityHistory = await equityHistoryQuery.getMany();
+
+      // Merge balance and equity history by timestamp
+      // Aggregate both balance and equity by summing values at matching timestamps
+      const balanceMap = new Map<string, number>();
+      const equityMap = new Map<string, number>();
+      
+      balanceHistory.forEach((point) => {
+        const key = point.time.toISOString();
+        const existing = balanceMap.get(key) ?? 0;
+        balanceMap.set(key, existing + Number(point.balance));
+      });
+
+      equityHistory.forEach((point) => {
+        const key = point.time.toISOString();
+        const existing = equityMap.get(key) ?? 0;
+        equityMap.set(key, existing + Number(point.equity));
+      });
+
+      // Collect all unique timestamps
+      const allTimestamps = new Set<string>();
+      balanceHistory.forEach(point => allTimestamps.add(point.time.toISOString()));
+      equityHistory.forEach(point => allTimestamps.add(point.time.toISOString()));
+
+      // Create aggregated history points
+      let equityBalanceHistory: EquityBalanceHistoryPointDto[] = Array.from(allTimestamps).map(timestamp => ({
+        timestamp: new Date(timestamp),
+        balance: balanceMap.has(timestamp) ? balanceMap.get(timestamp)! : null,
+        equity: equityMap.has(timestamp) ? equityMap.get(timestamp)! : null,
+      }));
+
+      // Sort by timestamp
+      equityBalanceHistory.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+      // Apply resolution aggregation if specified
+      if (query.historyResolution && query.historyResolution !== HistoryResolution.RAW) {
+        equityBalanceHistory = this.aggregateHistory(equityBalanceHistory, query.historyResolution);
+      }
+
+      // Apply limit if specified
+      if (query.historyLimit && equityBalanceHistory.length > query.historyLimit) {
+        // Sample evenly across the dataset
+        const step = Math.ceil(equityBalanceHistory.length / query.historyLimit);
+        equityBalanceHistory = equityBalanceHistory.filter((_, index) => index % step === 0);
+      }
+
+      result.equityBalanceHistory = equityBalanceHistory;
+    }
+
+    // Get transaction history from all accounts
+    const needsTransactions = shouldInclude(AnalysisSection.TRADE_HISTORY) ||
+                               shouldInclude(AnalysisSection.STATS_PER_SYMBOL);
+    
+    if (needsTransactions) {
+      const transactionsQuery = this.transactionHistoryRepository
+        .createQueryBuilder('transaction')
+        .where('transaction.metaTraderAccountId IN (:...accountIds)', { accountIds })
+        .orderBy('transaction.openTime', 'DESC');
+
+      if (startDate) {
+        transactionsQuery.andWhere('transaction.openTime >= :startDate', { startDate });
+      }
+      if (endDate) {
+        transactionsQuery.andWhere('transaction.openTime <= :endDate', { endDate });
+      }
+
+      let transactions = await transactionsQuery.getMany();
 
       // Apply symbol filter if specified
       if (query.tradeSymbols?.length) {

@@ -485,6 +485,53 @@ socket.on('error', (error) => {
   }
 
   @ApiOperation({ 
+    summary: 'Get aggregated analysis for a user across all their participants and accounts',
+    description: `
+Provides comprehensive participant analysis aggregated across ALL marathons and accounts for a user.
+All trades from different accounts and marathons are treated as if they were on a single account.
+
+**Filtering Sections:**
+- Use 'sections' parameter to select specific data sections (performance, drawdown, floatingRisk, etc.)
+- If not specified, all sections are returned
+
+**Trade History Filtering:**
+- Filter by symbols, profit ranges, win/loss status
+- Sort by time or profit
+- Limit number of results
+
+**History Aggregation:**
+- Aggregate equity/balance history by hourly, daily, or weekly periods
+- Limit number of history points
+
+**Date Range:**
+- Use 'from' and 'to' parameters to filter by time period
+- If not specified, all historical data is included
+
+**Examples:**
+- Get all historical analysis: GET /marathons/users/:userId/analysis
+- Get analysis for specific period: GET /marathons/users/:userId/analysis?from=2024-01-01T00:00:00Z&to=2024-12-31T23:59:59Z
+- Get only performance and trade history: ?sections=performance,tradeHistory
+- Get top 10 profitable trades: ?sections=tradeHistory&tradeHistoryLimit=10&tradeHistorySortBy=profit_desc
+- Get daily aggregated history: ?sections=equityBalanceHistory&historyResolution=daily
+- Get EURUSD trades only: ?sections=tradeHistory&tradeSymbols=EURUSD
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns aggregated analysis with requested sections',
+    type: ParticipantAnalysisDto
+  })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiQuery({ name: 'query', type: ParticipantAnalysisQueryDto })
+  @Get('users/:userId/analysis')
+  async getUserAggregatedAnalysis(
+    @Param('userId') userId: string,
+    @Query() query: ParticipantAnalysisQueryDto,
+  ): Promise<Partial<ParticipantAnalysisDto>> {
+    return await this.marathonService.getUserAggregatedAnalysis(userId, query);
+  }
+
+  @ApiOperation({ 
     summary: 'Get comprehensive analysis for a participant with advanced filtering (public endpoint, authentication optional)',
     description: `
 Provides detailed participant analysis with flexible filtering options:

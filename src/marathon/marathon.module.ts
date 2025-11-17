@@ -17,10 +17,13 @@ import { MarathonService } from './marathon.service';
 import { MarathonLeaderboardService } from './marathon-leaderboard.service';
 import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
 import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
+import { TokyoTransactionHistory } from '../tokyo-data/entities/tokyo-transaction-history.entity';
+import { TokyoBalanceHistory } from '../tokyo-data/entities/tokyo-balance-history.entity';
+import { TokyoEquityHistory } from '../tokyo-data/entities/tokyo-equity-history.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance]),
+    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance, TokyoTransactionHistory, TokyoBalanceHistory, TokyoEquityHistory]),
     RabbitMQModule.forRoot(),
     UsersModule,
     PaymentModule,
