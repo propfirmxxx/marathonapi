@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { MetaTraderAccountModule } from '../metatrader-accounts/metatrader-account.module';
 import { PaymentModule } from '../payment/payment.module';
+import { RabbitMQModule } from '../rabbitmq/rabbitmq.module';
 import { TokyoModule } from '../tokyo/tokyo.module';
 import { TokyoDataModule } from '../tokyo-data/tokyo-data.module';
 import { UsersModule } from '../users/users.module';
@@ -20,6 +21,7 @@ import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entit
 @Module({
   imports: [
     TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance]),
+    RabbitMQModule.forRoot(),
     UsersModule,
     PaymentModule,
     AuthModule,

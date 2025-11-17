@@ -222,17 +222,33 @@ services:
     image: rabbitmq:4-management
     restart: unless-stopped
     ports:
-      - "15672:15672"
-      - "5672:5672"
+      - "15672:15672"  # Management UI
+      - "5672:5672"    # AMQP port
     networks:
       - marathon-network
     environment:
-      # RabbitMQ configuration for optimal performance
+      # Authentication (change in production!)
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+      
+      # Memory and disk management
       RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.6"
       RABBITMQ_DISK_FREE_LIMIT: "2GB"
+      
+      # Connection limits
       RABBITMQ_CHANNEL_MAX: "2048"
       RABBITMQ_FRAME_MAX: "131072"
       RABBITMQ_HEARTBEAT: "30"
+      
+      # Queue defaults
+      RABBITMQ_DEFAULT_VHOST: "/"
+      
+      # Performance tuning
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: >-
+        +P 1048576
+        +Q 65536
+        +K true
+        +A 128
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 30s
@@ -242,13 +258,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
-          memory: 1G
+          cpus: '2.0'
+          memory: 2G
         reservations:
-          cpus: '0.25'
-          memory: 256M
+          cpus: '0.5'
+          memory: 512M
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+      - ./rabbitmq-configs:/etc/rabbitmq/conf.d:ro
     logging:
       driver: "json-file"
       options:
