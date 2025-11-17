@@ -121,6 +121,16 @@ export class MarathonService {
     return !!participant;
   }
 
+  /**
+   * Get participant by ID with relations
+   */
+  async getParticipantById(participantId: string): Promise<MarathonParticipant | null> {
+    return await this.participantRepository.findOne({
+      where: { id: participantId },
+      relations: ['marathon', 'user', 'metaTraderAccount'],
+    });
+  }
+
   async update(id: string, updateMarathonDto: UpdateMarathonDto): Promise<Marathon> {
     const marathon = await this.findOne(id);
     const { prizeStrategyType, prizeStrategyConfig, status, ...rest } = updateMarathonDto;

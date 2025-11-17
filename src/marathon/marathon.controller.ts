@@ -21,6 +21,7 @@ import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
 import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
 import { MarathonStatus } from './enums/marathon-status.enum';
+import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
 
 @ApiTags('Marathons')
 @Controller('marathons')
@@ -29,6 +30,7 @@ export class MarathonController {
     private readonly marathonService: MarathonService,
     private readonly paymentService: PaymentService,
     private readonly liveAccountDataService: LiveAccountDataService,
+    private readonly liveDataGateway: MarathonLiveDataGateway,
   ) {}
 
   @ApiOperation({ summary: 'Create a new marathon' })
@@ -548,5 +550,38 @@ Provides detailed participant analysis with flexible filtering options:
   @Get('rabbitmq-health')
   async getRabbitMQHealth() {
     return await this.liveAccountDataService.getHealth();
+  }
+
+  @ApiOperation({
+    summary: 'Get WebSocket subscription statistics',
+    description: 'Returns information about active WebSocket connections and RabbitMQ subscriptions'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'WebSocket subscription statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        connectedClients: { type: 'number', description: 'Number of connected WebSocket clients' },
+        activeMarathons: { type: 'number', description: 'Number of marathons with active subscriptions' },
+        isListeningToRabbitMQ: { type: 'boolean', description: 'Whether Gateway is listening to RabbitMQ' },
+        marathonSubscriptions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              marathonId: { type: 'string' },
+              subscribers: { type: 'number' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @Get('websocket-stats')
+  getWebSocketStats() {
+    return this.liveDataGateway.getSubscriptionStats();
   }
 } 
