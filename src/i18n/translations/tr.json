@@ -1,0 +1,59 @@
+{
+  "common": {
+    "success": "İşlem başarıyla tamamlandı",
+    "error": "Bir hata oluştu",
+    "notFound": "Kaynak bulunamadı",
+    "unauthorized": "Yetkisiz erişim",
+    "forbidden": "Erişim yasak",
+    "validation": {
+      "required": "{field} gereklidir",
+      "invalid": "Geçersiz {field}",
+      "minLength": "{field} en az {min} karakter olmalıdır",
+      "maxLength": "{field} {max} karakteri geçmemelidir"
+    }
+  },
+  "auth": {
+    "login": {
+      "success": "Giriş başarılı",
+      "error": "Geçersiz kimlik bilgileri"
+    },
+    "register": {
+      "success": "Kayıt başarılı",
+      "error": "Kayıt başarısız"
+    },
+    "logout": {
+      "success": "Çıkış başarılı"
+    },
+    "password": {
+      "reset": {
+        "emailSent": "Şifre sıfırlama e-postası gönderildi",
+        "success": "Şifre başarıyla sıfırlandı"
+      }
+    }
+  },
+  "user": {
+    "profile": {
+      "updated": "Profil başarıyla güncellendi",
+      "notFound": "Kullanıcı profili bulunamadı"
+    }
+  },
+  "ticket": {
+    "created": "Destek talebi başarıyla oluşturuldu",
+    "updated": "Destek talebi başarıyla güncellendi",
+    "deleted": "Destek talebi başarıyla silindi",
+    "notFound": "Destek talebi bulunamadı",
+    "closed": "Destek talebi başarıyla kapatıldı"
+  },
+  "notifications": {
+    "new": "Yeni bildirim",
+    "read": "Bildirim okundu olarak işaretlendi",
+    "deleted": "Bildirim silindi"
+  },
+  "faq": {
+    "created": "SSS başarıyla oluşturuldu",
+    "updated": "SSS başarıyla güncellendi",
+    "deleted": "SSS başarıyla silindi",
+    "notFound": "SSS bulunamadı"
+  }
+}
+

@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+for marathonapi project always use yarn and check npm version before if it was low use `nvm use node` command

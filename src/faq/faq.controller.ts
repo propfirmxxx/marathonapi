@@ -3,11 +3,12 @@ import { FaqService } from './faq.service';
 import { CreateFaqDto } from './dto/create-faq.dto';
 import { UpdateFaqDto } from './dto/update-faq.dto';
 import { AdminGuard } from '../auth/guards/admin.guard';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { FaqResponseDto, FaqListResponseDto } from './dto/faq-response.dto';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { Language } from '../i18n/decorators/language.decorator';
 
 @ApiTags('FAQ')
 @ApiBearerAuth()
@@ -33,9 +34,15 @@ export class FaqController {
 
   @Get()
   @ApiOperation({ summary: 'Get all active FAQs' })
+  @ApiHeader({
+    name: 'Accept-Language',
+    description: 'Language code (en, fa, ar, tr)',
+    required: false,
+    example: 'fa'
+  })
   @ApiResponse({ 
     status: 200, 
-    description: 'Returns all active FAQs',
+    description: 'Returns all active FAQs in the requested language',
     schema: {
       type: 'object',
       properties: {
@@ -50,13 +57,14 @@ export class FaqController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'query', required: false, type: String, description: 'Search in question or answer' })
   async findAll(
+    @Language() language: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('query') query?: string,
   ): Promise<PaginatedResponseDto<FaqResponseDto>> {
     const pageNum = page && Number(page) > 0 ? Number(page) : 1;
     const limitNum = limit && Number(limit) > 0 ? Number(limit) : 10;
-    const { faqs, total } = await this.faqService.findAll(pageNum, limitNum, query);
+    const { faqs, total } = await this.faqService.findAll(pageNum, limitNum, language, query);
     return {
       data: faqs as any,
       total,
