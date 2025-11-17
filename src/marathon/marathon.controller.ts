@@ -13,7 +13,9 @@ import {
   MarathonLeaderboardResponseDto,
   MarathonPnLHistoryResponseDto,
   MarathonTransactionHistoryResponseDto,
+  ParticipantAnalysisDto,
 } from './dto/marathon-response.dto';
+import { ParticipantAnalysisQueryDto } from './dto/participant-analysis-query.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
@@ -478,6 +480,48 @@ socket.on('error', (error) => {
       namespace: 'marathon-live',
       documentation: 'See detailed documentation in WEBSOCKET.md',
     };
+  }
+
+  @ApiOperation({ 
+    summary: 'Get comprehensive analysis for a participant with advanced filtering (public endpoint, authentication optional)',
+    description: `
+Provides detailed participant analysis with flexible filtering options:
+
+**Filtering Sections:**
+- Use 'sections' parameter to select specific data sections (performance, drawdown, floatingRisk, etc.)
+- If not specified, all sections are returned
+
+**Trade History Filtering:**
+- Filter by symbols, profit ranges, win/loss status
+- Sort by time or profit
+- Limit number of results
+
+**History Aggregation:**
+- Aggregate equity/balance history by hourly, daily, or weekly periods
+- Limit number of history points
+
+**Examples:**
+- Get only performance and trade history: ?sections=performance,tradeHistory
+- Get top 10 profitable trades: ?sections=tradeHistory&tradeHistoryLimit=10&tradeHistorySortBy=profit_desc
+- Get daily aggregated history: ?sections=equityBalanceHistory&historyResolution=daily
+- Get EURUSD trades only: ?sections=tradeHistory&tradeSymbols=EURUSD
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns detailed analysis with requested sections only',
+    type: ParticipantAnalysisDto
+  })
+  @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
+  @ApiParam({ name: 'participantId', description: 'Participant ID' })
+  @ApiQuery({ name: 'query', type: ParticipantAnalysisQueryDto })
+  @Get(':marathonId/participants/:participantId/analysis')
+  async getParticipantAnalysis(
+    @Param('marathonId') marathonId: string,
+    @Param('participantId') participantId: string,
+    @Query() query: ParticipantAnalysisQueryDto,
+  ): Promise<Partial<ParticipantAnalysisDto>> {
+    return await this.marathonService.getParticipantAnalysis(marathonId, participantId, query);
   }
 
   @ApiBearerAuth()

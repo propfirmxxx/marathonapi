@@ -482,3 +482,187 @@ export class MarathonTransactionHistoryResponseDto {
   @ApiProperty({ description: 'Participants transaction history', type: [ParticipantTransactionHistoryDto] })
   participants: ParticipantTransactionHistoryDto[];
 }
+
+// Participant Analysis DTOs
+
+export class SymbolStatsDto {
+  @ApiProperty({ description: 'Trading symbol', example: 'EURUSD' })
+  symbol: string;
+
+  @ApiProperty({ description: 'Total trades for this symbol', example: 15 })
+  totalTrades: number;
+
+  @ApiProperty({ description: 'Winning trades', example: 10 })
+  winTrades: number;
+
+  @ApiProperty({ description: 'Losing trades', example: 5 })
+  lossTrades: number;
+
+  @ApiProperty({ description: 'Win rate percentage', example: 66.67 })
+  winrate: number;
+
+  @ApiProperty({ description: 'Total profit from this symbol', example: 500.50 })
+  profit: number;
+
+  @ApiProperty({ description: 'Average profit per trade', example: 33.37 })
+  averageProfit: number;
+}
+
+export class EquityBalanceHistoryPointDto {
+  @ApiProperty({ description: 'Timestamp', example: '2024-01-01T12:00:00Z' })
+  timestamp: Date;
+
+  @ApiProperty({ description: 'Balance at this point', example: 11500.50 })
+  balance: number;
+
+  @ApiProperty({ description: 'Equity at this point', example: 11600.75, nullable: true })
+  equity?: number | null;
+}
+
+export class TradeHistoryDto {
+  @ApiProperty({ description: 'Position ID', example: 12345, nullable: true })
+  positionId?: number | null;
+
+  @ApiProperty({ description: 'Order ticket', example: 67890, nullable: true })
+  orderTicket?: number | null;
+
+  @ApiProperty({ description: 'Trade type', example: 'BUY', nullable: true })
+  type?: string | null;
+
+  @ApiProperty({ description: 'Trading symbol', example: 'EURUSD', nullable: true })
+  symbol?: string | null;
+
+  @ApiProperty({ description: 'Volume (lot size)', example: 0.1, nullable: true })
+  volume?: number | null;
+
+  @ApiProperty({ description: 'Open price', example: 1.0850, nullable: true })
+  openPrice?: number | null;
+
+  @ApiProperty({ description: 'Close price', example: 1.0900, nullable: true })
+  closePrice?: number | null;
+
+  @ApiProperty({ description: 'Open time', example: '2024-01-01T12:00:00Z', nullable: true })
+  openTime?: Date | null;
+
+  @ApiProperty({ description: 'Close time', example: '2024-01-01T14:00:00Z', nullable: true })
+  closeTime?: Date | null;
+
+  @ApiProperty({ description: 'Profit', example: 50.00, nullable: true })
+  profit?: number | null;
+
+  @ApiProperty({ description: 'Commission', example: -2.50, nullable: true })
+  commission?: number | null;
+
+  @ApiProperty({ description: 'Swap', example: -0.50, nullable: true })
+  swap?: number | null;
+
+  @ApiProperty({ description: 'Stop loss', example: 1.0800, nullable: true })
+  stopLoss?: number | null;
+
+  @ApiProperty({ description: 'Take profit', example: 1.0950, nullable: true })
+  takeProfit?: number | null;
+}
+
+export class PerformanceMetricsDto {
+  @ApiProperty({ description: 'Win rate percentage', example: 65.5 })
+  winrate: number;
+
+  @ApiProperty({ description: 'Total net profit', example: 1500.50, nullable: true })
+  totalNetProfit?: number | null;
+
+  @ApiProperty({ description: 'Gross profit', example: 2500.00, nullable: true })
+  grossProfit?: number | null;
+
+  @ApiProperty({ description: 'Gross loss', example: -999.50, nullable: true })
+  grossLoss?: number | null;
+
+  @ApiProperty({ description: 'Profit factor', example: 2.50, nullable: true })
+  profitFactor?: number | null;
+
+  @ApiProperty({ description: 'Expected payoff', example: 33.34, nullable: true })
+  expectedPayoff?: number | null;
+
+  @ApiProperty({ description: 'Sharpe ratio', example: 1.25, nullable: true })
+  sharpeRatio?: number | null;
+
+  @ApiProperty({ description: 'Recovery factor', example: 7.5, nullable: true })
+  recoveryFactor?: number | null;
+}
+
+export class DrawdownMetricsDto {
+  @ApiProperty({ description: 'Balance drawdown absolute', example: 200.00, nullable: true })
+  balanceDrawdownAbsolute?: number | null;
+
+  @ApiProperty({ description: 'Balance drawdown maximal', example: 500.00, nullable: true })
+  balanceDrawdownMaximal?: number | null;
+
+  @ApiProperty({ description: 'Balance drawdown relative percent', example: 5.0, nullable: true })
+  balanceDrawdownRelativePercent?: number | null;
+}
+
+export class FloatingRiskDto {
+  @ApiProperty({ description: 'Current floating profit/loss', example: 150.50, nullable: true })
+  floatingPnL?: number | null;
+
+  @ApiProperty({ description: 'Floating risk as percentage of equity', example: 1.5, nullable: true })
+  floatingRiskPercent?: number | null;
+
+  @ApiProperty({ description: 'Number of open positions', example: 3 })
+  openPositionsCount: number;
+
+  @ApiProperty({ description: 'Total volume of open positions', example: 0.5, nullable: true })
+  totalOpenVolume?: number | null;
+}
+
+export class ParticipantAnalysisDto {
+  @ApiProperty({ description: 'Participant ID', example: 'participant-uuid' })
+  participantId: string;
+
+  @ApiProperty({ description: 'User ID', example: 'user-uuid' })
+  userId: string;
+
+  @ApiProperty({ description: 'User name', example: 'John Doe' })
+  userName: string;
+
+  @ApiProperty({ description: 'Account login', example: '12345678' })
+  accountLogin: string;
+
+  @ApiProperty({ description: 'Performance metrics', type: () => PerformanceMetricsDto })
+  performance: PerformanceMetricsDto;
+
+  @ApiProperty({ description: 'Drawdown metrics', type: () => DrawdownMetricsDto })
+  drawdown: DrawdownMetricsDto;
+
+  @ApiProperty({ description: 'Floating risk metrics', type: () => FloatingRiskDto })
+  floatingRisk: FloatingRiskDto;
+
+  @ApiProperty({ description: 'Equity and balance history', type: [EquityBalanceHistoryPointDto] })
+  equityBalanceHistory: EquityBalanceHistoryPointDto[];
+
+  @ApiProperty({ description: 'Stats per symbol', type: [SymbolStatsDto] })
+  statsPerSymbol: SymbolStatsDto[];
+
+  @ApiProperty({ description: 'Total trades', example: 45 })
+  totalTrades: number;
+
+  @ApiProperty({ description: 'Winning trades', example: 30 })
+  winTrades: number;
+
+  @ApiProperty({ description: 'Losing trades', example: 15 })
+  lossTrades: number;
+
+  @ApiProperty({ description: 'Trade history', type: [TradeHistoryDto] })
+  tradeHistory: TradeHistoryDto[];
+
+  @ApiProperty({ description: 'Open positions', type: [Object], nullable: true })
+  openPositions?: any[] | null;
+
+  @ApiProperty({ description: 'Open orders', type: [Object], nullable: true })
+  openOrders?: any[] | null;
+
+  @ApiProperty({ description: 'Current balance', example: 11500.50, nullable: true })
+  currentBalance?: number | null;
+
+  @ApiProperty({ description: 'Current equity', example: 11650.75, nullable: true })
+  currentEquity?: number | null;
+}

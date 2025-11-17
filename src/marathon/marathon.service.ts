@@ -13,8 +13,10 @@ import { VirtualWalletTransactionType } from '@/virtual-wallet/entities/virtual-
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { calculateMarathonLifecycleStatus } from './utils/marathon-status.util';
 import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
-import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTransactionHistoryResponseDto, ParticipantTransactionHistoryDto, TransactionDto } from './dto/marathon-response.dto';
+import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTransactionHistoryResponseDto, ParticipantTransactionHistoryDto, TransactionDto, ParticipantAnalysisDto, PerformanceMetricsDto, DrawdownMetricsDto, FloatingRiskDto, EquityBalanceHistoryPointDto, SymbolStatsDto, TradeHistoryDto } from './dto/marathon-response.dto';
+import { LiveAccountDataService } from './live-account-data.service';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
+import { ParticipantAnalysisQueryDto, AnalysisSection, TradeHistorySortBy, HistoryResolution } from './dto/participant-analysis-query.dto';
 
 @Injectable()
 export class MarathonService {
@@ -33,6 +35,7 @@ export class MarathonService {
     private readonly tokyoService: TokyoService,
     private readonly virtualWalletService: VirtualWalletService,
     private readonly tokyoDataService: TokyoDataService,
+    private readonly liveAccountDataService: LiveAccountDataService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -617,5 +620,436 @@ export class MarathonService {
       marathonName: marathon.name,
       participants: participantsHistory,
     };
+  }
+
+  /**
+   * Get comprehensive analysis for a specific participant
+   */
+  async getParticipantAnalysis(
+    marathonId: string,
+    participantId: string,
+    query: ParticipantAnalysisQueryDto,
+  ): Promise<Partial<ParticipantAnalysisDto>> {
+    const from = query.from ? new Date(query.from) : undefined;
+    const to = query.to ? new Date(query.to) : undefined;
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Get participant
+    const participant = await this.participantRepository.findOne({
+      where: { 
+        id: participantId,
+        marathon: { id: marathonId },
+        isActive: true,
+      },
+      relations: ['user', 'user.profile', 'metaTraderAccount'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException(`Participant with ID ${participantId} not found in this marathon`);
+    }
+
+    if (!participant.metaTraderAccount?.id) {
+      throw new NotFoundException(`Participant does not have a MetaTrader account`);
+    }
+
+    const accountId = participant.metaTraderAccount.id;
+    const accountLogin = participant.metaTraderAccount.login;
+
+    // Set default date range to marathon period if not provided
+    const startDate = from || marathon.startDate;
+    const endDate = to || marathon.endDate || new Date();
+
+    // Determine which sections to include
+    const sections = query.sections?.length 
+      ? query.sections 
+      : Object.values(AnalysisSection);
+    
+    const shouldInclude = (section: AnalysisSection) => sections.includes(section);
+
+    // Initialize result
+    const result: Partial<ParticipantAnalysisDto> = {
+      participantId: participant.id,
+      userId: participant.user.id,
+      userName: participant.user.profile?.firstName
+        ? `${participant.user.profile.firstName} ${participant.user.profile.lastName || ''}`.trim()
+        : participant.user.email,
+      accountLogin,
+    };
+
+    // Get performance data (needed for multiple sections)
+    const needsPerformanceData = shouldInclude(AnalysisSection.PERFORMANCE) || 
+                                  shouldInclude(AnalysisSection.DRAWDOWN) ||
+                                  !query.sections;
+    
+    let performance: TokyoPerformance | null = null;
+    let totalTrades = 0;
+    let profitTrades = 0;
+    let lossTrades = 0;
+    let winrate = 0;
+
+    if (needsPerformanceData) {
+      performance = await this.performanceRepository.findOne({
+        where: { metaTraderAccountId: accountId },
+      });
+
+      // Calculate winrate
+      totalTrades = performance?.totalTrades ?? 0;
+      profitTrades = performance?.profitTrades ?? 0;
+      lossTrades = performance?.lossTrades ?? 0;
+      winrate = totalTrades > 0 
+        ? Number(((profitTrades / totalTrades) * 100).toFixed(2))
+        : 0;
+    }
+
+    // Add performance metrics if requested
+    if (shouldInclude(AnalysisSection.PERFORMANCE)) {
+      result.performance = {
+        winrate,
+        totalNetProfit: performance?.totalNetProfit ? Number(performance.totalNetProfit) : null,
+        grossProfit: performance?.grossProfit ? Number(performance.grossProfit) : null,
+        grossLoss: performance?.grossLoss ? Number(performance.grossLoss) : null,
+        profitFactor: performance?.profitFactor ? Number(performance.profitFactor) : null,
+        expectedPayoff: performance?.expectedPayoff ? Number(performance.expectedPayoff) : null,
+        sharpeRatio: performance?.sharpeRatio ? Number(performance.sharpeRatio) : null,
+        recoveryFactor: performance?.recoveryFactor ? Number(performance.recoveryFactor) : null,
+      };
+      result.totalTrades = totalTrades;
+      result.winTrades = profitTrades;
+      result.lossTrades = lossTrades;
+    }
+
+    // Add drawdown metrics if requested
+    if (shouldInclude(AnalysisSection.DRAWDOWN)) {
+      result.drawdown = {
+        balanceDrawdownAbsolute: performance?.balanceDrawdownAbsolute ? Number(performance.balanceDrawdownAbsolute) : null,
+        balanceDrawdownMaximal: performance?.balanceDrawdownMaximal ? Number(performance.balanceDrawdownMaximal) : null,
+        balanceDrawdownRelativePercent: performance?.balanceDrawdownRelativePercent ? Number(performance.balanceDrawdownRelativePercent) : null,
+      };
+    }
+
+    // Get live data for floating risk and open positions/orders
+    const needsLiveData = shouldInclude(AnalysisSection.FLOATING_RISK) ||
+                          shouldInclude(AnalysisSection.OPEN_POSITIONS) ||
+                          shouldInclude(AnalysisSection.OPEN_ORDERS);
+    
+    if (needsLiveData) {
+      const liveSnapshot = this.liveAccountDataService.getSnapshot(accountLogin);
+      const openPositions = liveSnapshot?.positions ?? [];
+      const openOrders = liveSnapshot?.orders ?? [];
+      const currentProfit = liveSnapshot?.profit ?? null;
+      const currentEquity = liveSnapshot?.equity ?? null;
+      const currentBalance = liveSnapshot?.balance ?? null;
+
+      // Add floating risk if requested
+      if (shouldInclude(AnalysisSection.FLOATING_RISK)) {
+        let totalOpenVolume: number | null = null;
+        if (openPositions && openPositions.length > 0) {
+          totalOpenVolume = openPositions.reduce((sum, pos) => {
+            const volume = pos.volume ?? 0;
+            return sum + Number(volume);
+          }, 0);
+        }
+
+        const floatingRiskPercent = currentEquity && currentProfit !== null
+          ? Number(((Math.abs(currentProfit) / currentEquity) * 100).toFixed(2))
+          : null;
+
+        result.floatingRisk = {
+          floatingPnL: currentProfit !== null ? Number(currentProfit) : null,
+          floatingRiskPercent,
+          openPositionsCount: openPositions?.length ?? 0,
+          totalOpenVolume,
+        };
+      }
+
+      // Add open positions if requested
+      if (shouldInclude(AnalysisSection.OPEN_POSITIONS)) {
+        result.openPositions = query.includeDetailedPositions ? openPositions : openPositions;
+        result.currentBalance = currentBalance !== null ? Number(currentBalance) : null;
+        result.currentEquity = currentEquity !== null ? Number(currentEquity) : null;
+      }
+
+      // Add open orders if requested
+      if (shouldInclude(AnalysisSection.OPEN_ORDERS)) {
+        result.openOrders = openOrders;
+      }
+    }
+
+    // Get equity and balance history if requested
+    if (shouldInclude(AnalysisSection.EQUITY_BALANCE_HISTORY)) {
+      const balanceHistory = await this.tokyoDataService.getBalanceHistory(accountId, startDate, endDate);
+      const equityHistory = await this.tokyoDataService.getEquityHistory(accountId, startDate, endDate);
+
+      // Merge balance and equity history
+      const equityMap = new Map<string, number>();
+      equityHistory.forEach((point) => {
+        const key = point.time.toISOString();
+        equityMap.set(key, Number(point.equity));
+      });
+
+      let equityBalanceHistory: EquityBalanceHistoryPointDto[] = balanceHistory.map((point) => {
+        const key = point.time.toISOString();
+        return {
+          timestamp: point.time,
+          balance: Number(point.balance),
+          equity: equityMap.has(key) ? equityMap.get(key)! : null,
+        };
+      });
+
+      // Apply resolution aggregation if specified
+      if (query.historyResolution && query.historyResolution !== HistoryResolution.RAW) {
+        equityBalanceHistory = this.aggregateHistory(equityBalanceHistory, query.historyResolution);
+      }
+
+      // Apply limit if specified
+      if (query.historyLimit && equityBalanceHistory.length > query.historyLimit) {
+        // Sample evenly across the dataset
+        const step = Math.ceil(equityBalanceHistory.length / query.historyLimit);
+        equityBalanceHistory = equityBalanceHistory.filter((_, index) => index % step === 0);
+      }
+
+      result.equityBalanceHistory = equityBalanceHistory;
+    }
+
+    // Get transaction history if needed for trade history or stats per symbol
+    const needsTransactions = shouldInclude(AnalysisSection.TRADE_HISTORY) ||
+                               shouldInclude(AnalysisSection.STATS_PER_SYMBOL);
+    
+    if (needsTransactions) {
+      let transactions = await this.tokyoDataService.getTransactionHistoryByDateRange(
+        accountId,
+        startDate,
+        endDate,
+      );
+
+      // Apply symbol filter if specified
+      if (query.tradeSymbols?.length) {
+        transactions = transactions.filter(tx => 
+          tx.symbol && query.tradeSymbols!.includes(tx.symbol.toUpperCase())
+        );
+      }
+
+      // Apply profit filters
+      if (query.onlyProfitableTrades) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) > 0);
+      } else if (query.onlyLosingTrades) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) < 0);
+      }
+
+      if (query.minProfit !== undefined) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) >= query.minProfit!);
+      }
+
+      if (query.maxProfit !== undefined) {
+        transactions = transactions.filter(tx => Number(tx.profit ?? 0) <= query.maxProfit!);
+      }
+
+      // Calculate stats per symbol if requested
+      if (shouldInclude(AnalysisSection.STATS_PER_SYMBOL)) {
+        const symbolStatsMap = new Map<string, {
+          totalTrades: number;
+          winTrades: number;
+          lossTrades: number;
+          profit: number;
+        }>();
+
+        transactions.forEach((tx) => {
+          if (!tx.symbol) return;
+
+          const stats = symbolStatsMap.get(tx.symbol) || {
+            totalTrades: 0,
+            winTrades: 0,
+            lossTrades: 0,
+            profit: 0,
+          };
+
+          stats.totalTrades++;
+          const profit = Number(tx.profit ?? 0);
+          stats.profit += profit;
+
+          if (profit > 0) {
+            stats.winTrades++;
+          } else if (profit < 0) {
+            stats.lossTrades++;
+          }
+
+          symbolStatsMap.set(tx.symbol, stats);
+        });
+
+        let statsPerSymbol: SymbolStatsDto[] = Array.from(symbolStatsMap.entries()).map(([symbol, stats]) => {
+          const symbolWinrate = stats.totalTrades > 0
+            ? Number(((stats.winTrades / stats.totalTrades) * 100).toFixed(2))
+            : 0;
+          const averageProfit = stats.totalTrades > 0
+            ? Number((stats.profit / stats.totalTrades).toFixed(2))
+            : 0;
+
+          return {
+            symbol,
+            totalTrades: stats.totalTrades,
+            winTrades: stats.winTrades,
+            lossTrades: stats.lossTrades,
+            winrate: symbolWinrate,
+            profit: Number(stats.profit.toFixed(2)),
+            averageProfit,
+          };
+        });
+
+        // Sort by total trades descending
+        statsPerSymbol.sort((a, b) => b.totalTrades - a.totalTrades);
+
+        // Apply top symbols limit if specified
+        if (query.topSymbolsLimit && statsPerSymbol.length > query.topSymbolsLimit) {
+          statsPerSymbol = statsPerSymbol.slice(0, query.topSymbolsLimit);
+        }
+
+        result.statsPerSymbol = statsPerSymbol;
+      }
+
+      // Map trade history if requested
+      if (shouldInclude(AnalysisSection.TRADE_HISTORY)) {
+        // Apply sorting
+        if (query.tradeHistorySortBy) {
+          transactions = this.sortTransactions(transactions, query.tradeHistorySortBy);
+        }
+
+        // Apply limit
+        if (query.tradeHistoryLimit && transactions.length > query.tradeHistoryLimit) {
+          transactions = transactions.slice(0, query.tradeHistoryLimit);
+        }
+
+        const tradeHistory: TradeHistoryDto[] = transactions.map((tx) => ({
+          positionId: tx.positionId ?? null,
+          orderTicket: tx.orderTicket ?? null,
+          type: tx.type ?? null,
+          symbol: tx.symbol ?? null,
+          volume: tx.volume ? Number(tx.volume) : null,
+          openPrice: tx.openPrice ? Number(tx.openPrice) : null,
+          closePrice: tx.closePrice ? Number(tx.closePrice) : null,
+          openTime: tx.openTime ?? null,
+          closeTime: tx.closeTime ?? null,
+          profit: tx.profit ? Number(tx.profit) : null,
+          commission: tx.commission ? Number(tx.commission) : null,
+          swap: tx.swap ? Number(tx.swap) : null,
+          stopLoss: tx.stopLoss ? Number(tx.stopLoss) : null,
+          takeProfit: tx.takeProfit ? Number(tx.takeProfit) : null,
+        }));
+
+        result.tradeHistory = tradeHistory;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Helper method to aggregate history by time resolution
+   */
+  private aggregateHistory(
+    history: EquityBalanceHistoryPointDto[],
+    resolution: HistoryResolution,
+  ): EquityBalanceHistoryPointDto[] {
+    if (history.length === 0) return history;
+
+    const grouped = new Map<string, EquityBalanceHistoryPointDto[]>();
+    
+    history.forEach((point) => {
+      let key: string;
+      const date = new Date(point.timestamp);
+      
+      switch (resolution) {
+        case HistoryResolution.HOURLY:
+          date.setMinutes(0, 0, 0);
+          key = date.toISOString();
+          break;
+        case HistoryResolution.DAILY:
+          date.setHours(0, 0, 0, 0);
+          key = date.toISOString();
+          break;
+        case HistoryResolution.WEEKLY:
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          weekStart.setHours(0, 0, 0, 0);
+          key = weekStart.toISOString();
+          break;
+        default:
+          key = point.timestamp.toISOString();
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(point);
+    });
+
+    // Aggregate each group (use last value for each period)
+    const aggregated: EquityBalanceHistoryPointDto[] = [];
+    
+    for (const [key, points] of grouped.entries()) {
+      const lastPoint = points[points.length - 1];
+      aggregated.push({
+        timestamp: new Date(key),
+        balance: lastPoint.balance,
+        equity: lastPoint.equity,
+      });
+    }
+
+    // Sort by timestamp
+    return aggregated.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  /**
+   * Helper method to sort transactions
+   */
+  private sortTransactions(transactions: any[], sortBy: TradeHistorySortBy): any[] {
+    const sorted = [...transactions];
+    
+    switch (sortBy) {
+      case TradeHistorySortBy.OPEN_TIME_DESC:
+        return sorted.sort((a, b) => {
+          const aTime = a.openTime?.getTime() ?? 0;
+          const bTime = b.openTime?.getTime() ?? 0;
+          return bTime - aTime;
+        });
+      case TradeHistorySortBy.OPEN_TIME_ASC:
+        return sorted.sort((a, b) => {
+          const aTime = a.openTime?.getTime() ?? 0;
+          const bTime = b.openTime?.getTime() ?? 0;
+          return aTime - bTime;
+        });
+      case TradeHistorySortBy.CLOSE_TIME_DESC:
+        return sorted.sort((a, b) => {
+          const aTime = a.closeTime?.getTime() ?? 0;
+          const bTime = b.closeTime?.getTime() ?? 0;
+          return bTime - aTime;
+        });
+      case TradeHistorySortBy.CLOSE_TIME_ASC:
+        return sorted.sort((a, b) => {
+          const aTime = a.closeTime?.getTime() ?? 0;
+          const bTime = b.closeTime?.getTime() ?? 0;
+          return aTime - bTime;
+        });
+      case TradeHistorySortBy.PROFIT_DESC:
+        return sorted.sort((a, b) => {
+          const aProfit = Number(a.profit ?? 0);
+          const bProfit = Number(b.profit ?? 0);
+          return bProfit - aProfit;
+        });
+      case TradeHistorySortBy.PROFIT_ASC:
+        return sorted.sort((a, b) => {
+          const aProfit = Number(a.profit ?? 0);
+          const bProfit = Number(b.profit ?? 0);
+          return aProfit - bProfit;
+        });
+      default:
+        return sorted;
+    }
   }
 } 
