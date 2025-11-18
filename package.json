@@ -50,6 +50,8 @@
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
     "crypto-js": "^4.2.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^16.5.0",
     "module-alias": "^2.2.2",
     "nodemailer": "^6.10.1",

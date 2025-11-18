@@ -87,9 +87,10 @@ async function bootstrap() {
     }),
   );
 
-  // Get I18nService instance and apply global response interceptor
+  // Get I18nService and SettingsService instances and apply global response interceptor
   const i18nService = app.get(I18nService);
-  app.useGlobalInterceptors(new ResponseInterceptor(i18nService));
+  const settingsService = app.get(SettingsService);
+  app.useGlobalInterceptors(new ResponseInterceptor(i18nService, settingsService));
 
   const swaggerPath = 'swagger';
 
