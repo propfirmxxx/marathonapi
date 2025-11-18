@@ -9,6 +9,7 @@ import { TokyoModule } from '../tokyo/tokyo.module';
 import { TokyoDataModule } from '../tokyo-data/tokyo-data.module';
 import { UsersModule } from '../users/users.module';
 import { VirtualWalletModule } from '../virtual-wallet/virtual-wallet.module';
+import { SettingsModule } from '../settings/settings.module';
 import { MarathonParticipant } from './entities/marathon-participant.entity';
 import { Marathon } from './entities/marathon.entity';
 import { LiveAccountDataService } from './live-account-data.service';
@@ -33,6 +34,7 @@ import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
     TokyoModule,
     forwardRef(() => TokyoDataModule),
     VirtualWalletModule,
+    SettingsModule,
   ],
   controllers: [MarathonController],
   providers: [

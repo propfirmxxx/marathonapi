@@ -91,21 +91,6 @@ export class SettingsController {
     return await this.sessionService.getUserSessions(userId, query, currentToken);
   }
 
-  @ApiOperation({ summary: 'Revoke a specific session' })
-  @ApiResponse({
-    status: 200,
-    description: 'Session revoked successfully',
-  })
-  @ApiParam({ name: 'sessionId', type: String })
-  @Delete('sessions/:sessionId')
-  async revokeSession(
-    @GetUser('id') userId: string,
-    @Param('sessionId') sessionId: string,
-  ): Promise<{ message: string }> {
-    await this.sessionService.revokeSession(userId, sessionId);
-    return { message: 'Session revoked successfully' };
-  }
-
   @ApiOperation({ summary: 'Revoke all other sessions (except current)' })
   @ApiResponse({
     status: 200,
@@ -126,6 +111,21 @@ export class SettingsController {
     }
 
     return { message: 'All other sessions revoked successfully' };
+  }
+
+  @ApiOperation({ summary: 'Revoke a specific session' })
+  @ApiResponse({
+    status: 200,
+    description: 'Session revoked successfully',
+  })
+  @ApiParam({ name: 'sessionId', type: String })
+  @Delete('sessions/:sessionId')
+  async revokeSession(
+    @GetUser('id') userId: string,
+    @Param('sessionId') sessionId: string,
+  ): Promise<{ message: string }> {
+    await this.sessionService.revokeSession(userId, sessionId);
+    return { message: 'Session revoked successfully' };
   }
 
   @ApiOperation({ summary: 'Get login history' })

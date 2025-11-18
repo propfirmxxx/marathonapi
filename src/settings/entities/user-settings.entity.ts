@@ -90,14 +90,6 @@ export class UserSettings {
   emailNotificationsEnabled: boolean;
 
   @ApiProperty({
-    description: 'Enable in-app notifications',
-    example: true,
-    default: true,
-  })
-  @Column({ default: true })
-  inAppNotificationsEnabled: boolean;
-
-  @ApiProperty({
     description: 'Profile visibility setting',
     enum: ProfileVisibility,
     example: ProfileVisibility.PUBLIC,
@@ -117,14 +109,6 @@ export class UserSettings {
   })
   @Column({ default: true })
   showSocialMediaLinks: boolean;
-
-  @ApiProperty({
-    description: 'Show trading information in profile',
-    example: true,
-    default: true,
-  })
-  @Column({ default: true })
-  showTradingInfo: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

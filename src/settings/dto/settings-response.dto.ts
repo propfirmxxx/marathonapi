@@ -39,12 +39,6 @@ export class SettingsResponseDto {
   emailNotificationsEnabled: boolean;
 
   @ApiProperty({
-    description: 'Enable in-app notifications',
-    example: true,
-  })
-  inAppNotificationsEnabled: boolean;
-
-  @ApiProperty({
     description: 'Profile visibility setting',
     enum: ProfileVisibility,
     example: ProfileVisibility.PUBLIC,
@@ -56,12 +50,6 @@ export class SettingsResponseDto {
     example: true,
   })
   showSocialMediaLinks: boolean;
-
-  @ApiProperty({
-    description: 'Show trading information in profile',
-    example: true,
-  })
-  showTradingInfo: boolean;
 
   @ApiProperty({
     description: 'Settings creation date',

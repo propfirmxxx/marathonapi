@@ -29,9 +29,11 @@ import { TokyoModule } from './tokyo/tokyo.module';
 import { TokyoDataModule } from './tokyo-data/tokyo-data.module';
 import { StatsModule } from './stats/stats.module';
 import { SettingsModule } from './settings/settings.module';
+import { SessionActivityMiddleware } from './settings/middleware/session-activity.middleware';
 
 @Module({
   imports: [
+    SettingsModule, // Import SettingsModule first to ensure SessionService is available
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -79,7 +81,7 @@ import { SettingsModule } from './settings/settings.module';
     TokyoModule,
     TokyoDataModule,
     StatsModule,
-    SettingsModule,
+    // SettingsModule moved to top
   ],
   controllers: [AppController],
   providers: [
@@ -97,6 +99,10 @@ import { SettingsModule } from './settings/settings.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(I18nMiddleware).forRoutes('*');
+    consumer
+      .apply(I18nMiddleware)
+      .forRoutes('*')
+      .apply(SessionActivityMiddleware)
+      .forRoutes('*');
   }
 }

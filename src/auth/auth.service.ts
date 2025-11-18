@@ -15,6 +15,7 @@ import { Profile } from '@/profile/entities/profile.entity';
 import { SessionService } from '../settings/session.service';
 import { LoginHistoryService } from '../settings/login-history.service';
 import { LoginStatus, LoginMethod } from '../settings/entities/login-history.entity';
+import { getClientIp } from '../settings/utils/ip-extractor.util';
 
 @Injectable()
 export class AuthService {
@@ -127,7 +128,11 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string): Promise<any> {
+  async login(loginDto: LoginDto, req?: any): Promise<any> {
+    // Extract IP and user agent from request
+    const ipAddress = req ? getClientIp(req) : 'unknown';
+    const userAgent = req?.headers?.['user-agent'] || 'unknown';
+
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
       select: ['id', 'email', 'password', 'isActive', 'isBanned', 'role'],
@@ -140,8 +145,8 @@ export class AuthService {
           user.id,
           LoginStatus.FAILED,
           LoginMethod.EMAIL,
-          ipAddress || 'unknown',
-          userAgent || 'unknown',
+          ipAddress,
+          userAgent,
           'Invalid credentials',
         );
       }
@@ -153,22 +158,22 @@ export class AuthService {
         user.id,
         LoginStatus.FAILED,
         LoginMethod.EMAIL,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
+        ipAddress,
+        userAgent,
         'User account is banned',
       );
       throw new UnauthorizedException('User account is banned');
     }
 
     const tokens = this.generateTokens(user);
-    
+
     // Record successful login
     await this.loginHistoryService.recordLogin(
       user.id,
       LoginStatus.SUCCESS,
       LoginMethod.EMAIL,
-      ipAddress || 'unknown',
-      userAgent || 'unknown',
+      ipAddress,
+      userAgent,
     );
 
     // Create session
@@ -177,15 +182,19 @@ export class AuthService {
     await this.sessionService.createSession(
       user.id,
       tokens.access_token,
-      ipAddress || 'unknown',
-      userAgent || 'unknown',
+      ipAddress,
+      userAgent,
       expiresAt,
     );
 
     return tokens;
   }
 
-  async handleOAuthCode(code: string, ipAddress?: string, userAgent?: string) {
+  async handleOAuthCode(code: string, req?: any) {
+    // Extract IP and user agent from request
+    const ipAddress = req ? getClientIp(req) : 'unknown';
+    const userAgent = req?.headers?.['user-agent'] || 'unknown';
+
     try {
       const tokenRes = await axios.post('https://oauth2.googleapis.com/token', {
         code,
@@ -208,8 +217,8 @@ export class AuthService {
         user.id,
         LoginStatus.SUCCESS,
         LoginMethod.GOOGLE,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
+        ipAddress,
+        userAgent,
       );
 
       // Create session
@@ -218,8 +227,8 @@ export class AuthService {
       await this.sessionService.createSession(
         user.id,
         tokens.access_token,
-        ipAddress || 'unknown',
-        userAgent || 'unknown',
+        ipAddress,
+        userAgent,
         expiresAt,
       );
 

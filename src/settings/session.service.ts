@@ -7,6 +7,7 @@ import { GetSessionsQueryDto } from './dto/get-sessions-query.dto';
 import { parseUserAgent } from './utils/device-parser.util';
 import { JwtService } from '@nestjs/jwt';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { LocationService } from './location.service';
 
 @Injectable()
 export class SessionService {
@@ -14,6 +15,7 @@ export class SessionService {
     @InjectRepository(Session)
     private readonly sessionRepository: Repository<Session>,
     private readonly jwtService: JwtService,
+    private readonly locationService: LocationService,
   ) {}
 
   /**
@@ -28,12 +30,16 @@ export class SessionService {
   ): Promise<Session> {
     const deviceInfo = parseUserAgent(userAgent);
 
+    // Get location data from IP (async, but we don't await to avoid blocking)
+    const location = await this.locationService.getLocationFromIp(ipAddress);
+
     const session = this.sessionRepository.create({
       userId,
       token,
       ipAddress,
       userAgent,
       deviceInfo,
+      location,
       expiresAt,
       status: SessionStatus.ACTIVE,
       lastActivityAt: new Date(),
@@ -141,6 +147,39 @@ export class SessionService {
   }
 
   /**
+   * Update session status
+   */
+  async updateSessionStatus(sessionId: string, status: SessionStatus): Promise<void> {
+    await this.sessionRepository.update(
+      { id: sessionId },
+      { status },
+    );
+  }
+
+  /**
+   * Validate session token and return session if valid
+   */
+  async validateSessionToken(token: string): Promise<Session | null> {
+    const session = await this.getSessionByToken(token);
+
+    if (!session) {
+      return null;
+    }
+
+    if (session.status !== SessionStatus.ACTIVE) {
+      return null;
+    }
+
+    if (session.expiresAt < new Date()) {
+      // Mark as expired
+      await this.updateSessionStatus(session.id, SessionStatus.EXPIRED);
+      return null;
+    }
+
+    return session;
+  }
+
+  /**
    * Clean up expired sessions
    */
   async cleanupExpiredSessions(): Promise<void> {
@@ -173,6 +212,7 @@ export class SessionService {
       ipAddress: session.ipAddress,
       userAgent: session.userAgent,
       deviceInfo: session.deviceInfo || {},
+      location: session.location || undefined,
       status: session.status,
       expiresAt: session.expiresAt,
       lastActivityAt: session.lastActivityAt,

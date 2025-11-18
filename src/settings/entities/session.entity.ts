@@ -74,6 +74,23 @@ export class Session {
   };
 
   @ApiProperty({
+    description: 'Location information based on IP address',
+    example: { country: 'Iran', city: 'Tehran', region: 'Tehran' },
+    required: false,
+  })
+  @Column({ type: 'jsonb', nullable: true })
+  location: {
+    country?: string;
+    city?: string;
+    region?: string;
+    timezone?: string;
+    coordinates?: {
+      lat: number;
+      lon: number;
+    };
+  };
+
+  @ApiProperty({
     description: 'Session status',
     enum: SessionStatus,
     example: SessionStatus.ACTIVE,

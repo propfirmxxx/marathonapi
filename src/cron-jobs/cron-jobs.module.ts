@@ -6,6 +6,7 @@ import { Marathon } from '../marathon/entities/marathon.entity';
 import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
 import { TokyoModule } from '../tokyo/tokyo.module';
 import { TokyoDataModule } from '../tokyo-data/tokyo-data.module';
+import { SettingsModule } from '../settings/settings.module';
 import { CronJobsController } from './cron-jobs.controller';
 import { CronJobsService } from './cron-jobs.service';
 import { CronMonitoringService } from './cron-monitoring.service';
@@ -17,6 +18,7 @@ import { MarathonProvisioningService } from './marathon-provisioning.service';
     TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount]),
     TokyoModule,
     TokyoDataModule,
+    SettingsModule,
   ],
   controllers: [CronJobsController],
   providers: [CronMonitoringService, CronJobsService, MarathonProvisioningService],

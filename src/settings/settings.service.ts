@@ -72,10 +72,8 @@ export class SettingsService {
       timeFormat: settings.timeFormat,
       timezone: settings.timezone,
       emailNotificationsEnabled: settings.emailNotificationsEnabled,
-      inAppNotificationsEnabled: settings.inAppNotificationsEnabled,
       profileVisibility: settings.profileVisibility,
       showSocialMediaLinks: settings.showSocialMediaLinks,
-      showTradingInfo: settings.showTradingInfo,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };

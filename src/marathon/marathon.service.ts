@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, IsNull, Repository, In } from 'typeorm';
 import { MetaTraderAccount, MetaTraderAccountStatus } from '../metatrader-accounts/entities/meta-trader-account.entity';
@@ -24,6 +24,8 @@ import { DashboardResponseDto, TradesWinrateDto, CurrencyPairsDto, CurrencyPairS
 import { LiveResponseDto, MarathonLiveDto, RiskMetricsDto, TradeHistoryItemDto, CurrencyPairsDto as LiveCurrencyPairsDto, TradesShortLongDto as LiveTradesShortLongDto, EquityBalanceDto, UserDetailsDto as LiveUserDetailsDto } from './dto/live-response.dto';
 import { MarathonLeaderboardService } from './marathon-leaderboard.service';
 import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
+import { SettingsService } from '../settings/settings.service';
+import { ProfileVisibility } from '../settings/entities/user-settings.entity';
 
 @Injectable()
 export class MarathonService {
@@ -52,6 +54,7 @@ export class MarathonService {
     private readonly tokyoDataService: TokyoDataService,
     private readonly liveAccountDataService: LiveAccountDataService,
     private readonly leaderboardService: MarathonLeaderboardService,
+    private readonly settingsService: SettingsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -657,6 +660,7 @@ export class MarathonService {
     from?: Date,
     to?: Date,
     limit?: number,
+    isPublic: boolean = false,
   ): Promise<ParticipantTradeHistoryDto> {
     // Check if marathon exists
     const marathon = await this.marathonRepository.findOne({
@@ -675,6 +679,15 @@ export class MarathonService {
 
     if (!participant) {
       throw new NotFoundException(`Participant with ID ${participantId} not found in marathon ${marathonId}`);
+    }
+
+    // Check profile visibility if this is a public request
+    if (isPublic) {
+      const userId = participant.user.id;
+      const settings = await this.settingsService.getOrCreateSettings(userId);
+      if (settings.profileVisibility === ProfileVisibility.PRIVATE) {
+        throw new ForbiddenException('This profile is private and cannot be accessed publicly');
+      }
     }
 
     if (!participant.metaTraderAccount?.id) {
@@ -1639,6 +1652,14 @@ export class MarathonService {
    * Get dashboard data for a user
    */
   async getUserDashboard(userId: string, isPublic: boolean = false): Promise<DashboardResponseDto> {
+    // Check profile visibility if this is a public request
+    if (isPublic) {
+      const settings = await this.settingsService.getOrCreateSettings(userId);
+      if (settings.profileVisibility === ProfileVisibility.PRIVATE) {
+        throw new ForbiddenException('This profile is private and cannot be accessed publicly');
+      }
+    }
+
     // Get user aggregated analysis with all sections
     const analysis = await this.getUserAggregatedAnalysis(userId, {
       sections: [
@@ -1987,6 +2008,15 @@ export class MarathonService {
 
     // Get participant
     const participant = await this.getParticipantByIdInMarathon(marathonId, participantId);
+
+    // Check profile visibility if this is a public request
+    if (isPublic) {
+      const userId = participant.user.id;
+      const settings = await this.settingsService.getOrCreateSettings(userId);
+      if (settings.profileVisibility === ProfileVisibility.PRIVATE) {
+        throw new ForbiddenException('This profile is private and cannot be accessed publicly');
+      }
+    }
 
     if (!participant.metaTraderAccount?.id) {
       throw new NotFoundException(`Participant does not have a MetaTrader account`);

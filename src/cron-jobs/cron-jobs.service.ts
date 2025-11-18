@@ -3,6 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronMonitoringService } from './cron-monitoring.service';
 import { MarathonProvisioningService } from './marathon-provisioning.service';
 import { TokyoDataCronService } from '../tokyo-data/tokyo-data-cron.service';
+import { SessionService } from '../settings/session.service';
+import { LocationService } from '../settings/location.service';
 
 @Injectable()
 export class CronJobsService {
@@ -12,6 +14,8 @@ export class CronJobsService {
     private readonly monitoring: CronMonitoringService,
     private readonly marathonProvisioning: MarathonProvisioningService,
     private readonly tokyoDataCron: TokyoDataCronService,
+    private readonly sessionService: SessionService,
+    private readonly locationService: LocationService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE, {
@@ -62,6 +66,34 @@ export class CronJobsService {
       CronExpression.EVERY_HOUR,
       async () => {
         await this.tokyoDataCron.updateFinishedMarathonData();
+      },
+    );
+  }
+
+  @Cron(CronExpression.EVERY_30_MINUTES, {
+    name: 'session.cleanup.expired',
+  })
+  async cleanupExpiredSessions(): Promise<void> {
+    await this.monitoring.track(
+      'session.cleanup.expired',
+      CronExpression.EVERY_30_MINUTES,
+      async () => {
+        await this.sessionService.cleanupExpiredSessions();
+        this.logger.debug('Expired sessions cleanup completed');
+      },
+    );
+  }
+
+  @Cron(CronExpression.EVERY_HOUR, {
+    name: 'location.cache.cleanup',
+  })
+  async cleanupLocationCache(): Promise<void> {
+    await this.monitoring.track(
+      'location.cache.cleanup',
+      CronExpression.EVERY_HOUR,
+      async () => {
+        (this.locationService as any).clearExpiredCache();
+        this.logger.debug('Expired location cache cleanup completed');
       },
     );
   }

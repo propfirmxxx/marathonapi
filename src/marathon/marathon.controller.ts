@@ -215,6 +215,7 @@ export class MarathonController {
   async getParticipantTradeHistory(
     @Param('id') id: string,
     @Param('participantId') participantId: string,
+    @Req() req: any,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('limit') limit?: string,
@@ -222,7 +223,10 @@ export class MarathonController {
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
     const limitNum = limit ? parseInt(limit, 10) : undefined;
-    return await this.marathonService.getParticipantTradeHistory(id, participantId, fromDate, toDate, limitNum);
+    const currentUserId = req.user?.id;
+    const participant = await this.marathonService.getParticipantByIdInMarathon(id, participantId);
+    const isPublic = !currentUserId || currentUserId !== participant.user.id;
+    return await this.marathonService.getParticipantTradeHistory(id, participantId, fromDate, toDate, limitNum, isPublic);
   }
 
   @ApiOperation({ summary: 'Get trade history for marathon participants (public endpoint, authentication optional)' })

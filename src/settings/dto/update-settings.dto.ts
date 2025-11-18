@@ -54,15 +54,6 @@ export class UpdateSettingsDto {
   emailNotificationsEnabled?: boolean;
 
   @ApiProperty({
-    description: 'Enable in-app notifications',
-    example: true,
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  inAppNotificationsEnabled?: boolean;
-
-  @ApiProperty({
     description: 'Profile visibility setting',
     enum: ProfileVisibility,
     example: ProfileVisibility.PUBLIC,
@@ -81,13 +72,5 @@ export class UpdateSettingsDto {
   @IsBoolean()
   showSocialMediaLinks?: boolean;
 
-  @ApiProperty({
-    description: 'Show trading information in profile',
-    example: true,
-    required: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  showTradingInfo?: boolean;
 }
 

@@ -10,12 +10,14 @@ import { LoginHistoryResponseDto } from './dto/login-history-response.dto';
 import { GetLoginHistoryQueryDto } from './dto/get-login-history-query.dto';
 import { parseUserAgent } from './utils/device-parser.util';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
+import { LocationService } from './location.service';
 
 @Injectable()
 export class LoginHistoryService {
   constructor(
     @InjectRepository(LoginHistory)
     private readonly loginHistoryRepository: Repository<LoginHistory>,
+    private readonly locationService: LocationService,
   ) {}
 
   /**
@@ -31,6 +33,9 @@ export class LoginHistoryService {
   ): Promise<LoginHistory> {
     const deviceInfo = parseUserAgent(userAgent);
 
+    // Get location data from IP (async, but we don't await to avoid blocking)
+    const location = await this.locationService.getLocationFromIp(ipAddress);
+
     const loginHistory = this.loginHistoryRepository.create({
       userId,
       status,
@@ -38,6 +43,7 @@ export class LoginHistoryService {
       ipAddress,
       userAgent,
       deviceInfo,
+      location,
       failureReason,
     });
 

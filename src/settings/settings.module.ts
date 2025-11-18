@@ -6,6 +6,7 @@ import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { SessionService } from './session.service';
 import { LoginHistoryService } from './login-history.service';
+import { LocationService } from './location.service';
 import { UserSettings } from './entities/user-settings.entity';
 import { Session } from './entities/session.entity';
 import { LoginHistory } from './entities/login-history.entity';
@@ -20,7 +21,7 @@ import { LoginHistory } from './entities/login-history.entity';
     ConfigModule,
   ],
   controllers: [SettingsController],
-  providers: [SettingsService, SessionService, LoginHistoryService],
+  providers: [SettingsService, SessionService, LoginHistoryService, LocationService],
   exports: [SettingsService, SessionService, LoginHistoryService],
 })
 export class SettingsModule {}
