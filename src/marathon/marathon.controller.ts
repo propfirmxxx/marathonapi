@@ -19,6 +19,7 @@ import { DashboardResponseDto } from './dto/dashboard-response.dto';
 import { LiveResponseDto } from './dto/live-response.dto';
 import { ParticipantAnalysisQueryDto } from './dto/participant-analysis-query.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
+import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
 import { MarathonStatus } from './enums/marathon-status.enum';
@@ -166,6 +167,20 @@ export class MarathonController {
   @UseGuards(AuthGuard('jwt'))
   async joinMarathon(@Param('id') id: string, @Req() req: any) {
     return this.paymentService.createMarathonPayment(req.user.id, id);
+  }
+
+  @ApiOperation({ summary: 'Cancel marathon participation' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Participation cancelled successfully and refund processed',
+    type: CancelMarathonResponseDto
+  })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @Delete(':id/participation')
+  @UseGuards(AuthGuard('jwt'))
+  async cancelParticipation(@Param('id') id: string, @Req() req: any) {
+    return this.marathonService.cancelParticipation(req.user.id, id);
   }
 
   @ApiOperation({ summary: 'Get marathon leaderboard (public endpoint, authentication optional)' })

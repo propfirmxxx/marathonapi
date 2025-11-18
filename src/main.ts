@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { I18nService } from './i18n/i18n.service';
+import { SettingsService } from './settings/settings.service';
 import cookieParser from 'cookie-parser';
 import { AppDataSource } from './config/data-source';
 import { SeederService } from './seeders/seeder.service';
