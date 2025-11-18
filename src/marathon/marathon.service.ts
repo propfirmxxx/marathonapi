@@ -21,6 +21,7 @@ import { LiveAccountDataService } from './live-account-data.service';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 import { ParticipantAnalysisQueryDto, AnalysisSection, TradeHistorySortBy, HistoryResolution } from './dto/participant-analysis-query.dto';
 import { DashboardResponseDto, TradesWinrateDto, CurrencyPairsDto, CurrencyPairSeriesDto, CurrencyPairsTreemapDto, CurrencyPairTreemapByTradesDto, CurrencyPairTreemapPerformanceDto, CurrencyPairsWinrateDto, CurrencyPairsWinrateSeriesDto, TradesShortLongDto, TradesShortLongSeriesDto, BestMarathonDto, LastMarathonDto, LastTradeDto, UserDetailsDto, UserStatsDto } from './dto/dashboard-response.dto';
+import { LiveResponseDto, MarathonLiveDto, RiskMetricsDto, TradeHistoryItemDto, CurrencyPairsDto as LiveCurrencyPairsDto, TradesShortLongDto as LiveTradesShortLongDto, EquityBalanceDto, UserDetailsDto as LiveUserDetailsDto } from './dto/live-response.dto';
 import { MarathonLeaderboardService } from './marathon-leaderboard.service';
 import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 
@@ -1944,6 +1945,303 @@ export class MarathonService {
       last_trades: lastTrades,
       user: userDetails,
       stats,
+    };
+  }
+
+  /**
+   * Get participant by ID in a specific marathon (helper method)
+   */
+  async getParticipantByIdInMarathon(marathonId: string, participantId: string) {
+    const participant = await this.participantRepository.findOne({
+      where: { 
+        id: participantId,
+        marathon: { id: marathonId },
+        isActive: true,
+      },
+      relations: ['user', 'user.profile', 'marathon'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException(`Participant with ID ${participantId} not found in this marathon`);
+    }
+
+    return participant;
+  }
+
+  /**
+   * Get live participant analysis data in live.json format
+   */
+  async getParticipantLiveAnalysis(
+    marathonId: string,
+    participantId: string,
+    isPublic: boolean = false,
+  ): Promise<LiveResponseDto> {
+    // Get marathon
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Get participant
+    const participant = await this.getParticipantByIdInMarathon(marathonId, participantId);
+
+    if (!participant.metaTraderAccount?.id) {
+      throw new NotFoundException(`Participant does not have a MetaTrader account`);
+    }
+
+    const accountId = participant.metaTraderAccount.id;
+    const accountLogin = participant.metaTraderAccount.login;
+    const userId = participant.user.id;
+
+    // Get leaderboard data
+    const snapshots = this.liveAccountDataService.getAllSnapshots();
+    const leaderboard = await this.leaderboardService.calculateLeaderboard(marathonId, snapshots);
+    const userEntry = leaderboard?.entries.find(e => e.userId === userId);
+    const currentRank = userEntry?.rank ?? 0;
+    const profitPercentage = userEntry?.profitPercentage ?? 0;
+    const prize = this.calculatePrize(currentRank, marathon);
+
+    // Get performance data
+    const performance = await this.performanceRepository.findOne({
+      where: { metaTraderAccountId: accountId },
+    });
+
+    const totalTrades = performance?.totalTrades ?? 0;
+    const successfulTrades = performance?.profitTrades ?? 0;
+    const stoppedTrades = performance?.lossTrades ?? 0;
+    const winRate = totalTrades > 0 
+      ? Math.round((successfulTrades / totalTrades) * 100)
+      : 0;
+
+    // Get live account data
+    const liveSnapshot = this.liveAccountDataService.getSnapshot(accountLogin);
+    const equity = liveSnapshot?.equity ?? 0;
+    const balance = liveSnapshot?.balance ?? 0;
+    const currentProfit = liveSnapshot?.profit ?? 0;
+
+    // Calculate total profit/loss (from performance or current balance - initial balance)
+    const totalProfitLoss = performance?.totalNetProfit 
+      ? Number(performance.totalNetProfit)
+      : balance - 10000; // Assuming 10000 is initial balance, adjust if needed
+
+    // Calculate average trade profit/loss
+    const averageTradeProfitLoss = totalTrades > 0
+      ? Number((totalProfitLoss / totalTrades).toFixed(2))
+      : 0;
+
+    // Get best and worst trades
+    const bestTrade = performance?.largestProfitTrade 
+      ? Number(performance.largestProfitTrade)
+      : 0;
+    const worstTrade = performance?.largestLossTrade 
+      ? Number(performance.largestLossTrade)
+      : 0;
+
+    // Calculate days active (from marathon start to now)
+    const now = new Date();
+    const daysActive = Math.max(1, Math.ceil((now.getTime() - marathon.startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Build marathon data
+    const marathonData: MarathonLiveDto = {
+      id: marathon.id,
+      name: marathon.name,
+      isLive: marathon.status === MarathonStatus.ONGOING,
+      startDate: marathon.startDate.toISOString(),
+      endDate: marathon.endDate.toISOString(),
+      currentRank,
+      totalParticipants: leaderboard?.totalParticipants ?? 0,
+      profitPercentage: Number(profitPercentage).toFixed(2),
+      prize: prize > 0 ? Number(prize.toFixed(2)) : null,
+      score: null, // Not implemented yet
+      totalTrades,
+      successfulTrades,
+      stoppedTrades,
+      winRate,
+      equity: Number(equity.toFixed(2)),
+      balance: Number(balance.toFixed(2)),
+      totalProfitLoss: Number(totalProfitLoss.toFixed(2)),
+      averageTradeProfitLoss,
+      bestTrade: Number(bestTrade.toFixed(2)),
+      worstTrade: Number(worstTrade.toFixed(2)),
+      daysActive,
+    };
+
+    // Build risk metrics
+    const floatingRiskPercent = equity > 0 && currentProfit !== null
+      ? Number(((Math.abs(currentProfit) / equity) * 100).toFixed(2))
+      : 0;
+    const drawdownPercent = performance?.balanceDrawdownRelativePercent 
+      ? Number(performance.balanceDrawdownRelativePercent)
+      : 0;
+
+    const riskMetrics: RiskMetricsDto = {
+      riskFloat: floatingRiskPercent,
+      riskFloatMax: 100,
+      drawdown: drawdownPercent,
+      drawdownMax: 100,
+    };
+
+    // Get trade history
+    const transactions = await this.tokyoDataService.getTransactionHistoryByDateRange(
+      accountId,
+      marathon.startDate,
+      marathon.endDate || now,
+    );
+
+    // Sort by openTime DESC (most recent first)
+    transactions.sort((a, b) => {
+      const aTime = a.openTime?.getTime() ?? 0;
+      const bTime = b.openTime?.getTime() ?? 0;
+      return bTime - aTime;
+    });
+
+    // Return actual database fields without transformation
+    const tradeHistory: TradeHistoryItemDto[] = transactions.map((tx) => ({
+      id: tx.id ?? null,
+      positionId: tx.positionId ?? null,
+      orderTicket: tx.orderTicket ?? null,
+      openTime: tx.openTime ?? null,
+      closeTime: tx.closeTime ?? null,
+      type: tx.type ?? null,
+      volume: tx.volume ? Number(Number(tx.volume).toFixed(5)) : null,
+      symbol: tx.symbol ?? null,
+      openPrice: tx.openPrice ? Number(Number(tx.openPrice).toFixed(5)) : null,
+      closePrice: tx.closePrice ? Number(Number(tx.closePrice).toFixed(5)) : null,
+      stopLoss: tx.stopLoss ? Number(Number(tx.stopLoss).toFixed(5)) : null,
+      takeProfit: tx.takeProfit ? Number(Number(tx.takeProfit).toFixed(5)) : null,
+      profit: tx.profit ? Number(Number(tx.profit).toFixed(2)) : null,
+      commission: tx.commission ? Number(Number(tx.commission).toFixed(2)) : null,
+      swap: tx.swap ? Number(Number(tx.swap).toFixed(2)) : null,
+      risk: tx.risk ? Number(Number(tx.risk).toFixed(2)) : null,
+      riskPercent: tx.riskPercent ? Number(Number(tx.riskPercent).toFixed(2)) : null,
+      balanceAtOpen: tx.balanceAtOpen ? Number(Number(tx.balanceAtOpen).toFixed(2)) : null,
+      comment: tx.comment ?? null,
+    }));
+
+    // Calculate currency pairs statistics
+    const symbolStatsMap = new Map<string, { totalTrades: number; profit: number }>();
+    transactions.forEach((tx) => {
+      if (!tx.symbol) return;
+      const stats = symbolStatsMap.get(tx.symbol) || { totalTrades: 0, profit: 0 };
+      stats.totalTrades++;
+      stats.profit += Number(tx.profit ?? 0);
+      symbolStatsMap.set(tx.symbol, stats);
+    });
+
+    const statsPerSymbol = Array.from(symbolStatsMap.entries())
+      .map(([symbol, stats]) => ({
+        symbol,
+        totalTrades: stats.totalTrades,
+        profit: stats.profit,
+      }))
+      .sort((a, b) => b.totalTrades - a.totalTrades);
+
+    const totalAllTrades = statsPerSymbol.reduce((sum, s) => sum + s.totalTrades, 0);
+    const top5Symbols = statsPerSymbol.slice(0, 5);
+    const otherSymbols = statsPerSymbol.slice(5);
+    const otherTotalTrades = otherSymbols.reduce((sum, s) => sum + s.totalTrades, 0);
+
+    const currencyPairsSeries = [
+      ...top5Symbols.map(s => ({
+        label: s.symbol,
+        value: s.totalTrades,
+        percentage: totalAllTrades > 0 ? Number(((s.totalTrades / totalAllTrades) * 100).toFixed(2)) : 0,
+      })),
+      ...(otherTotalTrades > 0 ? [{
+        label: 'Other',
+        value: otherTotalTrades,
+        percentage: totalAllTrades > 0 ? Number(((otherTotalTrades / totalAllTrades) * 100).toFixed(2)) : 0,
+      }] : []),
+    ];
+
+    const currencyPairs: LiveCurrencyPairsDto = {
+      series: currencyPairsSeries,
+    };
+
+    // Calculate trades short/long
+    const longTrades = transactions.filter(t => t.type?.toUpperCase() === 'BUY').length;
+    const shortTrades = transactions.filter(t => t.type?.toUpperCase() === 'SELL').length;
+
+    const tradesShortLong: LiveTradesShortLongDto = {
+      series: [
+        {
+          label: 'Long',
+          value: longTrades,
+        },
+        {
+          label: 'Short',
+          value: shortTrades,
+        },
+      ],
+    };
+
+    // Get equity and balance history
+    const balanceHistory = await this.tokyoDataService.getBalanceHistory(accountId, marathon.startDate, marathon.endDate || now);
+    const equityHistory = await this.tokyoDataService.getEquityHistory(accountId, marathon.startDate, marathon.endDate || now);
+
+    // Merge and format for chart
+    const equityMap = new Map<string, number>();
+    equityHistory.forEach((point) => {
+      const key = point.time.toISOString();
+      equityMap.set(key, Number(point.equity));
+    });
+
+    const categories: string[] = [];
+    const equityData: number[] = [];
+    const balanceData: number[] = [];
+
+    balanceHistory.forEach((point) => {
+      const key = point.time.toISOString();
+      categories.push(key);
+      balanceData.push(Number(point.balance));
+      equityData.push(equityMap.has(key) ? equityMap.get(key)! : Number(point.balance));
+    });
+
+    const equityBalance: EquityBalanceDto = {
+      categories,
+      series: [
+        {
+          name: 'Equity',
+          data: equityData,
+          group: 'apexcharts-axis-0',
+        },
+        {
+          name: 'Balance',
+          data: balanceData,
+          group: 'apexcharts-axis-0',
+        },
+      ],
+    };
+
+    // Get user details if public
+    let user: LiveUserDetailsDto | null = null;
+    if (isPublic && participant.user.profile) {
+      const profile = participant.user.profile;
+      user = {
+        name: profile.firstName && profile.lastName
+          ? `${profile.firstName} ${profile.lastName}`.trim()
+          : participant.user.email,
+        email: participant.user.email,
+        about: profile.about ?? null,
+        country: profile.nationality ?? null,
+        instagramUrl: profile.instagramUrl ?? null,
+        twitterUrl: profile.twitterUrl ?? null,
+        linkedinUrl: profile.linkedinUrl ?? null,
+        telegramUrl: profile.telegramUrl ?? null,
+      };
+    }
+
+    return {
+      marathon: marathonData,
+      riskMetrics,
+      tradeHistory,
+      currencyPairs,
+      tradesShortLong,
+      equityBalance,
+      user: user ?? undefined,
     };
   }
 } 

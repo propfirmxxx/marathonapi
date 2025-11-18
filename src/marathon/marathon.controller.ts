@@ -16,6 +16,7 @@ import {
   ParticipantAnalysisDto,
 } from './dto/marathon-response.dto';
 import { DashboardResponseDto } from './dto/dashboard-response.dto';
+import { LiveResponseDto } from './dto/live-response.dto';
 import { ParticipantAnalysisQueryDto } from './dto/participant-analysis-query.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
@@ -284,45 +285,41 @@ Returns dashboard data in the format matching dashboard.json structure.
   }
 
   @ApiOperation({ 
-    summary: 'Get comprehensive analysis for a participant with advanced filtering (public endpoint, authentication optional)',
+    summary: 'Get live participant analysis data (public endpoint, authentication optional)',
     description: `
-Provides detailed participant analysis with flexible filtering options:
+Returns participant analysis data in live.json format.
 
-**Filtering Sections:**
-- Use 'sections' parameter to select specific data sections (performance, drawdown, floatingRisk, etc.)
-- If not specified, all sections are returned
+**Public Access:**
+- When accessed by another user (public), includes user details (name, email, social media links)
+- When accessed by the participant themselves, user details are not included
 
-**Trade History Filtering:**
-- Filter by symbols, profit ranges, win/loss status
-- Sort by time or profit
-- Limit number of results
-
-**History Aggregation:**
-- Aggregate equity/balance history by hourly, daily, or weekly periods
-- Limit number of history points
-
-**Examples:**
-- Get only performance and trade history: ?sections=performance,tradeHistory
-- Get top 10 profitable trades: ?sections=tradeHistory&tradeHistoryLimit=10&tradeHistorySortBy=profit_desc
-- Get daily aggregated history: ?sections=equityBalanceHistory&historyResolution=daily
-- Get EURUSD trades only: ?sections=tradeHistory&tradeSymbols=EURUSD
+**Data Included:**
+- Marathon information (id, name, isLive, dates, rank, participants)
+- Performance metrics (trades, winrate, equity, balance, profit/loss)
+- Risk metrics (risk float, drawdown)
+- Trade history with status (Win/Loss/Stopped)
+- Currency pairs statistics
+- Trades short/long distribution
+- Equity/Balance history chart data
     `
   })
   @ApiResponse({ 
     status: 200, 
-    description: 'Returns detailed analysis with requested sections only',
-    type: ParticipantAnalysisDto
+    description: 'Returns live participant analysis data',
+    type: LiveResponseDto
   })
   @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
   @ApiParam({ name: 'participantId', description: 'Participant ID' })
-  @ApiQuery({ name: 'query', type: ParticipantAnalysisQueryDto })
   @Get(':marathonId/participants/:participantId/analysis')
   async getParticipantAnalysis(
     @Param('marathonId') marathonId: string,
     @Param('participantId') participantId: string,
-    @Query() query: ParticipantAnalysisQueryDto,
-  ): Promise<Partial<ParticipantAnalysisDto>> {
-    return await this.marathonService.getParticipantAnalysis(marathonId, participantId, query);
+    @Req() req: any,
+  ): Promise<LiveResponseDto> {
+    const currentUserId = req.user?.id;
+    const participant = await this.marathonService.getParticipantByIdInMarathon(marathonId, participantId);
+    const isPublic = !currentUserId || currentUserId !== participant.user.id;
+    return await this.marathonService.getParticipantLiveAnalysis(marathonId, participantId, isPublic);
   }
 
   @ApiBearerAuth()
