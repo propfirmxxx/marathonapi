@@ -29,7 +29,7 @@ export class AccountDeploymentResponseDto {
   data_preview?: any | null;
 }
 
-export class MessageResponseDto {
+export class TokyoMessageResponseDto {
   @ApiProperty({
     description: "Status: 'success' or 'error'",
     example: 'success',

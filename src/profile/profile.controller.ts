@@ -20,7 +20,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import {
   ProfileResponseDto,
   AvatarUploadResponseDto,
-  MessageResponseDto,
+  ProfileMessageResponseDto,
   SocialMediaUpdateResponseDto,
 } from './dto/profile-response.dto';
 
@@ -103,7 +103,7 @@ export class ProfileController {
   @ApiResponse({ 
     status: 200, 
     description: 'Avatar deleted successfully',
-    type: MessageResponseDto
+    type: ProfileMessageResponseDto
   })
   deleteAvatar(@GetUser('uid') uid: string) {
     return this.profileService.deleteAvatar(uid);
@@ -114,12 +114,12 @@ export class ProfileController {
   @ApiResponse({ 
     status: 200, 
     description: 'Password changed successfully',
-    type: MessageResponseDto
+    type: ProfileMessageResponseDto
   })
   @ApiResponse({ 
     status: 401, 
     description: 'Current password is incorrect',
-    type: MessageResponseDto
+    type: ProfileMessageResponseDto
   })
   changePassword(
     @GetUser('uid') uid: string,

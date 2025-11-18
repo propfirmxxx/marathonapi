@@ -59,7 +59,7 @@ export class SocialMediaUpdateResponseDto {
   message: string;
 }
 
-export class MessageResponseDto {
+export class ProfileMessageResponseDto {
   @ApiProperty({ example: 'Operation completed successfully' })
   message: string;
 } 

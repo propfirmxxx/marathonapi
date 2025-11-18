@@ -7,7 +7,7 @@ import { LoginOnlyDto } from './dto/login-only.dto';
 import { AccountOwnershipGuard } from './guards/account-ownership.guard';
 import {
   AccountDeploymentResponseDto,
-  MessageResponseDto,
+  TokyoMessageResponseDto,
   LatestDataResponseDto,
   AccountListResponseDto,
   AccountDataResponseDto,
@@ -166,7 +166,7 @@ export class TokyoController {
   @ApiResponse({
     status: 200,
     description: 'Successful Response',
-    type: MessageResponseDto,
+    type: TokyoMessageResponseDto,
   })
   @ApiBody({ type: LoginOnlyDto })
   @Post('undeploy')
