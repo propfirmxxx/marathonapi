@@ -8,18 +8,18 @@ import { PaymentService } from '../payment/payment.service';
 import { CreateMarathonDto } from './dto/create-marathon.dto';
 import { GetMarathonsDto } from './dto/get-marathons.dto';
 import {
-  MarathonParticipantListResponseDto,
   MarathonResponseDto,
   MarathonLeaderboardResponseDto,
   MarathonPnLHistoryResponseDto,
-  MarathonTransactionHistoryResponseDto,
+  MarathonTradeHistoryResponseDto,
+  ParticipantTradeHistoryDto,
   ParticipantAnalysisDto,
 } from './dto/marathon-response.dto';
+import { DashboardResponseDto } from './dto/dashboard-response.dto';
 import { ParticipantAnalysisQueryDto } from './dto/participant-analysis-query.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
-import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
 
@@ -167,99 +167,6 @@ export class MarathonController {
     return this.paymentService.createMarathonPayment(req.user.id, id);
   }
 
-  @ApiOperation({ summary: 'Cancel marathon participation (before start)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Cancels participation and refunds 80% entry fee to virtual wallet',
-    type: CancelMarathonResponseDto,
-  })
-  @ApiBearerAuth()
-  @ApiParam({ name: 'id', description: 'Marathon ID' })
-  @Post(':id/cancel')
-  @UseGuards(AuthGuard('jwt'))
-  async cancelParticipation(@Param('id') id: string, @Req() req: any): Promise<CancelMarathonResponseDto> {
-    return this.marathonService.cancelParticipation(req.user.id, id);
-  }
-
-  @ApiOperation({ summary: 'Get marathon participants (public endpoint, authentication optional)' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Returns all participants of the marathon',
-    type: MarathonParticipantListResponseDto
-  })
-  @ApiParam({ name: 'id', description: 'Marathon ID' })
-  @Get(':id/participants')
-  async getMarathonParticipants(@Param('id') id: string) {
-    const { participants, total, marathon } = await this.marathonService.getMarathonParticipants(id);
-    const marathonStarted = marathon.startDate ? marathon.startDate.getTime() <= Date.now() : false;
-
-    const items = participants.map((p) => {
-      const marathonId = p.marathon?.id ?? marathon.id;
-      const user = p.user;
-      const profile = user?.profile;
-
-      const base = {
-        id: p.id,
-        marathonId,
-        userId: user?.id ?? '',
-        joinedAt: p.createdAt,
-        status: p.isActive ? 'active' : 'inactive',
-        user: {
-          id: user?.id ?? '',
-          firstName: profile?.firstName || '',
-          lastName: profile?.lastName || '',
-          email: user?.email || '',
-        },
-        metaTraderAccountId: p.metaTraderAccountId,
-      };
-
-      if (!marathonStarted) {
-        return base;
-      }
-
-      const account = p.metaTraderAccount;
-      const snapshot = account?.login ? this.liveAccountDataService.getSnapshot(account.login) : null;
-
-      return {
-        ...base,
-        currentBalance: snapshot?.balance ?? null,
-        profit: snapshot?.profit ?? null,
-        trades: snapshot?.positions ? snapshot.positions.length : null,
-        equity: snapshot?.equity ?? null,
-        metaTraderAccount: account
-          ? {
-              id: account.id,
-              login: account.login,
-              investorPassword: account.investorPassword ?? null,
-              server: account.server,
-              platform: account.platform,
-              status: account.status,
-              updatedAt: account.updatedAt ?? null,
-            }
-          : null,
-        liveData: snapshot
-          ? {
-              balance: snapshot.balance ?? null,
-              equity: snapshot.equity ?? null,
-              profit: snapshot.profit ?? null,
-              margin: snapshot.margin ?? null,
-              freeMargin: snapshot.freeMargin ?? null,
-              currency: snapshot.currency ?? null,
-              positions: snapshot.positions ?? null,
-              orders: snapshot.orders ?? null,
-              updatedAt: snapshot.updatedAt ?? null,
-            }
-          : null,
-      };
-    });
-
-    return {
-      items,
-      total,
-      marathonStarted,
-    };
-  }
-
   @ApiOperation({ summary: 'Get marathon leaderboard (public endpoint, authentication optional)' })
   @ApiResponse({ 
     status: 200, 
@@ -292,27 +199,189 @@ export class MarathonController {
     return await this.marathonService.getMarathonPnLHistory(id, fromDate, toDate);
   }
 
-  @ApiOperation({ summary: 'Get transaction history for marathon participants (public endpoint, authentication optional)' })
+  @ApiOperation({ summary: 'Get trade history for a specific participant (public endpoint, authentication optional)' })
   @ApiResponse({ 
     status: 200, 
-    description: 'Returns transaction history for all participants',
-    type: MarathonTransactionHistoryResponseDto
+    description: 'Returns trade history for the participant',
+    type: ParticipantTradeHistoryDto
+  })
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @ApiParam({ name: 'participantId', description: 'Participant ID' })
+  @ApiQuery({ name: 'from', required: false, type: String, description: 'Start date (ISO string)', example: '2024-01-01T00:00:00Z' })
+  @ApiQuery({ name: 'to', required: false, type: String, description: 'End date (ISO string)', example: '2024-12-31T23:59:59Z' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of trades', example: 100 })
+  @Get(':id/participants/:participantId/trade-history')
+  async getParticipantTradeHistory(
+    @Param('id') id: string,
+    @Param('participantId') participantId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+  ): Promise<ParticipantTradeHistoryDto> {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+    return await this.marathonService.getParticipantTradeHistory(id, participantId, fromDate, toDate, limitNum);
+  }
+
+  @ApiOperation({ summary: 'Get trade history for marathon participants (public endpoint, authentication optional)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns trade history for all participants',
+    type: MarathonTradeHistoryResponseDto
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
   @ApiQuery({ name: 'from', required: false, type: String, description: 'Start date (ISO string)', example: '2024-01-01T00:00:00Z' })
   @ApiQuery({ name: 'to', required: false, type: String, description: 'End date (ISO string)', example: '2024-12-31T23:59:59Z' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of transactions per participant', example: 100 })
-  @Get(':id/transactions')
-  async getMarathonTransactionHistory(
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Maximum number of trades per participant', example: 100 })
+  @Get(':id/trade-history')
+  async getMarathonTradeHistory(
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('limit') limit?: string,
-  ): Promise<MarathonTransactionHistoryResponseDto> {
+  ): Promise<MarathonTradeHistoryResponseDto> {
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
     const limitNum = limit ? parseInt(limit, 10) : undefined;
-    return await this.marathonService.getMarathonTransactionHistory(id, fromDate, toDate, limitNum);
+    return await this.marathonService.getMarathonTradeHistory(id, fromDate, toDate, limitNum);
+  }
+
+  @ApiOperation({ 
+    summary: 'Get dashboard data for a user (public endpoint, authentication optional)',
+    description: `
+Returns dashboard data in the format matching dashboard.json structure.
+
+**Public Access:**
+- When accessed by another user (public), includes user details (name, email, social media links)
+- When accessed by the user themselves, user details are not included
+
+**Data Included:**
+- Trades winrate (total, successful, stopped trades)
+- Currency pairs statistics
+- Currency pairs treemap (by trades and performance)
+- Currency pairs winrate chart data
+- Trades short/long distribution
+- Best marathons (top 5 finished marathons by rank)
+- Last ongoing marathon participation
+- Last 5 trades
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns dashboard data',
+    type: DashboardResponseDto
+  })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @Get('users/:userId/analysis')
+  async getUserDashboard(
+    @Param('userId') userId: string,
+    @Req() req: any,
+  ): Promise<DashboardResponseDto> {
+    const currentUserId = req.user?.id;
+    const isPublic = !currentUserId || currentUserId !== userId;
+    return await this.marathonService.getUserDashboard(userId, isPublic);
+  }
+
+  @ApiOperation({ 
+    summary: 'Get comprehensive analysis for a participant with advanced filtering (public endpoint, authentication optional)',
+    description: `
+Provides detailed participant analysis with flexible filtering options:
+
+**Filtering Sections:**
+- Use 'sections' parameter to select specific data sections (performance, drawdown, floatingRisk, etc.)
+- If not specified, all sections are returned
+
+**Trade History Filtering:**
+- Filter by symbols, profit ranges, win/loss status
+- Sort by time or profit
+- Limit number of results
+
+**History Aggregation:**
+- Aggregate equity/balance history by hourly, daily, or weekly periods
+- Limit number of history points
+
+**Examples:**
+- Get only performance and trade history: ?sections=performance,tradeHistory
+- Get top 10 profitable trades: ?sections=tradeHistory&tradeHistoryLimit=10&tradeHistorySortBy=profit_desc
+- Get daily aggregated history: ?sections=equityBalanceHistory&historyResolution=daily
+- Get EURUSD trades only: ?sections=tradeHistory&tradeSymbols=EURUSD
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns detailed analysis with requested sections only',
+    type: ParticipantAnalysisDto
+  })
+  @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
+  @ApiParam({ name: 'participantId', description: 'Participant ID' })
+  @ApiQuery({ name: 'query', type: ParticipantAnalysisQueryDto })
+  @Get(':marathonId/participants/:participantId/analysis')
+  async getParticipantAnalysis(
+    @Param('marathonId') marathonId: string,
+    @Param('participantId') participantId: string,
+    @Query() query: ParticipantAnalysisQueryDto,
+  ): Promise<Partial<ParticipantAnalysisDto>> {
+    return await this.marathonService.getParticipantAnalysis(marathonId, participantId, query);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ 
+    summary: 'Get RabbitMQ connection health status',
+    description: 'Returns the health status of RabbitMQ connection, message count, and snapshot statistics'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'RabbitMQ health status',
+    schema: {
+      type: 'object',
+      properties: {
+        enabled: { type: 'boolean', description: 'Whether RabbitMQ is enabled via RABBITMQ_ENABLED env variable' },
+        connected: { type: 'boolean', description: 'Whether RabbitMQ is connected' },
+        queueName: { type: 'string', description: 'Name of the RabbitMQ queue' },
+        messageCount: { type: 'number', description: 'Total messages processed' },
+        snapshotCount: { type: 'number', description: 'Number of active account snapshots' },
+        lastMessageTime: { type: 'string', format: 'date-time', description: 'Time of last message received', nullable: true },
+      }
+    }
+  })
+  @Get('rabbitmq-health')
+  async getRabbitMQHealth() {
+    return await this.liveAccountDataService.getHealth();
+  }
+
+  @ApiOperation({
+    summary: 'Get WebSocket subscription statistics',
+    description: 'Returns information about active WebSocket connections and RabbitMQ subscriptions'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'WebSocket subscription statistics',
+    schema: {
+      type: 'object',
+      properties: {
+        connectedClients: { type: 'number', description: 'Number of connected WebSocket clients' },
+        activeMarathons: { type: 'number', description: 'Number of marathons with active subscriptions' },
+        isListeningToRabbitMQ: { type: 'boolean', description: 'Whether Gateway is listening to RabbitMQ' },
+        marathonSubscriptions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              marathonId: { type: 'string' },
+              subscribers: { type: 'number' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @Get('websocket-stats')
+  getWebSocketStats() {
+    return this.liveDataGateway.getSubscriptionStats();
   }
 
   @ApiBearerAuth()
@@ -482,153 +551,5 @@ socket.on('error', (error) => {
       namespace: 'marathon-live',
       documentation: 'See detailed documentation in WEBSOCKET.md',
     };
-  }
-
-  @ApiOperation({ 
-    summary: 'Get aggregated analysis for a user across all their participants and accounts',
-    description: `
-Provides comprehensive participant analysis aggregated across ALL marathons and accounts for a user.
-All trades from different accounts and marathons are treated as if they were on a single account.
-
-**Filtering Sections:**
-- Use 'sections' parameter to select specific data sections (performance, drawdown, floatingRisk, etc.)
-- If not specified, all sections are returned
-
-**Trade History Filtering:**
-- Filter by symbols, profit ranges, win/loss status
-- Sort by time or profit
-- Limit number of results
-
-**History Aggregation:**
-- Aggregate equity/balance history by hourly, daily, or weekly periods
-- Limit number of history points
-
-**Date Range:**
-- Use 'from' and 'to' parameters to filter by time period
-- If not specified, all historical data is included
-
-**Examples:**
-- Get all historical analysis: GET /marathons/users/:userId/analysis
-- Get analysis for specific period: GET /marathons/users/:userId/analysis?from=2024-01-01T00:00:00Z&to=2024-12-31T23:59:59Z
-- Get only performance and trade history: ?sections=performance,tradeHistory
-- Get top 10 profitable trades: ?sections=tradeHistory&tradeHistoryLimit=10&tradeHistorySortBy=profit_desc
-- Get daily aggregated history: ?sections=equityBalanceHistory&historyResolution=daily
-- Get EURUSD trades only: ?sections=tradeHistory&tradeSymbols=EURUSD
-    `
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Returns aggregated analysis with requested sections',
-    type: ParticipantAnalysisDto
-  })
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiQuery({ name: 'query', type: ParticipantAnalysisQueryDto })
-  @Get('users/:userId/analysis')
-  async getUserAggregatedAnalysis(
-    @Param('userId') userId: string,
-    @Query() query: ParticipantAnalysisQueryDto,
-  ): Promise<Partial<ParticipantAnalysisDto>> {
-    return await this.marathonService.getUserAggregatedAnalysis(userId, query);
-  }
-
-  @ApiOperation({ 
-    summary: 'Get comprehensive analysis for a participant with advanced filtering (public endpoint, authentication optional)',
-    description: `
-Provides detailed participant analysis with flexible filtering options:
-
-**Filtering Sections:**
-- Use 'sections' parameter to select specific data sections (performance, drawdown, floatingRisk, etc.)
-- If not specified, all sections are returned
-
-**Trade History Filtering:**
-- Filter by symbols, profit ranges, win/loss status
-- Sort by time or profit
-- Limit number of results
-
-**History Aggregation:**
-- Aggregate equity/balance history by hourly, daily, or weekly periods
-- Limit number of history points
-
-**Examples:**
-- Get only performance and trade history: ?sections=performance,tradeHistory
-- Get top 10 profitable trades: ?sections=tradeHistory&tradeHistoryLimit=10&tradeHistorySortBy=profit_desc
-- Get daily aggregated history: ?sections=equityBalanceHistory&historyResolution=daily
-- Get EURUSD trades only: ?sections=tradeHistory&tradeSymbols=EURUSD
-    `
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Returns detailed analysis with requested sections only',
-    type: ParticipantAnalysisDto
-  })
-  @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
-  @ApiParam({ name: 'participantId', description: 'Participant ID' })
-  @ApiQuery({ name: 'query', type: ParticipantAnalysisQueryDto })
-  @Get(':marathonId/participants/:participantId/analysis')
-  async getParticipantAnalysis(
-    @Param('marathonId') marathonId: string,
-    @Param('participantId') participantId: string,
-    @Query() query: ParticipantAnalysisQueryDto,
-  ): Promise<Partial<ParticipantAnalysisDto>> {
-    return await this.marathonService.getParticipantAnalysis(marathonId, participantId, query);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ 
-    summary: 'Get RabbitMQ connection health status',
-    description: 'Returns the health status of RabbitMQ connection, message count, and snapshot statistics'
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'RabbitMQ health status',
-    schema: {
-      type: 'object',
-      properties: {
-        enabled: { type: 'boolean', description: 'Whether RabbitMQ is enabled via RABBITMQ_ENABLED env variable' },
-        connected: { type: 'boolean', description: 'Whether RabbitMQ is connected' },
-        queueName: { type: 'string', description: 'Name of the RabbitMQ queue' },
-        messageCount: { type: 'number', description: 'Total messages processed' },
-        snapshotCount: { type: 'number', description: 'Number of active account snapshots' },
-        lastMessageTime: { type: 'string', format: 'date-time', description: 'Time of last message received', nullable: true },
-      }
-    }
-  })
-  @Get('rabbitmq-health')
-  async getRabbitMQHealth() {
-    return await this.liveAccountDataService.getHealth();
-  }
-
-  @ApiOperation({
-    summary: 'Get WebSocket subscription statistics',
-    description: 'Returns information about active WebSocket connections and RabbitMQ subscriptions'
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'WebSocket subscription statistics',
-    schema: {
-      type: 'object',
-      properties: {
-        connectedClients: { type: 'number', description: 'Number of connected WebSocket clients' },
-        activeMarathons: { type: 'number', description: 'Number of marathons with active subscriptions' },
-        isListeningToRabbitMQ: { type: 'boolean', description: 'Whether Gateway is listening to RabbitMQ' },
-        marathonSubscriptions: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              marathonId: { type: 'string' },
-              subscribers: { type: 'number' }
-            }
-          }
-        }
-      }
-    }
-  })
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard('jwt'), AdminGuard)
-  @Get('websocket-stats')
-  getWebSocketStats() {
-    return this.liveDataGateway.getSubscriptionStats();
   }
 } 

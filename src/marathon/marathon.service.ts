@@ -16,10 +16,13 @@ import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entit
 import { TokyoTransactionHistory } from '../tokyo-data/entities/tokyo-transaction-history.entity';
 import { TokyoBalanceHistory } from '../tokyo-data/entities/tokyo-balance-history.entity';
 import { TokyoEquityHistory } from '../tokyo-data/entities/tokyo-equity-history.entity';
-import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTransactionHistoryResponseDto, ParticipantTransactionHistoryDto, TransactionDto, ParticipantAnalysisDto, PerformanceMetricsDto, DrawdownMetricsDto, FloatingRiskDto, EquityBalanceHistoryPointDto, SymbolStatsDto, TradeHistoryDto } from './dto/marathon-response.dto';
+import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTradeHistoryResponseDto, ParticipantTradeHistoryDto, TradeDto, ParticipantAnalysisDto, PerformanceMetricsDto, DrawdownMetricsDto, FloatingRiskDto, EquityBalanceHistoryPointDto, SymbolStatsDto, TradeHistoryDto } from './dto/marathon-response.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 import { ParticipantAnalysisQueryDto, AnalysisSection, TradeHistorySortBy, HistoryResolution } from './dto/participant-analysis-query.dto';
+import { DashboardResponseDto, TradesWinrateDto, CurrencyPairsDto, CurrencyPairSeriesDto, CurrencyPairsTreemapDto, CurrencyPairTreemapByTradesDto, CurrencyPairTreemapPerformanceDto, CurrencyPairsWinrateDto, CurrencyPairsWinrateSeriesDto, TradesShortLongDto, TradesShortLongSeriesDto, BestMarathonDto, LastMarathonDto, LastTradeDto, UserDetailsDto, UserStatsDto } from './dto/dashboard-response.dto';
+import { MarathonLeaderboardService } from './marathon-leaderboard.service';
+import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 
 @Injectable()
 export class MarathonService {
@@ -41,10 +44,13 @@ export class MarathonService {
     private readonly balanceHistoryRepository: Repository<TokyoBalanceHistory>,
     @InjectRepository(TokyoEquityHistory)
     private readonly equityHistoryRepository: Repository<TokyoEquityHistory>,
+    @InjectRepository(Withdrawal)
+    private readonly withdrawalRepository: Repository<Withdrawal>,
     private readonly tokyoService: TokyoService,
     private readonly virtualWalletService: VirtualWalletService,
     private readonly tokyoDataService: TokyoDataService,
     private readonly liveAccountDataService: LiveAccountDataService,
+    private readonly leaderboardService: MarathonLeaderboardService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -567,14 +573,14 @@ export class MarathonService {
   }
 
   /**
-   * Get transaction history for all participants in a marathon
+   * Get trade history for all participants in a marathon
    */
-  async getMarathonTransactionHistory(
+  async getMarathonTradeHistory(
     marathonId: string,
     from?: Date,
     to?: Date,
     limit?: number,
-  ): Promise<MarathonTransactionHistoryResponseDto> {
+  ): Promise<MarathonTradeHistoryResponseDto> {
     // Check if marathon exists
     const marathon = await this.marathonRepository.findOne({
       where: { id: marathonId },
@@ -594,14 +600,14 @@ export class MarathonService {
       relations: ['user', 'user.profile', 'metaTraderAccount'],
     });
 
-    const participantsHistory: ParticipantTransactionHistoryDto[] = [];
+    const participantsHistory: ParticipantTradeHistoryDto[] = [];
 
     for (const participant of participants) {
       if (!participant.metaTraderAccount?.id) {
         continue;
       }
 
-      // Get transaction history for this account
+      // Get trade history for this account
       const transactions = await this.tokyoDataService.getTransactionHistoryByDateRange(
         participant.metaTraderAccount.id,
         startDate,
@@ -610,7 +616,7 @@ export class MarathonService {
       );
 
       // Map transactions to DTO (only include requested fields)
-      const transactionDtos: TransactionDto[] = transactions.map((tx) => ({
+      const tradeDtos: TradeDto[] = transactions.map((tx) => ({
         type: tx.type ?? null,
         volume: tx.volume ? Number(tx.volume) : null,
         entry: tx.openPrice ? Number(tx.openPrice) : null,
@@ -629,8 +635,8 @@ export class MarathonService {
         userId: participant.user.id,
         userName,
         accountLogin: participant.metaTraderAccount.login,
-        totalTransactions: transactionDtos.length,
-        transactions: transactionDtos,
+        totalTrades: tradeDtos.length,
+        trades: tradeDtos,
       });
     }
 
@@ -638,6 +644,76 @@ export class MarathonService {
       marathonId: marathon.id,
       marathonName: marathon.name,
       participants: participantsHistory,
+    };
+  }
+
+  /**
+   * Get trade history for a specific participant in a marathon
+   */
+  async getParticipantTradeHistory(
+    marathonId: string,
+    participantId: string,
+    from?: Date,
+    to?: Date,
+    limit?: number,
+  ): Promise<ParticipantTradeHistoryDto> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Get participant with relations
+    const participant = await this.participantRepository.findOne({
+      where: { id: participantId, marathon: { id: marathonId } },
+      relations: ['user', 'user.profile', 'metaTraderAccount', 'marathon'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException(`Participant with ID ${participantId} not found in marathon ${marathonId}`);
+    }
+
+    if (!participant.metaTraderAccount?.id) {
+      throw new NotFoundException(`Participant ${participantId} does not have a MetaTrader account`);
+    }
+
+    // Set default date range to marathon period if not provided
+    const startDate = from || marathon.startDate;
+    const endDate = to || marathon.endDate || new Date();
+
+    // Get trade history for this account
+    const transactions = await this.tokyoDataService.getTransactionHistoryByDateRange(
+      participant.metaTraderAccount.id,
+      startDate,
+      endDate,
+      limit,
+    );
+
+    // Map transactions to DTO (only include requested fields)
+    const tradeDtos: TradeDto[] = transactions.map((tx) => ({
+      type: tx.type ?? null,
+      volume: tx.volume ? Number(tx.volume) : null,
+      entry: tx.openPrice ? Number(tx.openPrice) : null,
+      openTime: tx.openTime ?? null,
+      symbol: tx.symbol ?? null,
+      profit: tx.profit ? Number(tx.profit) : null,
+    }));
+
+    // Get user name
+    const userName = participant.user.profile?.firstName
+      ? `${participant.user.profile.firstName} ${participant.user.profile.lastName || ''}`.trim()
+      : participant.user.email;
+
+    return {
+      participantId: participant.id,
+      userId: participant.user.id,
+      userName,
+      accountLogin: participant.metaTraderAccount.login,
+      totalTrades: tradeDtos.length,
+      trades: tradeDtos,
     };
   }
 
@@ -1530,5 +1606,344 @@ export class MarathonService {
       default:
         return sorted;
     }
+  }
+
+  /**
+   * Calculate prize amount based on rank and prize strategy
+   */
+  private calculatePrize(rank: number, marathon: Marathon): number {
+    const awardsAmount = Number(marathon.awardsAmount ?? 0);
+    if (awardsAmount === 0) return 0;
+
+    const strategyType = marathon.prizeStrategyType ?? PrizeStrategyType.WINNER_TAKE_ALL;
+    const config = marathon.prizeStrategyConfig;
+
+    if (strategyType === PrizeStrategyType.WINNER_TAKE_ALL) {
+      // Winner takes all - only rank 1 gets prize
+      return rank === 1 ? awardsAmount : 0;
+    }
+
+    if (strategyType === PrizeStrategyType.PERCENTAGE_SPLIT && config?.placements) {
+      // Find matching placement for this rank
+      const placement = config.placements.find(p => p.position === rank);
+      if (placement && placement.percentage !== undefined) {
+        return Number((awardsAmount * (placement.percentage / 100)).toFixed(2));
+      }
+    }
+
+    return 0;
+  }
+
+  /**
+   * Get dashboard data for a user
+   */
+  async getUserDashboard(userId: string, isPublic: boolean = false): Promise<DashboardResponseDto> {
+    // Get user aggregated analysis with all sections
+    const analysis = await this.getUserAggregatedAnalysis(userId, {
+      sections: [
+        AnalysisSection.PERFORMANCE,
+        AnalysisSection.STATS_PER_SYMBOL,
+        AnalysisSection.TRADE_HISTORY,
+      ],
+      tradeHistoryLimit: 1000, // Get more trades for accurate statistics
+    });
+
+    // Get all participants with marathons
+    const participants = await this.participantRepository.find({
+      where: { user: { id: userId }, isActive: true },
+      relations: ['marathon', 'metaTraderAccount', 'user', 'user.profile'],
+      order: { createdAt: 'DESC' },
+    });
+
+    // Get user details if public
+    let userDetails: UserDetailsDto | null = null;
+    if (isPublic && participants.length > 0) {
+      const user = participants[0].user;
+      const profile = user.profile;
+      if (profile) {
+        userDetails = {
+          name: profile.firstName && profile.lastName
+            ? `${profile.firstName} ${profile.lastName}`.trim()
+            : user.email,
+          email: user.email,
+          about: profile.about ?? null,
+          country: profile.nationality ?? null,
+          instagramUrl: profile.instagramUrl ?? null,
+          twitterUrl: profile.twitterUrl ?? null,
+          linkedinUrl: profile.linkedinUrl ?? null,
+          telegramUrl: profile.telegramUrl ?? null,
+        };
+      }
+    }
+
+    // Calculate user stats
+    const totalMarathons = participants.length;
+    
+    // Get total withdrawals
+    const totalWithdrawalResult = await this.withdrawalRepository
+      .createQueryBuilder('withdrawal')
+      .select('COALESCE(SUM(withdrawal.amount), 0)', 'total')
+      .where('withdrawal.userId = :userId', { userId })
+      .getRawOne();
+    const totalWithdrawal = Number(totalWithdrawalResult?.total || '0');
+
+    // Calculate marathons won (finished marathons where user rank = 1)
+    const finishedParticipants = participants.filter(p => 
+      p.marathon && p.marathon.status === MarathonStatus.FINISHED
+    );
+    
+    const snapshots = this.liveAccountDataService.getAllSnapshots();
+    let marathonsWon = 0;
+    
+    for (const participant of finishedParticipants) {
+      const marathon = participant.marathon!;
+      const leaderboard = await this.leaderboardService.calculateLeaderboard(marathon.id, snapshots);
+      const userEntry = leaderboard?.entries.find(e => e.userId === userId);
+      if (userEntry && userEntry.rank === 1) {
+        marathonsWon++;
+      }
+    }
+
+    const marathonsWinrate = totalMarathons > 0
+      ? Number(((marathonsWon / totalMarathons) * 100).toFixed(2))
+      : 0;
+
+    const stats: UserStatsDto = {
+      totalWithdrawal: Number(totalWithdrawal.toFixed(2)),
+      totalMarathons,
+      marathonsWon,
+      marathonsWinrate,
+    };
+
+    // Calculate trades winrate
+    const totalTrades = analysis.totalTrades ?? 0;
+    const successfulTrades = analysis.winTrades ?? 0;
+    const stoppedTrades = analysis.lossTrades ?? 0;
+    const winratePercentage = totalTrades > 0
+      ? Number(((successfulTrades / totalTrades) * 100).toFixed(2))
+      : 0;
+
+    const tradesWinrate: TradesWinrateDto = {
+      total_trades: totalTrades,
+      win_trades: successfulTrades,
+      loss_trades: stoppedTrades,
+      percentage: Number(winratePercentage.toFixed(2)),
+    };
+
+    // Calculate currency pairs (top 5 + Other)
+    const statsPerSymbol = analysis.statsPerSymbol ?? [];
+    const top5Symbols = statsPerSymbol.slice(0, 5);
+    const otherSymbols = statsPerSymbol.slice(5);
+    const otherTotalTrades = otherSymbols.reduce((sum, s) => sum + s.totalTrades, 0);
+    const totalAllTrades = statsPerSymbol.reduce((sum, s) => sum + s.totalTrades, 0);
+
+    const currencyPairsSeries: CurrencyPairSeriesDto[] = [
+      ...top5Symbols.map(s => ({
+        label: s.symbol,
+        value: s.totalTrades,
+        percentage: totalAllTrades > 0 ? Number(((s.totalTrades / totalAllTrades) * 100).toFixed(2)) : 0,
+      })),
+      ...(otherTotalTrades > 0 ? [{
+        label: 'Other',
+        value: otherTotalTrades,
+        percentage: totalAllTrades > 0 ? Number(((otherTotalTrades / totalAllTrades) * 100).toFixed(2)) : 0,
+      }] : []),
+    ];
+
+    const currencyPairs: CurrencyPairsDto = {
+      series: currencyPairsSeries,
+    };
+
+    // Currency pairs treemap
+    const currencyPairsTreemapByTrades: CurrencyPairTreemapByTradesDto[] = statsPerSymbol.map(s => ({
+      x: s.symbol,
+      y: s.totalTrades,
+    }));
+
+    // Add "Other" if there are more than top symbols
+    if (otherTotalTrades > 0) {
+      currencyPairsTreemapByTrades.push({
+        x: 'Other',
+        y: otherTotalTrades,
+      });
+    }
+
+    // Calculate performance per symbol (profit percentage based on average profit)
+    const currencyPairsTreemapPerformance: CurrencyPairTreemapPerformanceDto[] = statsPerSymbol.map(s => {
+      const avgProfit = s.averageProfit ?? 0;
+      // Performance as average profit per trade (simplified metric)
+      return {
+        label: s.symbol,
+        performance: Number(avgProfit.toFixed(2)),
+      };
+    });
+
+    if (otherTotalTrades > 0) {
+      const otherTotalProfit = otherSymbols.reduce((sum, s) => sum + (s.profit ?? 0), 0);
+      const otherAvgProfit = otherTotalTrades > 0 ? otherTotalProfit / otherTotalTrades : 0;
+      currencyPairsTreemapPerformance.push({
+        label: 'Other',
+        performance: Number(otherAvgProfit.toFixed(2)),
+      });
+    }
+
+    const currencyPairsTreemap: CurrencyPairsTreemapDto = {
+      byTrades: currencyPairsTreemapByTrades,
+      performance: currencyPairsTreemapPerformance,
+    };
+
+    // Currency pairs winrate
+    const top6Symbols = statsPerSymbol.slice(0, 6);
+    const categories = top6Symbols.map(s => s.symbol);
+    if (otherTotalTrades > 0 && top6Symbols.length < 6) {
+      categories.push('Other');
+    }
+
+    const winData: number[] = top6Symbols.map(s => s.winrate);
+    if (otherTotalTrades > 0 && top6Symbols.length < 6) {
+      const otherWinTrades = otherSymbols.reduce((sum, s) => sum + s.winTrades, 0);
+      const otherWinrate = otherTotalTrades > 0 ? Number(((otherWinTrades / otherTotalTrades) * 100).toFixed(2)) : 0;
+      winData.push(otherWinrate);
+    }
+
+    const lossData: number[] = top6Symbols.map(s => {
+      const lossTrades = s.lossTrades;
+      return s.totalTrades > 0 ? Number(((lossTrades / s.totalTrades) * 100).toFixed(2)) : 0;
+    });
+    if (otherTotalTrades > 0 && top6Symbols.length < 6) {
+      const otherLossTrades = otherSymbols.reduce((sum, s) => sum + s.lossTrades, 0);
+      const otherLossrate = otherTotalTrades > 0 ? Number(((otherLossTrades / otherTotalTrades) * 100).toFixed(2)) : 0;
+      lossData.push(otherLossrate);
+    }
+
+    const currencyPairsWinrate: CurrencyPairsWinrateDto = {
+      categories,
+      series: [
+        { name: 'Win', data: winData },
+        { name: 'Loss', data: lossData },
+      ],
+    };
+
+    // Trades short/long
+    const tradeHistory = analysis.tradeHistory ?? [];
+    const longTrades = tradeHistory.filter(t => t.type?.toUpperCase() === 'BUY' || t.type?.toUpperCase() === 'LONG').length;
+    const shortTrades = tradeHistory.filter(t => t.type?.toUpperCase() === 'SELL' || t.type?.toUpperCase() === 'SHORT').length;
+    const totalLongShort = longTrades + shortTrades;
+    const longPercentage = totalLongShort > 0 ? Number(((longTrades / totalLongShort) * 100).toFixed(2)) : 0;
+    const shortPercentage = totalLongShort > 0 ? Number(((shortTrades / totalLongShort) * 100).toFixed(2)) : 0;
+
+    const tradesShortLong: TradesShortLongDto = {
+      series: [
+        {
+          label: `Long (${longPercentage.toFixed(2)}%)`,
+          value: longTrades,
+          percentage: Number(longPercentage.toFixed(2)),
+        },
+        {
+          label: `Short (${shortPercentage.toFixed(2)}%)`,
+          value: shortTrades,
+          percentage: Number(shortPercentage.toFixed(2)),
+        },
+      ],
+    };
+
+    // Get best marathons (finished marathons sorted by rank)
+    // Note: finishedParticipants already calculated above, but we need to recalculate for best marathons
+    const finishedParticipantsForBest = participants.filter(p => 
+      p.marathon && p.marathon.status === MarathonStatus.FINISHED
+    );
+    const bestMarathonsPromises = finishedParticipantsForBest.map(async (participant) => {
+      const marathon = participant.marathon!;
+      const leaderboard = await this.leaderboardService.calculateLeaderboard(marathon.id, snapshots);
+      const userEntry = leaderboard?.entries.find(e => e.userId === userId);
+      const rank = userEntry?.rank ?? 0;
+      const profitPercentage = userEntry?.profitPercentage ?? 0;
+      const prize = this.calculatePrize(rank, marathon);
+
+      return {
+        id: marathon.id,
+        profitPercentage: Number(Number(profitPercentage).toFixed(2)),
+        rank,
+        prize: Number(Number(prize).toFixed(2)),
+        date: marathon.endDate.toISOString().split('T')[0],
+      };
+    });
+
+    const bestMarathonsData = await Promise.all(bestMarathonsPromises);
+    const bestMarathons: BestMarathonDto[] = bestMarathonsData
+      .filter(m => m.rank > 0)
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, 5);
+
+    // Get last marathon (ongoing first, otherwise last participated)
+    let lastMarathon: LastMarathonDto | null = null;
+    
+    // First try to get ongoing marathon
+    const ongoingParticipants = participants.filter(p => 
+      p.marathon && p.marathon.status === MarathonStatus.ONGOING
+    );
+
+    // If no ongoing marathon, get the last participated marathon (already sorted by createdAt DESC)
+    const lastParticipant = ongoingParticipants.length > 0 
+      ? ongoingParticipants[0] 
+      : participants.length > 0 
+        ? participants[0] 
+        : null;
+
+    if (lastParticipant && lastParticipant.marathon) {
+      const marathon = lastParticipant.marathon;
+      const isOngoing = marathon.status === MarathonStatus.ONGOING;
+      const leaderboard = await this.leaderboardService.calculateLeaderboard(marathon.id, snapshots);
+      const userEntry = leaderboard?.entries.find(e => e.userId === userId);
+      const currentRank = userEntry?.rank ?? 0;
+      const profitPercentage = userEntry?.profitPercentage ?? 0;
+      const prize = this.calculatePrize(currentRank, marathon);
+
+      lastMarathon = {
+        id: marathon.id,
+        name: marathon.name,
+        isLive: isOngoing,
+        startDate: marathon.startDate.toISOString(),
+        endDate: marathon.endDate.toISOString(),
+        currentRank,
+        totalParticipants: leaderboard?.totalParticipants ?? 0,
+        profitPercentage: Number(Number(profitPercentage).toFixed(2)),
+        prize: Number(Number(prize).toFixed(2)),
+      };
+    }
+
+    // Get last trades (most recent 5) - tradeHistory is already sorted by openTime DESC
+    // Use actual database fields, don't calculate status
+    const lastTrades: LastTradeDto[] = tradeHistory
+      .slice(0, 5)
+      .map(t => ({
+        positionId: t.positionId ?? null,
+        orderTicket: t.orderTicket ?? null,
+        type: t.type ?? null,
+        symbol: t.symbol ?? null,
+        volume: t.volume ? Number(Number(t.volume).toFixed(2)) : null,
+        openPrice: t.openPrice ? Number(Number(t.openPrice).toFixed(5)) : null,
+        closePrice: t.closePrice ? Number(Number(t.closePrice).toFixed(5)) : null,
+        openTime: t.openTime ?? null,
+        closeTime: t.closeTime ?? null,
+        profit: t.profit ? Number(Number(t.profit).toFixed(2)) : null,
+        commission: t.commission ? Number(Number(t.commission).toFixed(2)) : null,
+        swap: t.swap ? Number(Number(t.swap).toFixed(2)) : null,
+        stopLoss: t.stopLoss ? Number(Number(t.stopLoss).toFixed(5)) : null,
+        takeProfit: t.takeProfit ? Number(Number(t.takeProfit).toFixed(5)) : null,
+      }));
+
+    return {
+      tradesWinrate,
+      currency_pairs: currencyPairs,
+      currency_pairs_treemap: currencyPairsTreemap,
+      currency_pairs_winrate: currencyPairsWinrate,
+      trades_short_long: tradesShortLong,
+      best_marathons: bestMarathons,
+      last_marathon: lastMarathon,
+      last_trades: lastTrades,
+      user: userDetails,
+      stats,
+    };
   }
 } 

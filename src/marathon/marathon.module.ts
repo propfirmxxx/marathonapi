@@ -20,10 +20,11 @@ import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entit
 import { TokyoTransactionHistory } from '../tokyo-data/entities/tokyo-transaction-history.entity';
 import { TokyoBalanceHistory } from '../tokyo-data/entities/tokyo-balance-history.entity';
 import { TokyoEquityHistory } from '../tokyo-data/entities/tokyo-equity-history.entity';
+import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance, TokyoTransactionHistory, TokyoBalanceHistory, TokyoEquityHistory]),
+    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance, TokyoTransactionHistory, TokyoBalanceHistory, TokyoEquityHistory, Withdrawal]),
     RabbitMQModule.forRoot(),
     UsersModule,
     PaymentModule,
