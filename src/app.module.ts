@@ -7,6 +7,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { User } from './users/entities/user.entity';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { EmailModule } from './email/email.module';
 import { MarathonModule } from './marathon/marathon.module';
 import { MetaTraderAccountModule } from './metatrader-accounts/metatrader-account.module';
@@ -31,6 +34,15 @@ import { SettingsModule } from './settings/settings.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    TypeOrmModule.forFeature([User]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        // Note: expiresIn is set per-token in the service, not globally
+      }),
+      inject: [ConfigService],
     }),
     // Only enable HTTP throttling outside of development to avoid 429s during local dev/startup.
     ...(process.env.NODE_ENV === 'development'
