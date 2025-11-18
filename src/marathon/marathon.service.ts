@@ -2241,6 +2241,7 @@ export class MarathonService {
       currencyPairs,
       tradesShortLong,
       equityBalance,
+      rules: marathon.rules as any, // MarathonRules type is compatible with MarathonRulesDto
       user: user ?? undefined,
     };
   }

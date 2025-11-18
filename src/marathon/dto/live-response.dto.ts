@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { MarathonRulesDto } from './marathon-rules.dto';
 
 export class MarathonLiveDto {
   @ApiProperty({ example: '1' })
@@ -230,6 +231,9 @@ export class LiveResponseDto {
 
   @ApiProperty({ type: EquityBalanceDto })
   equityBalance: EquityBalanceDto;
+
+  @ApiProperty({ type: MarathonRulesDto })
+  rules: MarathonRulesDto;
 
   @ApiProperty({ type: UserDetailsDto, nullable: true })
   user?: UserDetailsDto | null;
