@@ -74,6 +74,8 @@ export class SettingsService {
       emailNotificationsEnabled: settings.emailNotificationsEnabled,
       profileVisibility: settings.profileVisibility,
       showSocialMediaLinks: settings.showSocialMediaLinks,
+      marathonAnnouncementsEmailEnabled: settings.marathonAnnouncementsEmailEnabled,
+      marathonAnnouncementsSmsEnabled: settings.marathonAnnouncementsSmsEnabled,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };

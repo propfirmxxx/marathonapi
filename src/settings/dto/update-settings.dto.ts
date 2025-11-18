@@ -72,5 +72,23 @@ export class UpdateSettingsDto {
   @IsBoolean()
   showSocialMediaLinks?: boolean;
 
+  @ApiProperty({
+    description: 'Enable marathon announcements via email',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  marathonAnnouncementsEmailEnabled?: boolean;
+
+  @ApiProperty({
+    description: 'Enable marathon announcements via SMS',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  marathonAnnouncementsSmsEnabled?: boolean;
+
 }
 

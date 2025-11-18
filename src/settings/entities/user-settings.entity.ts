@@ -110,6 +110,22 @@ export class UserSettings {
   @Column({ default: true })
   showSocialMediaLinks: boolean;
 
+  @ApiProperty({
+    description: 'Enable marathon announcements via email',
+    example: true,
+    default: true,
+  })
+  @Column({ default: true })
+  marathonAnnouncementsEmailEnabled: boolean;
+
+  @ApiProperty({
+    description: 'Enable marathon announcements via SMS',
+    example: true,
+    default: true,
+  })
+  @Column({ default: true })
+  marathonAnnouncementsSmsEnabled: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

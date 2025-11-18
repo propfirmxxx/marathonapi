@@ -52,6 +52,18 @@ export class SettingsResponseDto {
   showSocialMediaLinks: boolean;
 
   @ApiProperty({
+    description: 'Enable marathon announcements via email',
+    example: true,
+  })
+  marathonAnnouncementsEmailEnabled: boolean;
+
+  @ApiProperty({
+    description: 'Enable marathon announcements via SMS',
+    example: true,
+  })
+  marathonAnnouncementsSmsEnabled: boolean;
+
+  @ApiProperty({
     description: 'Settings creation date',
     example: '2024-01-15T10:30:00Z',
   })
