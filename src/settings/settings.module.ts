@@ -22,7 +22,7 @@ import { LoginHistory } from './entities/login-history.entity';
   ],
   controllers: [SettingsController],
   providers: [SettingsService, SessionService, LoginHistoryService, LocationService],
-  exports: [SettingsService, SessionService, LoginHistoryService],
+  exports: [SettingsService, SessionService, LoginHistoryService, LocationService],
 })
 export class SettingsModule {}
 
