@@ -54,5 +54,18 @@
     "updated": "FAQ updated successfully",
     "deleted": "FAQ deleted successfully",
     "notFound": "FAQ not found"
+  },
+  "settings": {
+    "updated": "Settings updated successfully",
+    "notFound": "Settings not found",
+    "session": {
+      "revoked": "Session revoked successfully",
+      "revokedAll": "All other sessions revoked successfully",
+      "notFound": "Session not found",
+      "alreadyRevoked": "Session already revoked"
+    },
+    "loginHistory": {
+      "recorded": "Login history recorded"
+    }
   }
 } 

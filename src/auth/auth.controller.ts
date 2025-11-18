@@ -92,8 +92,10 @@ export class AuthController {
   })
   @ApiBody({ type: LoginDto })
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req: any) {
+    const ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    return this.authService.login(loginDto, ipAddress, userAgent);
   }
 
   @ApiOperation({ summary: 'Request password reset' })
@@ -180,7 +182,9 @@ export class AuthController {
     type: GoogleAuthResponseDto
   })
   @Post('google/verify')
-  async exchangeGoogleCode(@Body('code') code: string) {
-    return this.authService.handleOAuthCode(code);
+  async exchangeGoogleCode(@Body('code') code: string, @Req() req: any) {
+    const ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    return this.authService.handleOAuthCode(code, ipAddress, userAgent);
   }
 } 

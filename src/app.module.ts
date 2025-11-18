@@ -25,6 +25,7 @@ import { WalletModule } from './wallet/wallet.module';
 import { TokyoModule } from './tokyo/tokyo.module';
 import { TokyoDataModule } from './tokyo-data/tokyo-data.module';
 import { StatsModule } from './stats/stats.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { StatsModule } from './stats/stats.module';
     TokyoModule,
     TokyoDataModule,
     StatsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [

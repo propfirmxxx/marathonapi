@@ -54,6 +54,19 @@
     "updated": "SSS başarıyla güncellendi",
     "deleted": "SSS başarıyla silindi",
     "notFound": "SSS bulunamadı"
+  },
+  "settings": {
+    "updated": "Ayarlar başarıyla güncellendi",
+    "notFound": "Ayarlar bulunamadı",
+    "session": {
+      "revoked": "Oturum başarıyla iptal edildi",
+      "revokedAll": "Diğer tüm oturumlar başarıyla iptal edildi",
+      "notFound": "Oturum bulunamadı",
+      "alreadyRevoked": "Oturum zaten iptal edilmiş"
+    },
+    "loginHistory": {
+      "recorded": "Giriş geçmişi kaydedildi"
+    }
   }
 }
 

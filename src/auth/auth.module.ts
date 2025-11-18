@@ -16,6 +16,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { Profile } from '../profile/entities/profile.entity';
 import { NotificationModule } from '../notifications/notification.module';
+import { SettingsModule } from '../settings/settings.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { NotificationModule } from '../notifications/notification.module';
     }),
     EmailModule,
     NotificationModule,
+    SettingsModule,
   ],
   providers: [AuthService, EmailService, JwtStrategy, GoogleStrategy, AuthGuard, AdminGuard],
   controllers: [AuthController],

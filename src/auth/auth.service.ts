@@ -12,6 +12,9 @@ import { NotificationType, NotificationScope } from '../notifications/entities/n
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { Profile } from '@/profile/entities/profile.entity';
+import { SessionService } from '../settings/session.service';
+import { LoginHistoryService } from '../settings/login-history.service';
+import { LoginStatus, LoginMethod } from '../settings/entities/login-history.entity';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +30,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private readonly notificationService: NotificationService,
+    private readonly sessionService: SessionService,
+    private readonly loginHistoryService: LoginHistoryService,
   ) {}
 
   async initiateRegistration(email: string) {
@@ -122,24 +127,65 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  async login(loginDto: LoginDto): Promise<any> {
+  async login(loginDto: LoginDto, ipAddress?: string, userAgent?: string): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
       select: ['id', 'email', 'password', 'isActive', 'isBanned', 'role'],
     });
 
     if (!user || !(await user.validatePassword(loginDto.password))) {
+      // Record failed login attempt
+      if (user) {
+        await this.loginHistoryService.recordLogin(
+          user.id,
+          LoginStatus.FAILED,
+          LoginMethod.EMAIL,
+          ipAddress || 'unknown',
+          userAgent || 'unknown',
+          'Invalid credentials',
+        );
+      }
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.isBanned) {
+      await this.loginHistoryService.recordLogin(
+        user.id,
+        LoginStatus.FAILED,
+        LoginMethod.EMAIL,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        'User account is banned',
+      );
       throw new UnauthorizedException('User account is banned');
     }
 
-    return this.generateTokens(user);
+    const tokens = this.generateTokens(user);
+    
+    // Record successful login
+    await this.loginHistoryService.recordLogin(
+      user.id,
+      LoginStatus.SUCCESS,
+      LoginMethod.EMAIL,
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+    );
+
+    // Create session
+    const decoded = this.jwtService.decode(tokens.access_token) as any;
+    const expiresAt = new Date(decoded.exp * 1000);
+    await this.sessionService.createSession(
+      user.id,
+      tokens.access_token,
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+      expiresAt,
+    );
+
+    return tokens;
   }
 
-  async handleOAuthCode(code: string) {
+  async handleOAuthCode(code: string, ipAddress?: string, userAgent?: string) {
     try {
       const tokenRes = await axios.post('https://oauth2.googleapis.com/token', {
         code,
@@ -155,7 +201,29 @@ export class AuthService {
 
       const user = await this.googleLogin(userInfo);
 
-      return this.generateTokens(user);
+      const tokens = this.generateTokens(user);
+
+      // Record successful login
+      await this.loginHistoryService.recordLogin(
+        user.id,
+        LoginStatus.SUCCESS,
+        LoginMethod.GOOGLE,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+      );
+
+      // Create session
+      const decoded = this.jwtService.decode(tokens.access_token) as any;
+      const expiresAt = new Date(decoded.exp * 1000);
+      await this.sessionService.createSession(
+        user.id,
+        tokens.access_token,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        expiresAt,
+      );
+
+      return tokens;
     } catch (err) {
       console.error('OAuth Error:', err.response?.data || err.message);
       throw new UnauthorizedException('Google login failed');
