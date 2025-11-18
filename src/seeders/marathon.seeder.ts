@@ -38,10 +38,20 @@ export class MarathonSeeder extends BaseSeeder {
 
     // Clear existing data
     if (hasParticipants) {
-      await this.query(`DELETE FROM marathon_participants`);
+      // Only delete participants for seeded marathons
+      const participantPlaceholders = this.seededMarathonIds.map((_, index) => `$${index + 1}`).join(', ');
+      await this.query(
+        `DELETE FROM marathon_participants WHERE marathon_id IN (${participantPlaceholders})`,
+        this.seededMarathonIds,
+      );
     }
     await this.clearSeededPayments();
-    await this.query(`DELETE FROM marathons`);
+    // Only delete seeded marathons to avoid foreign key constraint violations
+    const marathonPlaceholders = this.seededMarathonIds.map((_, index) => `$${index + 1}`).join(', ');
+    await this.query(
+      `DELETE FROM marathons WHERE id IN (${marathonPlaceholders})`,
+      this.seededMarathonIds,
+    );
 
     // Get current timestamp for date calculations
     const now = new Date();

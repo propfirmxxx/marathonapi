@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { Seeder } from './seeder.interface';
 import { FaqSeeder } from './faq.seeder';
 import { MarathonSeeder } from './marathon.seeder';
+import { MarathonEndpointsSeeder } from './marathon-endpoints.seeder';
 import { MetaTraderAccountSeeder } from './metatrader-account.seeder';
 import { PaymentSeeder } from './payment.seeder';
 import { UserSeeder } from './user.seeder';
@@ -19,6 +20,7 @@ export class SeederService {
       new MetaTraderAccountSeeder(dataSource),
       new MarathonSeeder(dataSource),
       new PaymentSeeder(dataSource),
+      new MarathonEndpointsSeeder(dataSource),
     ];
   }
 
