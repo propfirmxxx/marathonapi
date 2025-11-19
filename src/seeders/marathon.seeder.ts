@@ -155,7 +155,7 @@ export class MarathonSeeder extends BaseSeeder {
         startDate: upcomingStartDate,
         endDate: upcomingEndDate,
         isActive: true,
-        status: MarathonStatus.FINISHED,
+        status: MarathonStatus.UPCOMING,
         rules: {
           [MarathonRule.MIN_TRADES]: 12,
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 22,

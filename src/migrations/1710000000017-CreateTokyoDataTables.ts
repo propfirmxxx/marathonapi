@@ -4,6 +4,109 @@ export class CreateTokyoDataTables1710000000017 implements MigrationInterface {
   name = 'CreateTokyoDataTables1710000000017';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Create metatrader_accounts table if it doesn't exist
+    await queryRunner.createTable(
+      new Table({
+        name: 'metatrader_accounts',
+        columns: [
+          {
+            name: 'id',
+            type: 'uuid',
+            isPrimary: true,
+            generationStrategy: 'uuid',
+            default: 'uuid_generate_v4()',
+          },
+          {
+            name: 'name',
+            type: 'varchar',
+          },
+          {
+            name: 'login',
+            type: 'varchar',
+          },
+          {
+            name: 'masterPassword',
+            type: 'varchar',
+            isNullable: true,
+          },
+          {
+            name: 'investorPassword',
+            type: 'varchar',
+            isNullable: true,
+          },
+          {
+            name: 'server',
+            type: 'varchar',
+          },
+          {
+            name: 'userId',
+            type: 'uuid',
+            isNullable: true,
+          },
+          {
+            name: 'marathonParticipantId',
+            type: 'uuid',
+            isNullable: true,
+          },
+          {
+            name: 'status',
+            type: 'varchar',
+            default: "'undeployed'",
+          },
+          {
+            name: 'platform',
+            type: 'varchar',
+            default: "'mt5'",
+          },
+          {
+            name: 'createdAt',
+            type: 'timestamp',
+            default: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'updatedAt',
+            type: 'timestamp',
+            default: 'CURRENT_TIMESTAMP',
+          },
+        ],
+      }),
+      true,
+    );
+
+    // Create indexes for metatrader_accounts
+    await queryRunner.createIndex(
+      'metatrader_accounts',
+      new TableIndex({
+        name: 'IDX_metatrader_accounts_userId',
+        columnNames: ['userId'],
+      }),
+    );
+
+    await queryRunner.createIndex(
+      'metatrader_accounts',
+      new TableIndex({
+        name: 'IDX_metatrader_accounts_marathonParticipantId',
+        columnNames: ['marathonParticipantId'],
+      }),
+    );
+
+    // Create FK for metatrader_accounts
+    // Check if FK already exists to avoid error if re-running
+    const table = await queryRunner.getTable('metatrader_accounts');
+    const foreignKey = table?.foreignKeys.find(fk => fk.columnNames.indexOf('userId') !== -1);
+    if (!foreignKey) {
+        await queryRunner.createForeignKey(
+        'metatrader_accounts',
+        new TableForeignKey({
+            columnNames: ['userId'],
+            referencedColumnNames: ['id'],
+            referencedTableName: 'users',
+            onDelete: 'SET NULL',
+        }),
+        );
+    }
+
+
     // Create tokyo_account_data table
     await queryRunner.createTable(
       new Table({
@@ -710,6 +813,8 @@ export class CreateTokyoDataTables1710000000017 implements MigrationInterface {
     await queryRunner.dropIndex('tokyo_transaction_history', 'IDX_tokyo_transaction_history_metaTraderAccountId_closeTime');
     await queryRunner.dropIndex('tokyo_transaction_history', 'IDX_tokyo_transaction_history_metaTraderAccountId_openTime');
     await queryRunner.dropIndex('tokyo_account_data', 'IDX_tokyo_account_data_metaTraderAccountId_updatedAt');
+    await queryRunner.dropIndex('metatrader_accounts', 'IDX_metatrader_accounts_marathonParticipantId');
+    await queryRunner.dropIndex('metatrader_accounts', 'IDX_metatrader_accounts_userId');
 
     // Drop foreign keys
     await queryRunner.dropForeignKey('tokyo_equity_history', 'FK_tokyo_equity_history_metaTraderAccountId');
@@ -724,6 +829,6 @@ export class CreateTokyoDataTables1710000000017 implements MigrationInterface {
     await queryRunner.dropTable('tokyo_performance');
     await queryRunner.dropTable('tokyo_transaction_history');
     await queryRunner.dropTable('tokyo_account_data');
+    await queryRunner.dropTable('metatrader_accounts');
   }
 }
-

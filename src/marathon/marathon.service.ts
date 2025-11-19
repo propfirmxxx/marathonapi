@@ -1979,7 +1979,7 @@ export class MarathonService {
         marathon: { id: marathonId },
         isActive: true,
       },
-      relations: ['user', 'user.profile', 'marathon'],
+      relations: ['user', 'user.profile', 'marathon', 'metaTraderAccount'],
     });
 
     if (!participant) {
