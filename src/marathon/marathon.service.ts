@@ -2127,11 +2127,109 @@ export class MarathonService {
       ? Number(performance.balanceDrawdownRelativePercent)
       : 0;
 
+    // Calculate maximum risk float and drawdown from history
+    let riskFloatMax = 100; // Default fallback
+    let drawdownMax = 100; // Default fallback
+
+    try {
+      // Get equity and balance history for the marathon period
+      const balanceHistory = await this.tokyoDataService.getBalanceHistory(
+        accountId,
+        marathon.startDate,
+        marathon.endDate || now,
+      );
+      const equityHistory = await this.tokyoDataService.getEquityHistory(
+        accountId,
+        marathon.startDate,
+        marathon.endDate || now,
+      );
+
+      // Calculate maximum risk float from history
+      // Risk float = abs(equity - balance) / equity * 100
+      if (equityHistory.length > 0 && balanceHistory.length > 0) {
+        // Create a map of balance by time for quick lookup
+        const balanceMap = new Map<string, number>();
+        balanceHistory.forEach((point) => {
+          const key = point.time.toISOString();
+          balanceMap.set(key, Number(point.balance));
+        });
+
+        let maxRiskFloat = 0;
+        equityHistory.forEach((point) => {
+          const equityValue = Number(point.equity);
+          if (equityValue > 0) {
+            // Find closest balance value (same timestamp or closest)
+            const timeKey = point.time.toISOString();
+            let balanceValue = balanceMap.get(timeKey);
+            
+            // If no exact match, find closest balance
+            if (balanceValue === undefined) {
+              // Find the balance at or before this equity point
+              const closestBalance = balanceHistory
+                .filter(b => b.time <= point.time)
+                .sort((a, b) => b.time.getTime() - a.time.getTime())[0];
+              balanceValue = closestBalance ? Number(closestBalance.balance) : equityValue;
+            }
+
+            const floatingProfit = equityValue - balanceValue;
+            const riskFloatPercent = (Math.abs(floatingProfit) / equityValue) * 100;
+            if (riskFloatPercent > maxRiskFloat) {
+              maxRiskFloat = riskFloatPercent;
+            }
+          }
+        });
+
+        if (maxRiskFloat > 0) {
+          riskFloatMax = Number(maxRiskFloat.toFixed(2));
+        }
+      }
+
+      // Calculate maximum drawdown from history
+      // Use performance table value if available, otherwise calculate from balance history
+      if (performance?.balanceDrawdownMaximal) {
+        // Get initial balance to calculate percentage
+        const initialBalance = balanceHistory.length > 0 
+          ? Number(balanceHistory[0].balance)
+          : balance;
+        
+        if (initialBalance > 0) {
+          const maxDrawdownPercent = (Number(performance.balanceDrawdownMaximal) / initialBalance) * 100;
+          drawdownMax = Number(maxDrawdownPercent.toFixed(2));
+        }
+      } else if (balanceHistory.length > 0) {
+        // Calculate maximum drawdown from balance history
+        const initialBalance = Number(balanceHistory[0].balance);
+        if (initialBalance > 0) {
+          let maxDrawdown = 0;
+          let peakBalance = initialBalance;
+
+          balanceHistory.forEach((point) => {
+            const balanceValue = Number(point.balance);
+            if (balanceValue > peakBalance) {
+              peakBalance = balanceValue;
+            }
+            const drawdown = peakBalance - balanceValue;
+            const drawdownPercent = (drawdown / peakBalance) * 100;
+            if (drawdownPercent > maxDrawdown) {
+              maxDrawdown = drawdownPercent;
+            }
+          });
+
+          if (maxDrawdown > 0) {
+            drawdownMax = Number(maxDrawdown.toFixed(2));
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to calculate historical risk metrics: ${error.message}`);
+      // Keep default values (100) if calculation fails
+    }
+
     const riskMetrics: RiskMetricsDto = {
       riskFloat: floatingRiskPercent,
-      riskFloatMax: 100,
+      riskFloatMax,
       drawdown: drawdownPercent,
-      drawdownMax: 100,
+      drawdownMax,
     };
 
     // Get trade history
