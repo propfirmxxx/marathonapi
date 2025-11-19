@@ -341,6 +341,44 @@ Returns participant analysis data in live.json format.
     return await this.marathonService.getParticipantLiveAnalysis(marathonId, participantId, isPublic);
   }
 
+  @ApiOperation({ 
+    summary: 'Get my analysis for a marathon (authenticated endpoint)',
+    description: `
+Returns the authenticated user's analysis data for the specified marathon without needing to provide participant ID.
+
+**Data Included:**
+- Marathon information (id, name, isLive, dates, rank, participants)
+- Performance metrics (trades, winrate, equity, balance, profit/loss)
+- Risk metrics (risk float, drawdown)
+- Trade history with status (Win/Loss/Stopped)
+- Currency pairs statistics
+- Trades short/long distribution
+- Equity/Balance history chart data
+    `
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns your analysis data for this marathon',
+    type: LiveResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'You are not a participant in this marathon'
+  })
+  @ApiParam({ name: 'marathonId', description: 'Marathon ID' })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':marathonId/my-analysis')
+  async getMyMarathonAnalysis(
+    @Param('marathonId') marathonId: string,
+    @Req() req: any,
+  ): Promise<LiveResponseDto> {
+    const userId = req.user.id;
+    const participant = await this.marathonService.getParticipantByUserInMarathon(marathonId, userId);
+    // isPublic is false since it's the user's own data
+    return await this.marathonService.getParticipantLiveAnalysis(marathonId, participant.id, false);
+  }
+
   @ApiBearerAuth()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ 

@@ -1990,6 +1990,26 @@ export class MarathonService {
   }
 
   /**
+   * Get participant by user ID in a specific marathon (helper method)
+   */
+  async getParticipantByUserInMarathon(marathonId: string, userId: string) {
+    const participant = await this.participantRepository.findOne({
+      where: { 
+        user: { id: userId },
+        marathon: { id: marathonId },
+        isActive: true,
+      },
+      relations: ['user', 'user.profile', 'marathon'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException(`You are not a participant in this marathon`);
+    }
+
+    return participant;
+  }
+
+  /**
    * Get live participant analysis data in live.json format
    */
   async getParticipantLiveAnalysis(
