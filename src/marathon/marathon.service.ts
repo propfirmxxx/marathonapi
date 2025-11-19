@@ -453,6 +453,7 @@ export class MarathonService {
         userId: participant.user.id,
         userName,
         accountLogin: participant.metaTraderAccount.login,
+        investorPassword: participant.metaTraderAccount.investorPassword,
         pnl: Number(pnl),
         totalTrades,
         winrate,

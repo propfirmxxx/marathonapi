@@ -366,6 +366,9 @@ export class MarathonLeaderboardEntryDto {
   @ApiProperty({ description: 'Account login', example: '12345678' })
   accountLogin: string;
 
+  @ApiProperty({ description: 'Investor password', example: 'investor123', required: false, nullable: true })
+  investorPassword?: string | null;
+
   @ApiProperty({ description: 'Profit & Loss (P&L)', example: 1500.50 })
   pnl: number;
 
