@@ -9,7 +9,6 @@ import { map, switchMap } from 'rxjs/operators';
 import { from } from 'rxjs';
 import { I18nService } from '../../i18n/i18n.service';
 import { SettingsService } from '../../settings/settings.service';
-import { DateFormatterUtil } from '../../settings/utils/date-formatter.util';
 
 export interface Response<T> {
   [key: string]: T;
@@ -49,13 +48,8 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
                 );
               }
 
-              // Format dates according to user preferences
-              return DateFormatterUtil.formatDatesInObject(
-                response,
-                settings.dateFormat,
-                settings.timeFormat,
-                settings.timezone,
-              );
+              // Return response as is (dates will be serialized to ISO strings by default)
+              return response;
             }),
           );
         }

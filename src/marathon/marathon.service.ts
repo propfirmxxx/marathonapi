@@ -26,6 +26,7 @@ import { MarathonLeaderboardService } from './marathon-leaderboard.service';
 import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 import { SettingsService } from '../settings/settings.service';
 import { ProfileVisibility } from '../settings/entities/user-settings.entity';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class MarathonService {
@@ -55,6 +56,7 @@ export class MarathonService {
     private readonly liveAccountDataService: LiveAccountDataService,
     private readonly leaderboardService: MarathonLeaderboardService,
     private readonly settingsService: SettingsService,
+    private readonly usersService: UsersService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -1653,6 +1655,9 @@ export class MarathonService {
    * Get dashboard data for a user
    */
   async getUserDashboard(userId: string, isPublic: boolean = false): Promise<DashboardResponseDto> {
+    // Verify user exists
+    await this.usersService.findOne(userId);
+
     // Check profile visibility if this is a public request
     if (isPublic) {
       const settings = await this.settingsService.getOrCreateSettings(userId);
