@@ -102,7 +102,7 @@ services:
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - RABBITMQ_QUEUE=socket_data
-      - CONFIG_DIRECTORY_HOST=${PWD}/meta-configs
+      - CONFIG_DIRECTORY_HOST=${PWD:-C:/Users/10/Desktop/marathonapi}/meta-configs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health || exit 1"]
       interval: 30s
