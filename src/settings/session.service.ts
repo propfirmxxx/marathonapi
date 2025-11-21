@@ -27,6 +27,7 @@ export class SessionService {
     ipAddress: string,
     userAgent: string,
     expiresAt: Date,
+    sessionId?: string,
   ): Promise<Session> {
     const deviceInfo = parseUserAgent(userAgent);
 
@@ -34,6 +35,7 @@ export class SessionService {
     const location = await this.locationService.getLocationFromIp(ipAddress);
 
     const session = this.sessionRepository.create({
+      ...(sessionId ? { id: sessionId } : {}),
       userId,
       token,
       ipAddress,
@@ -46,6 +48,20 @@ export class SessionService {
     });
 
     return await this.sessionRepository.save(session);
+  }
+
+  /**
+   * Update session token
+   */
+  async updateSessionToken(sessionId: string, token: string, expiresAt: Date): Promise<void> {
+    await this.sessionRepository.update(
+      { id: sessionId },
+      { 
+        token,
+        expiresAt,
+        lastActivityAt: new Date()
+      },
+    );
   }
 
   /**
@@ -63,6 +79,8 @@ export class SessionService {
     const where: any = { userId };
     if (query.status) {
       where.status = query.status;
+    } else {
+      where.status = Not(SessionStatus.REVOKED);
     }
 
     const [sessions, total] = await this.sessionRepository.findAndCount({
@@ -192,6 +210,15 @@ export class SessionService {
         status: SessionStatus.EXPIRED,
       },
     );
+  }
+
+  /**
+   * Get session by ID
+   */
+  async getSessionById(sessionId: string): Promise<Session | null> {
+    return await this.sessionRepository.findOne({
+      where: { id: sessionId },
+    });
   }
 
   /**

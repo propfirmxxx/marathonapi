@@ -80,8 +80,8 @@ export class AuthController {
   })
   @ApiBody({ type: RegisterDto })
   @Post('register/complete')
-  async completeRegistration(@Body() registerDto: RegisterDto) {
-    return this.authService.completeRegistration(registerDto);
+  async completeRegistration(@Body() registerDto: RegisterDto, @Req() req: any) {
+    return this.authService.completeRegistration(registerDto, req);
   }
 
   @ApiOperation({ summary: 'User login' })

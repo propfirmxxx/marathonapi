@@ -16,6 +16,7 @@ import { SessionService } from '../settings/session.service';
 import { LoginHistoryService } from '../settings/login-history.service';
 import { LoginStatus, LoginMethod } from '../settings/entities/login-history.entity';
 import { getClientIp } from '../settings/utils/ip-extractor.util';
+import { SessionStatus } from '../settings/entities/session.entity';
 
 @Injectable()
 export class AuthService {
@@ -90,7 +91,7 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  async completeRegistration(registerDto: RegisterDto) {
+  async completeRegistration(registerDto: RegisterDto, req?: any) {
     const verification = await this.emailVerificationRepository.findOne({
       where: { email: registerDto.email, isVerified: true },
     });
@@ -125,7 +126,29 @@ export class AuthService {
       NotificationScope.SPECIFIC,
       [user.id]
     );
-    return this.generateTokens(user);
+
+    // Generate session ID and tokens
+    const sessionId = crypto.randomUUID();
+    const tokens = this.generateTokens(user, sessionId);
+
+    if (req) {
+      const ipAddress = getClientIp(req);
+      const userAgent = req.headers?.['user-agent'] || 'unknown';
+      
+      const decoded = this.jwtService.decode(tokens.access_token) as any;
+      const expiresAt = new Date(decoded.exp * 1000);
+      
+      await this.sessionService.createSession(
+        user.id,
+        tokens.access_token,
+        ipAddress,
+        userAgent,
+        expiresAt,
+        sessionId
+      );
+    }
+    
+    return tokens;
   }
 
   async login(loginDto: LoginDto, req?: any): Promise<any> {
@@ -165,7 +188,8 @@ export class AuthService {
       throw new UnauthorizedException('User account is banned');
     }
 
-    const tokens = this.generateTokens(user);
+    const sessionId = crypto.randomUUID();
+    const tokens = this.generateTokens(user, sessionId);
 
     // Record successful login
     await this.loginHistoryService.recordLogin(
@@ -185,6 +209,7 @@ export class AuthService {
       ipAddress,
       userAgent,
       expiresAt,
+      sessionId
     );
 
     return tokens;
@@ -210,7 +235,8 @@ export class AuthService {
 
       const user = await this.googleLogin(userInfo);
 
-      const tokens = this.generateTokens(user);
+      const sessionId = crypto.randomUUID();
+      const tokens = this.generateTokens(user, sessionId);
 
       // Record successful login
       await this.loginHistoryService.recordLogin(
@@ -230,6 +256,7 @@ export class AuthService {
         ipAddress,
         userAgent,
         expiresAt,
+        sessionId
       );
 
       return tokens;
@@ -291,7 +318,7 @@ export class AuthService {
     return user;
   }
 
-  private generateTokens(user: User) {
+  private generateTokens(user: User, sessionId?: string) {
     const payload = {
       type: 'access',
       sub: user.id,
@@ -302,6 +329,7 @@ export class AuthService {
     const refreshPayload = {
       type: 'refresh',
       sub: user.id,
+      sid: sessionId,
     };
 
     return {
@@ -310,7 +338,7 @@ export class AuthService {
     };
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string, req?: any) {
     try {
       const payload = this.jwtService.verify(refreshToken);
       
@@ -327,8 +355,64 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh token');
       }
 
-      return this.generateTokens(user);
+      // If refresh token has session ID (new format)
+      if (payload.sid) {
+        const sessionId = payload.sid;
+        
+        // Check if session exists and is active
+        const session = await this.sessionService.getSessionById(sessionId);
+        
+        if (!session) {
+           // Session might have been deleted/revoked
+           throw new UnauthorizedException('Session not found or expired');
+        }
+
+        if (session.status !== SessionStatus.ACTIVE) {
+          throw new UnauthorizedException('Session is not active');
+        }
+
+        // Generate new tokens with SAME session ID
+        const tokens = this.generateTokens(user, sessionId);
+
+        // Update the session with the NEW access token
+        const decoded = this.jwtService.decode(tokens.access_token) as any;
+        const expiresAt = new Date(decoded.exp * 1000);
+        
+        await this.sessionService.updateSessionToken(sessionId, tokens.access_token, expiresAt);
+
+        return tokens;
+      } else {
+        // Legacy behavior (create new session if we have request info, otherwise just tokens)
+        // NOTE: This branch creates a new session, which we want to avoid generally,
+        // but for legacy tokens without 'sid', we have no choice if we want them to work.
+        // Or we can just return tokens and let it fail if session check is strict.
+        
+        const tokens = this.generateTokens(user);
+
+        if (req) {
+          const ipAddress = getClientIp(req);
+          const userAgent = req.headers?.['user-agent'] || 'unknown';
+          
+          const decoded = this.jwtService.decode(tokens.access_token) as any;
+          const expiresAt = new Date(decoded.exp * 1000);
+          
+          // We can't update old session because we don't know it, so we create a new one.
+          // This is the fallback for old tokens.
+          await this.sessionService.createSession(
+            user.id,
+            tokens.access_token,
+            ipAddress,
+            userAgent,
+            expiresAt,
+          );
+        }
+
+        return tokens;
+      }
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
@@ -404,4 +488,4 @@ export class AuthService {
 
     return { message: 'Password has been reset successfully' };
   }
-} 
+}
