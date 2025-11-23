@@ -170,20 +170,35 @@ export class MarathonProvisioningService {
       return;
     }
 
-    if (account.status === MetaTraderAccountStatus.DEPLOYED) {
+    // Check if account is already deployed - reload from DB to ensure we have latest status
+    const freshAccount = await this.accountRepository.findOne({
+      where: { id: account.id },
+    });
+
+    if (!freshAccount) {
+      this.logger.warn(`MetaTrader account ${account.id} not found in database; skipping deployment`);
+      return;
+    }
+
+    if (freshAccount.status === MetaTraderAccountStatus.DEPLOYED) {
+      this.logger.debug(`MetaTrader account ${account.login} is already deployed; skipping`);
       return;
     }
 
     try {
-      await this.tokyoService.deployAccountWithAutoCreate(account);
-      account.status = MetaTraderAccountStatus.DEPLOYED;
-      await this.accountRepository.save(account);
-      this.logger.log(`Deployed MetaTrader account ${account.login} for participant ${account.marathonParticipantId}`);
+      await this.tokyoService.deployAccountWithAutoCreate(freshAccount);
+      // Update status atomically
+      await this.accountRepository.update(
+        { id: freshAccount.id },
+        { status: MetaTraderAccountStatus.DEPLOYED },
+      );
+      this.logger.log(`Deployed MetaTrader account ${freshAccount.login} for participant ${freshAccount.marathonParticipantId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error ?? 'Unknown error');
       this.logger.error(
-        `Failed to deploy MetaTrader account ${account.login}: ${message}`,
+        `Failed to deploy MetaTrader account ${freshAccount.login}: ${message}`,
       );
+      // Don't update status on failure - will retry on next cron run
     }
   }
 }

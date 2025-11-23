@@ -40,7 +40,7 @@ export interface RabbitMQConfig {
 }
 
 export const defaultRabbitMQConfig: Partial<RabbitMQConfig> = {
-  heartbeat: 30,
+  heartbeat: 60,
   connectionAttempts: 5,
   retryDelay: 3000,
 
