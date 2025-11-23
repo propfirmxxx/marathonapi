@@ -19,6 +19,10 @@ export class MarathonSeeder extends BaseSeeder {
     'a1b2c3d4-e5f6-4789-a012-345678901007',
     'a1b2c3d4-e5f6-4789-a012-345678901008',
     'a1b2c3d4-e5f6-4789-a012-345678901009', // Test marathon
+    'a1b2c3d4-e5f6-4789-a012-345678901010',
+    'a1b2c3d4-e5f6-4789-a012-345678901011',
+    'a1b2c3d4-e5f6-4789-a012-345678901012',
+    'a1b2c3d4-e5f6-4789-a012-345678901013',
   ];
 
   getName(): string {
@@ -81,6 +85,26 @@ export class MarathonSeeder extends BaseSeeder {
     future3StartDate.setDate(future3StartDate.getDate() + 90);
     const future3EndDate = new Date(future3StartDate);
     future3EndDate.setDate(future3EndDate.getDate() + 30);
+
+    const future4StartDate = new Date(now);
+    future4StartDate.setDate(future4StartDate.getDate() + 45);
+    const future4EndDate = new Date(future4StartDate);
+    future4EndDate.setDate(future4EndDate.getDate() + 30);
+
+    const future5StartDate = new Date(now);
+    future5StartDate.setDate(future5StartDate.getDate() + 75);
+    const future5EndDate = new Date(future5StartDate);
+    future5EndDate.setDate(future5EndDate.getDate() + 30);
+
+    const future6StartDate = new Date(now);
+    future6StartDate.setDate(future6StartDate.getDate() + 120);
+    const future6EndDate = new Date(future6StartDate);
+    future6EndDate.setDate(future6EndDate.getDate() + 30);
+
+    const future7StartDate = new Date(now);
+    future7StartDate.setDate(future7StartDate.getDate() + 150);
+    const future7EndDate = new Date(future7StartDate);
+    future7EndDate.setDate(future7EndDate.getDate() + 30);
 
     // Insert marathon records using repository
     const manager = this.getManager();
@@ -354,6 +378,129 @@ export class MarathonSeeder extends BaseSeeder {
         createdAt: activeStartDate,
         updatedAt: now,
       },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901010',
+        name: 'Summer Trading Festival',
+        description: 'Celebrate summer with our annual trading festival! This exciting marathon features special bonuses, extended trading hours, and a festive atmosphere perfect for traders looking to make their mark.',
+        entryFee: 100.00,
+        awardsAmount: 15000.00,
+        maxPlayers: 200,
+        startDate: future4StartDate,
+        endDate: future4EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 15,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 25,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 8,
+        },
+        currentPlayers: 45,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 45 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 15 },
+            { position: 4, percentage: 10 },
+          ],
+          equalSplitRemainder: false,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901011',
+        name: 'Autumn Champions League',
+        description: 'The premier autumn trading competition for serious traders. Compete against the best and prove your trading skills in this prestigious championship with substantial rewards.',
+        entryFee: 300.00,
+        awardsAmount: 30000.00,
+        maxPlayers: 150,
+        startDate: future5StartDate,
+        endDate: future5EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 20,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 18,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 10,
+        },
+        currentPlayers: 78,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 40 },
+            { position: 2, percentage: 28 },
+            { position: 3, percentage: 18 },
+            { position: 4, percentage: 9 },
+            { position: 5, percentage: 5 },
+          ],
+          equalSplitRemainder: false,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901012',
+        name: 'New Year Trading Challenge',
+        description: 'Start the new year with a bang! Join our New Year Trading Challenge and compete for amazing prizes. Perfect opportunity to set your trading goals and achieve them with style.',
+        entryFee: 80.00,
+        awardsAmount: 10000.00,
+        maxPlayers: 250,
+        startDate: future6StartDate,
+        endDate: future6EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 10,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 5,
+        },
+        currentPlayers: 12,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 50 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 20 },
+          ],
+          equalSplitRemainder: true,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901013',
+        name: 'Mega Trading Championship',
+        description: 'The ultimate trading championship with the biggest prize pool! This is the event every trader dreams of. High stakes, high rewards, and the chance to become a trading legend.',
+        entryFee: 400.00,
+        awardsAmount: 75000.00,
+        maxPlayers: 300,
+        startDate: future7StartDate,
+        endDate: future7EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 30,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 12,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 15,
+        },
+        currentPlayers: 89,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 35 },
+            { position: 2, percentage: 25 },
+            { position: 3, percentage: 15 },
+            { position: 4, percentage: 10 },
+            { position: 5, percentage: 8 },
+            { position: 6, percentage: 4 },
+            { position: 7, percentage: 3 },
+          ],
+          equalSplitRemainder: true,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
     ]);
 
     await marathonRepository.save(marathons);
@@ -383,7 +530,7 @@ export class MarathonSeeder extends BaseSeeder {
 
     this.logger.log(`Found ${users.length} users. Seeding participants...`);
 
-    const participantCounts = [85, 67, 23, 200, 32, 156, 342, 187];
+    const participantCounts = [85, 67, 23, 200, 32, 156, 342, 187, 0, 45, 78, 12, 89];
     const participantValues: string[] = [];
     let participantIndex = 0;
 
