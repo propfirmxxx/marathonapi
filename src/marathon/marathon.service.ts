@@ -27,6 +27,7 @@ import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 import { SettingsService } from '../settings/settings.service';
 import { ProfileVisibility } from '../settings/entities/user-settings.entity';
 import { UsersService } from '../users/users.service';
+import { transformRulesToArray } from './utils/marathon-rules.util';
 
 @Injectable()
 export class MarathonService {
@@ -2395,7 +2396,7 @@ export class MarathonService {
       currencyPairs,
       tradesShortLong,
       equityBalance,
-      rules: marathon.rules as any, // MarathonRules type is compatible with MarathonRulesDto
+      rules: transformRulesToArray(marathon.rules),
       user: user ?? undefined,
     };
   }

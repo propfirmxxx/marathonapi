@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Marathon } from './marathon.entity';
 import { User } from '../../users/entities/user.entity';
 import { MetaTraderAccount } from '../../metatrader-accounts/entities/meta-trader-account.entity';
+import { ParticipantStatus } from '../enums/participant-status.enum';
 
 @Entity('marathon_participants')
 export class MarathonParticipant {
@@ -25,6 +26,9 @@ export class MarathonParticipant {
 
   @Column({ default: false })
   isActive: boolean;
+
+  @Column({ type: 'enum', enum: ParticipantStatus, default: ParticipantStatus.ACTIVE })
+  status: ParticipantStatus;
 
   @Column({ type: 'timestamp', nullable: true })
   cancelledAt: Date;

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
@@ -7,6 +7,7 @@ import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-a
 import { TokyoModule } from '../tokyo/tokyo.module';
 import { TokyoDataModule } from '../tokyo-data/tokyo-data.module';
 import { SettingsModule } from '../settings/settings.module';
+import { MarathonModule } from '../marathon/marathon.module';
 import { CronJobsController } from './cron-jobs.controller';
 import { CronJobsService } from './cron-jobs.service';
 import { CronMonitoringService } from './cron-monitoring.service';
@@ -19,6 +20,7 @@ import { MarathonProvisioningService } from './marathon-provisioning.service';
     TokyoModule,
     TokyoDataModule,
     SettingsModule,
+    forwardRef(() => MarathonModule),
   ],
   controllers: [CronJobsController],
   providers: [CronMonitoringService, CronJobsService, MarathonProvisioningService],

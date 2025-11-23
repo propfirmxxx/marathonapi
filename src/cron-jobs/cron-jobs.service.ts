@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CronMonitoringService } from './cron-monitoring.service';
 import { MarathonProvisioningService } from './marathon-provisioning.service';
 import { TokyoDataCronService } from '../tokyo-data/tokyo-data-cron.service';
 import { SessionService } from '../settings/session.service';
 import { LocationService } from '../settings/location.service';
+import { MarathonRulesService } from '../marathon/marathon-rules.service';
 
 @Injectable()
 export class CronJobsService {
@@ -16,6 +17,8 @@ export class CronJobsService {
     private readonly tokyoDataCron: TokyoDataCronService,
     private readonly sessionService: SessionService,
     private readonly locationService: LocationService,
+    @Inject(forwardRef(() => MarathonRulesService))
+    private readonly marathonRulesService: MarathonRulesService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE, {
@@ -94,6 +97,20 @@ export class CronJobsService {
       async () => {
         (this.locationService as any).clearExpiredCache();
         this.logger.debug('Expired location cache cleanup completed');
+      },
+    );
+  }
+
+  @Cron('*/5 * * * *', {
+    name: 'marathon.rules.check',
+  })
+  async checkMarathonRules(): Promise<void> {
+    await this.monitoring.track(
+      'marathon.rules.check',
+      '*/5 * * * *',
+      async () => {
+        await this.marathonRulesService.checkAllParticipantsRules();
+        this.logger.debug('Marathon rules check completed');
       },
     );
   }

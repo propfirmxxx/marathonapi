@@ -17,6 +17,7 @@ import { MarathonController } from './marathon.controller';
 import { MarathonService } from './marathon.service';
 import { MarathonLeaderboardService } from './marathon-leaderboard.service';
 import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
+import { MarathonRulesService } from './marathon-rules.service';
 import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entity';
 import { TokyoTransactionHistory } from '../tokyo-data/entities/tokyo-transaction-history.entity';
 import { TokyoBalanceHistory } from '../tokyo-data/entities/tokyo-balance-history.entity';
@@ -41,8 +42,9 @@ import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
     MarathonService,
     LiveAccountDataService,
     MarathonLeaderboardService,
+    MarathonRulesService,
     MarathonLiveDataGateway,
   ],
-  exports: [MarathonService, LiveAccountDataService, MarathonLeaderboardService],
+  exports: [MarathonService, LiveAccountDataService, MarathonLeaderboardService, MarathonRulesService],
 })
 export class MarathonModule {} 

@@ -10,6 +10,10 @@ import { RabbitMQConsumerService } from '../rabbitmq/services/rabbitmq-consumer.
 import { RabbitMQHealthService } from '../rabbitmq/services/rabbitmq-health.service';
 import { AccountSnapshot, MessageHandler } from '../rabbitmq/interfaces/message-handler.interface';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
+import { MarathonRulesService } from './marathon-rules.service';
+import { Repository } from 'typeorm';
+import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 // Re-export for backward compatibility
 export { AccountSnapshot } from '../rabbitmq/interfaces/message-handler.interface';
@@ -23,6 +27,8 @@ class MarathonMessageHandler implements MessageHandler {
     private readonly snapshots: Map<string, AccountSnapshot>,
     private readonly eventEmitter: EventEmitter,
     private readonly tokyoDataService: TokyoDataService | null,
+    private readonly rulesService: MarathonRulesService | null,
+    private readonly metaTraderAccountRepository: Repository<MetaTraderAccount> | null,
   ) {}
 
   async handle(message: ConsumeMessage, snapshot: AccountSnapshot): Promise<boolean> {
@@ -39,6 +45,13 @@ class MarathonMessageHandler implements MessageHandler {
         });
       }
 
+      // Check rules if service is available (async, don't wait)
+      if (this.rulesService && this.metaTraderAccountRepository) {
+        this.checkRulesForAccount(login).catch((error) => {
+          this.logger.warn(`Failed to check rules for account ${login}: ${error.message}`);
+        });
+      }
+
       // Emit event for listeners
       this.eventEmitter.emit('account.update', snapshot);
 
@@ -46,6 +59,25 @@ class MarathonMessageHandler implements MessageHandler {
     } catch (error) {
       this.logger.error(`Failed to handle message: ${error.message}`);
       return false;
+    }
+  }
+
+  private async checkRulesForAccount(login: string): Promise<void> {
+    if (!this.metaTraderAccountRepository || !this.rulesService) {
+      return;
+    }
+
+    try {
+      const account = await this.metaTraderAccountRepository.findOne({
+        where: { login },
+        relations: ['marathonParticipant'],
+      });
+
+      if (account?.marathonParticipantId && account.marathonParticipant) {
+        await this.rulesService.checkParticipantRules(account.marathonParticipant.id);
+      }
+    } catch (error) {
+      this.logger.error(`Error checking rules for account ${login}: ${error.message}`);
     }
   }
 }
@@ -57,15 +89,23 @@ export class LiveAccountDataService implements OnModuleInit {
   private readonly eventEmitter = new EventEmitter();
   private readonly subscribedMarathons = new Set<string>();
   private tokyoDataService: TokyoDataService | null = null;
+  private rulesService: MarathonRulesService | null = null;
 
   constructor(
     private readonly consumerService: RabbitMQConsumerService,
     private readonly healthService: RabbitMQHealthService,
+    @InjectRepository(MetaTraderAccount)
+    private readonly metaTraderAccountRepository: Repository<MetaTraderAccount>,
     @Inject(forwardRef(() => TokyoDataService))
     tokyoDataService?: TokyoDataService,
+    @Inject(forwardRef(() => MarathonRulesService))
+    rulesService?: MarathonRulesService,
   ) {
     if (tokyoDataService) {
       this.tokyoDataService = tokyoDataService;
+    }
+    if (rulesService) {
+      this.rulesService = rulesService;
     }
   }
 
@@ -87,6 +127,8 @@ export class LiveAccountDataService implements OnModuleInit {
       this.snapshots,
       this.eventEmitter,
       this.tokyoDataService,
+      this.rulesService,
+      this.metaTraderAccountRepository,
     );
 
     await this.consumerService.subscribeToMarathon(marathonId, handler);

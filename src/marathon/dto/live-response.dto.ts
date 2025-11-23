@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { MarathonRulesDto } from './marathon-rules.dto';
+import { MarathonRuleItem } from '../utils/marathon-rules.util';
+import { MarathonRule } from '../enums/marathon-rule.enum';
 
 export class MarathonLiveDto {
   @ApiProperty({ example: '1' })
@@ -232,8 +234,17 @@ export class LiveResponseDto {
   @ApiProperty({ type: EquityBalanceDto })
   equityBalance: EquityBalanceDto;
 
-  @ApiProperty({ type: MarathonRulesDto })
-  rules: MarathonRulesDto;
+  @ApiProperty({
+    description: 'Marathon rules and conditions as array of rule items',
+    type: [Object],
+    example: [
+      { type: MarathonRule.MIN_TRADES, value: 10 },
+      { type: MarathonRule.MAX_DRAWDOWN_PERCENT, value: 20 },
+      { type: MarathonRule.DAILY_DRAWDOWN_PERCENT, value: 10 },
+      { type: MarathonRule.FLOATING_RISK_PERCENT, value: 50 },
+    ],
+  })
+  rules: MarathonRuleItem[];
 
   @ApiProperty({ type: UserDetailsDto, nullable: true })
   user?: UserDetailsDto | null;

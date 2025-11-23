@@ -5,9 +5,20 @@ export enum MarathonRule {
   MIN_TRADES = 'minTrades',
 
   /**
-   * Maximum relative drawdown (in percentage) allowed during the marathon.
+   * Maximum relative drawdown (in percentage) allowed during the marathon (total drawdown).
    */
   MAX_DRAWDOWN_PERCENT = 'maxDrawdownPercent',
+
+  /**
+   * Maximum daily drawdown (in percentage) allowed per day.
+   */
+  DAILY_DRAWDOWN_PERCENT = 'dailyDrawdownPercent',
+
+  /**
+   * Maximum floating risk (in percentage) allowed.
+   * Calculated as: |floating PnL| / equity * 100
+   */
+  FLOATING_RISK_PERCENT = 'floatingRiskPercent',
 
   /**
    * Minimum relative profit (in percentage) required to qualify for prizes.

@@ -4,6 +4,7 @@ import { PrizeStrategyConfigDto } from './prize-strategy.dto';
 import { MetaTraderAccountStatus } from '../../metatrader-accounts/entities/meta-trader-account.entity';
 import { MarathonRulesDto } from './marathon-rules.dto';
 import { MarathonRule, MarathonRules } from '../enums/marathon-rule.enum';
+import { MarathonRuleItem } from '../utils/marathon-rules.util';
 import { MarathonStatus } from '../enums/marathon-status.enum';
 
 export class MarathonResponseDto {
@@ -83,15 +84,16 @@ export class MarathonResponseDto {
   status: MarathonStatus;
 
   @ApiProperty({
-    description: 'Marathon rules and conditions, keyed by predefined rule identifiers',
-    type: () => MarathonRulesDto,
-    example: {
-      [MarathonRule.MIN_TRADES]: 10,
-      [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
-      [MarathonRule.MIN_PROFIT_PERCENT]: 5,
-    },
+    description: 'Marathon rules and conditions as array of rule items',
+    type: [Object],
+    example: [
+      { type: MarathonRule.MIN_TRADES, value: 10 },
+      { type: MarathonRule.MAX_DRAWDOWN_PERCENT, value: 20 },
+      { type: MarathonRule.DAILY_DRAWDOWN_PERCENT, value: 10 },
+      { type: MarathonRule.FLOATING_RISK_PERCENT, value: 50 },
+    ],
   })
-  rules: MarathonRules;
+  rules: MarathonRuleItem[];
 
   @ApiProperty({
     description: 'Marathon active status',

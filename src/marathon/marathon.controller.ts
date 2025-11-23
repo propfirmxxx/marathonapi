@@ -24,6 +24,7 @@ import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
 import { MarathonStatus } from './enums/marathon-status.enum';
 import { MarathonLiveDataGateway } from './marathon-live-data.gateway';
+import { transformRulesToArray } from './utils/marathon-rules.util';
 
 @ApiTags('Marathons')
 @Controller('marathons')
@@ -89,8 +90,14 @@ export class MarathonController {
       query.status,
     );
 
+    // Transform rules to array format
+    const transformedMarathons = marathons.map(marathon => ({
+      ...marathon,
+      rules: transformRulesToArray(marathon.rules),
+    }));
+
     return {
-      data: marathons as any,
+      data: transformedMarathons as any,
       total,
       page: pageNum,
       limit: limitNum,
@@ -115,6 +122,7 @@ export class MarathonController {
     return {
       ...marathon,
       isParticipant,
+      rules: transformRulesToArray(marathon.rules),
     };
   }
 
