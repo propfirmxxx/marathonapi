@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SessionStatus } from '../entities/session.entity';
+import { IsInt, IsOptional, Min } from 'class-validator';
 
 export class GetSessionsQueryDto {
   @ApiProperty({
@@ -27,14 +26,5 @@ export class GetSessionsQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
-
-  @ApiProperty({
-    description: 'Filter by session status',
-    enum: SessionStatus,
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(SessionStatus)
-  status?: SessionStatus;
 }
 

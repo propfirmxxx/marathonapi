@@ -73,11 +73,6 @@ export class SettingsController {
   })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  @ApiQuery({
-    name: 'status',
-    required: false,
-    enum: ['active', 'expired', 'revoked'],
-  })
   @Get('sessions')
   async getSessions(
     @GetUser('id') userId: string,

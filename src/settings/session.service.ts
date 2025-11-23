@@ -80,7 +80,8 @@ export class SessionService {
     if (query.status) {
       where.status = query.status;
     } else {
-      where.status = Not(SessionStatus.REVOKED);
+      // By default, only return active sessions
+      where.status = SessionStatus.ACTIVE;
     }
 
     const [sessions, total] = await this.sessionRepository.findAndCount({

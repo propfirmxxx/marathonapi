@@ -59,8 +59,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
                     'Your account has been banned',
                     language,
                   );
-                } else {
-                  response.isBanned = false;
                 }
               }
 
