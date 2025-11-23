@@ -473,27 +473,11 @@ Subscribe to all accounts in a marathon.
 }
 \`\`\`
 
-#### 2. subscribe_account
-Subscribe to a specific account.
-\`\`\`json
-{
-  "accountLogin": "261632689"
-}
-\`\`\`
-
-#### 3. unsubscribe_marathon
+#### 2. unsubscribe_marathon
 Unsubscribe from a marathon.
 \`\`\`json
 {
   "marathonId": "uuid-of-marathon"
-}
-\`\`\`
-
-#### 4. unsubscribe_account
-Unsubscribe from an account.
-\`\`\`json
-{
-  "accountLogin": "261632689"
 }
 \`\`\`
 
@@ -534,31 +518,7 @@ Full leaderboard data for a subscribed marathon.
 }
 \`\`\`
 
-#### 3. account_update
-Individual account update with calculated leaderboard position.
-\`\`\`json
-{
-  "participantId": "uuid",
-  "userId": "uuid",
-  "userName": "John Doe",
-  "accountLogin": "261632689",
-  "rank": 1,
-  "balance": 10150.25,
-  "equity": 10200.50,
-  "profit": 150.25,
-  "profitPercentage": 1.5,
-  "margin": 500.00,
-  "freeMargin": 9700.50,
-  "currency": "USD",
-  "leverage": 100,
-  "positions": [],
-  "orders": [],
-  "updatedAt": "2024-01-01T12:00:00Z",
-  "joinedAt": "2024-01-01T10:00:00Z"
-}
-\`\`\`
-
-#### 4. subscribed
+#### 3. subscribed
 Confirmation of subscription.
 
 #### 5. unsubscribed
@@ -582,17 +542,10 @@ socket.on('connected', (data) => {
   
   // Subscribe to marathon
   socket.emit('subscribe_marathon', { marathonId: 'marathon-uuid' });
-  
-  // Or subscribe to specific account
-  socket.emit('subscribe_account', { accountLogin: '261632689' });
 });
 
 socket.on('marathon_leaderboard', (leaderboard) => {
   console.log('Leaderboard updated:', leaderboard);
-});
-
-socket.on('account_update', (entry) => {
-  console.log('Account updated:', entry);
 });
 
 socket.on('error', (error) => {

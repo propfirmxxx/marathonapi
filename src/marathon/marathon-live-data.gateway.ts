@@ -16,7 +16,6 @@ import { MarathonService } from './marathon.service';
 
 interface ClientSubscription {
   marathons: Set<string>;
-  accounts: Set<string>;
   participants: Set<string>; // participant IDs
   myLive: Map<string, string>; // marathonId -> participantId
   userId: string;
@@ -103,7 +102,6 @@ export class MarathonLiveDataGateway implements OnGatewayConnection, OnGatewayDi
 
       this.clientSubscriptions.set(client.id, {
         marathons: new Set(),
-        accounts: new Set(),
         participants: new Set(),
         myLive: new Map(),
         userId,
@@ -124,7 +122,6 @@ export class MarathonLiveDataGateway implements OnGatewayConnection, OnGatewayDi
       this.logger.log(
         `Client ${client.id} disconnected ` +
         `(Marathons: ${subscription.marathons.size}, ` +
-        `Accounts: ${subscription.accounts.size}, ` +
         `Participants: ${subscription.participants.size}, ` +
         `MyLive: ${subscription.myLive.size})`,
       );
@@ -195,48 +192,6 @@ export class MarathonLiveDataGateway implements OnGatewayConnection, OnGatewayDi
     }
   }
 
-  @SubscribeMessage('subscribe_account')
-  async handleSubscribeAccount(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { accountLogin: string },
-  ) {
-    try {
-      const subscription = this.clientSubscriptions.get(client.id);
-      if (!subscription) {
-        client.emit('error', { message: 'Not authenticated' });
-        return;
-      }
-
-      if (!data?.accountLogin) {
-        client.emit('error', { message: 'accountLogin is required' });
-        return;
-      }
-
-      subscription.accounts.add(data.accountLogin);
-      this.logger.log(`Client ${client.id} subscribed to account ${data.accountLogin}`);
-
-      // Send initial account data
-      const snapshots = this.liveAccountDataService.getAllSnapshots();
-      const entry = await this.leaderboardService.getAccountLeaderboardEntry(
-        data.accountLogin,
-        snapshots,
-      );
-
-      if (entry) {
-        client.emit('account_update', entry);
-      }
-
-      client.emit('subscribed', { 
-        type: 'account', 
-        accountLogin: data.accountLogin,
-        message: `Subscribed to account ${data.accountLogin}`,
-      });
-    } catch (error) {
-      this.logger.error(`Error subscribing to account:`, error.message);
-      client.emit('error', { message: 'Failed to subscribe to account' });
-    }
-  }
-
   @SubscribeMessage('unsubscribe_marathon')
   async handleUnsubscribeMarathon(
     @ConnectedSocket() client: Socket,
@@ -270,31 +225,6 @@ export class MarathonLiveDataGateway implements OnGatewayConnection, OnGatewayDi
       type: 'marathon', 
       marathonId: data.marathonId,
       message: `Unsubscribed from marathon ${data.marathonId}`,
-    });
-  }
-
-  @SubscribeMessage('unsubscribe_account')
-  handleUnsubscribeAccount(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { accountLogin: string },
-  ) {
-    const subscription = this.clientSubscriptions.get(client.id);
-    if (!subscription) {
-      return;
-    }
-
-    if (!data?.accountLogin) {
-      client.emit('error', { message: 'accountLogin is required' });
-      return;
-    }
-
-    subscription.accounts.delete(data.accountLogin);
-    this.logger.log(`Client ${client.id} unsubscribed from account ${data.accountLogin}`);
-    
-    client.emit('unsubscribed', { 
-      type: 'account', 
-      accountLogin: data.accountLogin,
-      message: `Unsubscribed from account ${data.accountLogin}`,
     });
   }
 
@@ -814,20 +744,6 @@ export class MarathonLiveDataGateway implements OnGatewayConnection, OnGatewayDi
 
     // Check for positions/orders changes for my-live subscriptions
     await this.checkPositionsOrdersChanges(snapshot);
-
-    // Find all clients subscribed to this specific account
-    for (const [clientId, subscription] of this.clientSubscriptions.entries()) {
-      if (subscription.accounts.has(snapshot.login)) {
-        const entry = await this.leaderboardService.getAccountLeaderboardEntry(
-          snapshot.login,
-          snapshots,
-        );
-
-        if (entry) {
-          this.server.to(clientId).emit('account_update', entry);
-        }
-      }
-    }
 
     // Get participant info for this account to track changes
     const participant = await this.leaderboardService.getParticipantByAccountLogin(snapshot.login);
