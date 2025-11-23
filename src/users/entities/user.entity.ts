@@ -20,6 +20,15 @@ export enum UserRole {
   USER = 'user',
 }
 
+export enum BanReason {
+  VIOLATION_OF_TERMS = 'violation_of_terms',
+  SPAM = 'spam',
+  FRAUD = 'fraud',
+  ABUSIVE_BEHAVIOR = 'abusive_behavior',
+  SUSPICIOUS_ACTIVITY = 'suspicious_activity',
+  OTHER = 'other',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -36,6 +45,20 @@ export class User {
 
   @Column({ default: false })
   isBanned: boolean;
+
+  @Column({ 
+    type: 'enum',
+    enum: BanReason,
+    nullable: true,
+    enumName: 'ban_reason_enum'
+  })
+  banReason: BanReason | null;
+
+  @Column({ nullable: true })
+  bannedAt: Date | null;
+
+  @Column({ nullable: true })
+  bannedUntil: Date | null;
 
   @Column({ 
     type: 'enum',

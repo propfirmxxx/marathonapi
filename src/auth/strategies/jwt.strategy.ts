@@ -28,15 +28,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.userRepository.findOne({
       where: { id: payload.sub },
+      select: ['id', 'email', 'role', 'isBanned', 'banReason', 'bannedAt', 'bannedUntil'],
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    if (user.isBanned) {
-      throw new UnauthorizedException('User account is banned');
-    }
+    // Allow banned users to authenticate, ban status will be checked in interceptor
 
     // Extract token from request header and validate session
     const authHeader = req.headers.authorization;

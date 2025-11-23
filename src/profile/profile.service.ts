@@ -45,7 +45,11 @@ export class ProfileService {
         user: {
           id: true,
           email: true,
-          role: true
+          role: true,
+          isBanned: true,
+          banReason: true,
+          bannedAt: true,
+          bannedUntil: true
         }
       }
     });

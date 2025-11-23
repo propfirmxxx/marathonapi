@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+import { User, BanReason } from '../users/entities/user.entity';
 import { EmailVerification } from '../users/entities/email-verification.entity';
 import { PasswordReset } from '../users/entities/password-reset.entity';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from '../users/dto/auth.dto';
@@ -158,7 +158,7 @@ export class AuthService {
 
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
-      select: ['id', 'email', 'password', 'isActive', 'isBanned', 'role'],
+      select: ['id', 'email', 'password', 'isActive', 'isBanned', 'banReason', 'bannedAt', 'bannedUntil', 'role'],
     });
 
     if (!user || !(await user.validatePassword(loginDto.password))) {
@@ -176,16 +176,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Allow banned users to login, but record it
     if (user.isBanned) {
       await this.loginHistoryService.recordLogin(
         user.id,
-        LoginStatus.FAILED,
+        LoginStatus.SUCCESS,
         LoginMethod.EMAIL,
         ipAddress,
         userAgent,
-        'User account is banned',
+        'User logged in while banned',
       );
-      throw new UnauthorizedException('User account is banned');
     }
 
     const sessionId = crypto.randomUUID();
@@ -311,9 +311,7 @@ export class AuthService {
       }
     }
 
-    if (user.isBanned) {
-      throw new UnauthorizedException('User account is banned');
-    }
+    // Allow banned users to login via Google OAuth as well
 
     return user;
   }

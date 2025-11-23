@@ -48,6 +48,22 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
                 );
               }
 
+              // Add ban information if user is banned (only if response is an object)
+              if (response && typeof response === 'object' && !Array.isArray(response)) {
+                if (user.isBanned) {
+                  response.isBanned = true;
+                  response.banReason = user.banReason;
+                  response.bannedAt = user.bannedAt;
+                  response.bannedUntil = user.bannedUntil;
+                  response.banMessage = this.i18nService.translate(
+                    'Your account has been banned',
+                    language,
+                  );
+                } else {
+                  response.isBanned = false;
+                }
+              }
+
               // Return response as is (dates will be serialized to ISO strings by default)
               return response;
             }),

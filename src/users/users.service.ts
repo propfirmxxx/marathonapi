@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
+import { User, BanReason } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
@@ -48,9 +48,12 @@ export class UsersService {
     await this.userRepository.softDelete(user.id);
   }
 
-  async banUser(id: string): Promise<User> {
+  async banUser(id: string, banReason?: BanReason, bannedUntil?: Date | null): Promise<User> {
     const user = await this.findOne(id);
     user.isBanned = true;
+    user.banReason = banReason || BanReason.OTHER;
+    user.bannedAt = new Date();
+    user.bannedUntil = bannedUntil || null;
     const updatedUser = await this.userRepository.save(user);
     delete updatedUser.password;
     return updatedUser;
@@ -59,6 +62,9 @@ export class UsersService {
   async unbanUser(id: string): Promise<User> {
     const user = await this.findOne(id);
     user.isBanned = false;
+    user.banReason = null;
+    user.bannedAt = null;
+    user.bannedUntil = null;
     const updatedUser = await this.userRepository.save(user);
     delete updatedUser.password;
     return updatedUser;

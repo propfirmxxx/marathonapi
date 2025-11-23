@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { BanReason } from '../entities/user.entity';
 
 export class UserResponseDto {
   @ApiProperty({
@@ -31,6 +32,28 @@ export class UserResponseDto {
     example: false
   })
   isBanned: boolean;
+
+  @ApiProperty({
+    description: 'Ban reason',
+    enum: BanReason,
+    nullable: true,
+    example: BanReason.VIOLATION_OF_TERMS
+  })
+  banReason: BanReason | null;
+
+  @ApiProperty({
+    description: 'Ban date',
+    example: '2024-04-22T12:00:00Z',
+    nullable: true
+  })
+  bannedAt: Date | null;
+
+  @ApiProperty({
+    description: 'Ban expiration date. null means permanent ban',
+    example: '2024-12-31T23:59:59Z',
+    nullable: true
+  })
+  bannedUntil: Date | null;
 
   @ApiProperty({
     description: 'Creation timestamp',

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BanUserDto } from './dto/ban-user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
@@ -71,10 +72,11 @@ export class UsersController {
     type: UserResponseDto
   })
   @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiBody({ type: BanUserDto, required: false })
   @Post(':id/ban')
   @UseGuards(AdminGuard)
-  banUser(@Param('id') id: string) {
-    return this.usersService.banUser(id);
+  banUser(@Param('id') id: string, @Body() banUserDto?: BanUserDto) {
+    return this.usersService.banUser(id, banUserDto?.banReason, banUserDto?.bannedUntil);
   }
 
   @ApiOperation({ summary: 'Unban user' })
