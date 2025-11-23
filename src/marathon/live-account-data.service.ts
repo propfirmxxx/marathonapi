@@ -70,11 +70,10 @@ class MarathonMessageHandler implements MessageHandler {
     try {
       const account = await this.metaTraderAccountRepository.findOne({
         where: { login },
-        relations: ['marathonParticipant'],
       });
 
-      if (account?.marathonParticipantId && account.marathonParticipant) {
-        await this.rulesService.checkParticipantRules(account.marathonParticipant.id);
+      if (account?.marathonParticipantId) {
+        await this.rulesService.checkParticipantRules(account.marathonParticipantId);
       }
     } catch (error) {
       this.logger.error(`Error checking rules for account ${login}: ${error.message}`);
