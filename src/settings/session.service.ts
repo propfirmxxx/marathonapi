@@ -77,12 +77,8 @@ export class SessionService {
     const skip = (page - 1) * limit;
 
     const where: any = { userId };
-    if (query.status) {
-      where.status = query.status;
-    } else {
-      // By default, only return active sessions
-      where.status = SessionStatus.ACTIVE;
-    }
+    // By default, only return active sessions
+    where.status = SessionStatus.ACTIVE;
 
     const [sessions, total] = await this.sessionRepository.findAndCount({
       where,
