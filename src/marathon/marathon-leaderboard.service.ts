@@ -199,5 +199,27 @@ export class MarathonLeaderboardService {
       .filter(p => p.metaTraderAccount?.login)
       .map(p => p.metaTraderAccount.login);
   }
+
+  /**
+   * Get participant info by account login
+   */
+  async getParticipantByAccountLogin(accountLogin: string): Promise<{ participantId: string; marathonId: string } | null> {
+    const participant = await this.participantRepository.findOne({
+      where: { 
+        metaTraderAccount: { login: accountLogin },
+        isActive: true,
+      },
+      relations: ['marathon'],
+    });
+
+    if (!participant || !participant.marathon) {
+      return null;
+    }
+
+    return {
+      participantId: participant.id,
+      marathonId: participant.marathon.id,
+    };
+  }
 }
 
