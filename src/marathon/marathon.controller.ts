@@ -572,4 +572,74 @@ socket.on('error', (error) => {
       documentation: 'See detailed documentation in WEBSOCKET.md',
     };
   }
+
+  @ApiOperation({ 
+    summary: 'Get MetaTrader account information for a marathon',
+    description: 'Returns account login, server, and investor password. Only available after marathon has started. Requires authentication and participation in the marathon.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns MetaTrader account information',
+    schema: {
+      type: 'object',
+      properties: {
+        login: { type: 'string', example: '261632689' },
+        server: { type: 'string', example: 'MetaQuotes-Demo' },
+        investorPassword: { type: 'string', example: 'InvestorPass123' },
+        platform: { type: 'string', example: 'mt5' },
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Marathon has not started yet'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Marathon not found or user is not a participant'
+  })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':id/account-info')
+  async getMarathonAccountInfo(
+    @Param('id') marathonId: string,
+    @Req() req: any,
+  ) {
+    return await this.marathonService.getMarathonAccountInfo(marathonId, req.user.id);
+  }
+
+  @ApiOperation({ 
+    summary: 'Get MetaTrader master password for a marathon',
+    description: 'Returns master password and records the request timestamp. Only available after marathon has started. Requires authentication and participation in the marathon. Each request is logged for security purposes.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns master password and request timestamp',
+    schema: {
+      type: 'object',
+      properties: {
+        masterPassword: { type: 'string', example: 'MasterPass123' },
+        requestedAt: { type: 'string', format: 'date-time', example: '2024-01-01T12:00:00Z' },
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Marathon has not started yet'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Marathon not found, user is not a participant, or master password not available'
+  })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':id/master-password')
+  async getMarathonMasterPassword(
+    @Param('id') marathonId: string,
+    @Req() req: any,
+  ) {
+    return await this.marathonService.getMarathonMasterPassword(marathonId, req.user.id);
+  }
 } 

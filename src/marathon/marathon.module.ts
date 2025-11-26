@@ -12,6 +12,7 @@ import { VirtualWalletModule } from '../virtual-wallet/virtual-wallet.module';
 import { SettingsModule } from '../settings/settings.module';
 import { MarathonParticipant } from './entities/marathon-participant.entity';
 import { Marathon } from './entities/marathon.entity';
+import { PasswordRequest } from './entities/password-request.entity';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonController } from './marathon.controller';
 import { MarathonService } from './marathon.service';
@@ -26,7 +27,7 @@ import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance, TokyoTransactionHistory, TokyoBalanceHistory, TokyoEquityHistory, Withdrawal]),
+    TypeOrmModule.forFeature([Marathon, MarathonParticipant, MetaTraderAccount, TokyoPerformance, TokyoTransactionHistory, TokyoBalanceHistory, TokyoEquityHistory, Withdrawal, PasswordRequest]),
     RabbitMQModule.forRoot(),
     UsersModule,
     PaymentModule,

@@ -30,6 +30,7 @@ import { UsersService } from '../users/users.service';
 import { transformRulesToArray } from './utils/marathon-rules.util';
 import { MarathonRule } from './enums/marathon-rule.enum';
 import { RuleViolation } from './entities/marathon-participant.entity';
+import { PasswordRequest } from './entities/password-request.entity';
 
 @Injectable()
 export class MarathonService {
@@ -67,6 +68,8 @@ export class MarathonService {
     private readonly equityHistoryRepository: Repository<TokyoEquityHistory>,
     @InjectRepository(Withdrawal)
     private readonly withdrawalRepository: Repository<Withdrawal>,
+    @InjectRepository(PasswordRequest)
+    private readonly passwordRequestRepository: Repository<PasswordRequest>,
     private readonly tokyoService: TokyoService,
     private readonly virtualWalletService: VirtualWalletService,
     private readonly tokyoDataService: TokyoDataService,
@@ -2436,6 +2439,120 @@ export class MarathonService {
       equityBalance,
       rules: transformRulesToArray(marathon.rules),
       user: user ?? undefined,
+    };
+  }
+
+  /**
+   * Get MetaTrader account information for a user in a marathon
+   * Only available after marathon has started
+   */
+  async getMarathonAccountInfo(marathonId: string, userId: string): Promise<{
+    login: string;
+    server: string;
+    investorPassword: string;
+    platform: string;
+  }> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Check if marathon has started
+    if (!this.hasMarathonStarted(marathon)) {
+      throw new BadRequestException('Marathon has not started yet. Account information will be available after the marathon starts.');
+    }
+
+    // Get participant
+    const participant = await this.participantRepository.findOne({
+      where: {
+        marathon: { id: marathonId },
+        user: { id: userId },
+        isActive: true,
+      },
+      relations: ['metaTraderAccount'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException('You are not a participant in this marathon');
+    }
+
+    if (!participant.metaTraderAccount) {
+      throw new NotFoundException('MetaTrader account not assigned to this participant yet');
+    }
+
+    const account = participant.metaTraderAccount;
+
+    return {
+      login: account.login,
+      server: account.server,
+      investorPassword: account.investorPassword || '',
+      platform: account.platform || 'mt5',
+    };
+  }
+
+  /**
+   * Get master password for a user's marathon account
+   * Only available after marathon has started
+   * Tracks when password was requested
+   */
+  async getMarathonMasterPassword(marathonId: string, userId: string): Promise<{
+    masterPassword: string;
+    requestedAt: Date;
+  }> {
+    // Check if marathon exists
+    const marathon = await this.marathonRepository.findOne({
+      where: { id: marathonId },
+    });
+
+    if (!marathon) {
+      throw new NotFoundException(`Marathon with ID ${marathonId} not found`);
+    }
+
+    // Check if marathon has started
+    if (!this.hasMarathonStarted(marathon)) {
+      throw new BadRequestException('Marathon has not started yet. Master password will be available after the marathon starts.');
+    }
+
+    // Get participant
+    const participant = await this.participantRepository.findOne({
+      where: {
+        marathon: { id: marathonId },
+        user: { id: userId },
+        isActive: true,
+      },
+      relations: ['metaTraderAccount'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException('You are not a participant in this marathon');
+    }
+
+    if (!participant.metaTraderAccount) {
+      throw new NotFoundException('MetaTrader account not assigned to this participant yet');
+    }
+
+    const account = participant.metaTraderAccount;
+
+    if (!account.masterPassword) {
+      throw new NotFoundException('Master password not available for this account');
+    }
+
+    // Record password request
+    const passwordRequest = this.passwordRequestRepository.create({
+      participantId: participant.id,
+      userId: userId,
+      passwordType: 'master',
+    });
+
+    const savedRequest = await this.passwordRequestRepository.save(passwordRequest);
+
+    return {
+      masterPassword: account.masterPassword,
+      requestedAt: savedRequest.requestedAt,
     };
   }
 } 
