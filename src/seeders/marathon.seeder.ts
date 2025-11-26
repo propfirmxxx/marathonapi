@@ -2,11 +2,8 @@ import { DataSource } from 'typeorm';
 import { BaseSeeder } from './base-seeder';
 import { Marathon } from '../marathon/entities/marathon.entity';
 import { PrizeStrategyType } from '../marathon/entities/prize-strategy.types';
-import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import { MarathonStatus } from '../marathon/enums/marathon-status.enum';
 import { MarathonRule } from '../marathon/enums/marathon-rule.enum';
-import { User } from '../users/entities/user.entity';
-import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
 
 export class MarathonSeeder extends BaseSeeder {
   private readonly seededMarathonIds = [
@@ -23,6 +20,12 @@ export class MarathonSeeder extends BaseSeeder {
     'a1b2c3d4-e5f6-4789-a012-345678901011',
     'a1b2c3d4-e5f6-4789-a012-345678901012',
     'a1b2c3d4-e5f6-4789-a012-345678901013',
+    // Additional upcoming marathons for testing
+    'a1b2c3d4-e5f6-4789-a012-345678901014',
+    'a1b2c3d4-e5f6-4789-a012-345678901015',
+    'a1b2c3d4-e5f6-4789-a012-345678901016',
+    'a1b2c3d4-e5f6-4789-a012-345678901017',
+    'a1b2c3d4-e5f6-4789-a012-345678901018',
   ];
 
   getName(): string {
@@ -106,6 +109,27 @@ export class MarathonSeeder extends BaseSeeder {
     const future7EndDate = new Date(future7StartDate);
     future7EndDate.setDate(future7EndDate.getDate() + 30);
 
+    // Additional upcoming dates for testing join/leave
+    const upcoming2StartDate = new Date(now);
+    upcoming2StartDate.setDate(upcoming2StartDate.getDate() + 7); // Next week
+    const upcoming2EndDate = new Date(upcoming2StartDate);
+    upcoming2EndDate.setDate(upcoming2EndDate.getDate() + 14); // 2 weeks duration
+
+    const upcoming3StartDate = new Date(now);
+    upcoming3StartDate.setDate(upcoming3StartDate.getDate() + 14); // In 2 weeks
+    const upcoming3EndDate = new Date(upcoming3StartDate);
+    upcoming3EndDate.setDate(upcoming3EndDate.getDate() + 21); // 3 weeks duration
+
+    const upcoming4StartDate = new Date(now);
+    upcoming4StartDate.setDate(upcoming4StartDate.getDate() + 21); // In 3 weeks
+    const upcoming4EndDate = new Date(upcoming4StartDate);
+    upcoming4EndDate.setDate(upcoming4EndDate.getDate() + 30); // 1 month duration
+
+    const upcoming5StartDate = new Date(now);
+    upcoming5StartDate.setDate(upcoming5StartDate.getDate() + 5); // In 5 days
+    const upcoming5EndDate = new Date(upcoming5StartDate);
+    upcoming5EndDate.setDate(upcoming5EndDate.getDate() + 14); // 2 weeks duration
+
     // Insert marathon records using repository
     const manager = this.getManager();
     const marathonRepository = manager.getRepository(Marathon);
@@ -127,7 +151,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
           [MarathonRule.MIN_PROFIT_PERCENT]: 5,
         },
-        currentPlayers: 85,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
         prizeStrategyConfig: {
           placements: [
@@ -156,7 +180,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 25,
           [MarathonRule.MIN_PROFIT_PERCENT]: 7,
         },
-        currentPlayers: 67,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -185,7 +209,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 22,
           [MarathonRule.MIN_PROFIT_PERCENT]: 6,
         },
-        currentPlayers: 23,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -213,7 +237,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 30,
           [MarathonRule.MIN_PROFIT_PERCENT]: 10,
         },
-        currentPlayers: 200,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -244,7 +268,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 15,
           [MarathonRule.MIN_PROFIT_PERCENT]: 4,
         },
-        currentPlayers: 32,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -273,7 +297,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 15,
           [MarathonRule.MIN_PROFIT_PERCENT]: 12,
         },
-        currentPlayers: 156,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -305,7 +329,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 10,
           [MarathonRule.MIN_PROFIT_PERCENT]: 15,
         },
-        currentPlayers: 342,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -336,7 +360,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 30,
           [MarathonRule.MIN_PROFIT_PERCENT]: 2,
         },
-        currentPlayers: 187,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
         prizeStrategyConfig: {
           placements: [
@@ -394,7 +418,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 25,
           [MarathonRule.MIN_PROFIT_PERCENT]: 8,
         },
-        currentPlayers: 45,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -424,7 +448,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 18,
           [MarathonRule.MIN_PROFIT_PERCENT]: 10,
         },
-        currentPlayers: 78,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -455,7 +479,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
           [MarathonRule.MIN_PROFIT_PERCENT]: 5,
         },
-        currentPlayers: 12,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -484,7 +508,7 @@ export class MarathonSeeder extends BaseSeeder {
           [MarathonRule.MAX_DRAWDOWN_PERCENT]: 12,
           [MarathonRule.MIN_PROFIT_PERCENT]: 15,
         },
-        currentPlayers: 89,
+        currentPlayers: 0,
         prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
         prizeStrategyConfig: {
           placements: [
@@ -501,215 +525,156 @@ export class MarathonSeeder extends BaseSeeder {
         createdAt: now,
         updatedAt: now,
       },
+      // Additional upcoming marathons for testing join/leave
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901014',
+        name: 'Weekly Trading Sprint',
+        description: 'A quick 2-week trading sprint perfect for testing the join and leave functionality. Low entry fee makes it accessible for all traders.',
+        entryFee: 30.00,
+        awardsAmount: 3000.00,
+        maxPlayers: 50,
+        startDate: upcoming2StartDate,
+        endDate: upcoming2EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 5,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 25,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 3,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 100 },
+          ],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901015',
+        name: 'Mid-Month Challenge',
+        description: 'Join our mid-month challenge! Great for testing marathon participation features with a moderate entry fee and competitive prizes.',
+        entryFee: 60.00,
+        awardsAmount: 6000.00,
+        maxPlayers: 100,
+        startDate: upcoming3StartDate,
+        endDate: upcoming3EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 8,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 5,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 50 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 20 },
+          ],
+          equalSplitRemainder: true,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901016',
+        name: 'Monthly Trading Competition',
+        description: 'A full month trading competition with substantial prizes. Perfect for extended testing of marathon features and participant management.',
+        entryFee: 150.00,
+        awardsAmount: 15000.00,
+        maxPlayers: 200,
+        startDate: upcoming4StartDate,
+        endDate: upcoming4EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 12,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 22,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 6,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 40 },
+            { position: 2, percentage: 25 },
+            { position: 3, percentage: 15 },
+            { position: 4, percentage: 10 },
+            { position: 5, percentage: 10 },
+          ],
+          equalSplitRemainder: false,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901017',
+        name: 'Quick Start Trading Event',
+        description: 'Starting soon! A fast-paced 2-week event starting in just 5 days. Join now to test the registration and cancellation flow.',
+        entryFee: 40.00,
+        awardsAmount: 4000.00,
+        maxPlayers: 75,
+        startDate: upcoming5StartDate,
+        endDate: upcoming5EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 6,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 4,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.PERCENTAGE_SPLIT,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 60 },
+            { position: 2, percentage: 30 },
+            { position: 3, percentage: 10 },
+          ],
+          equalSplitRemainder: false,
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901018',
+        name: 'Testing Marathon - Join/Leave',
+        description: 'Specifically created for testing join and leave functionality. Feel free to register and cancel to test the flow.',
+        entryFee: 20.00,
+        awardsAmount: 2000.00,
+        maxPlayers: 100,
+        startDate: upcoming2StartDate,
+        endDate: upcoming2EndDate,
+        isActive: true,
+        status: MarathonStatus.UPCOMING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 3,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 30,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 2,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
+        prizeStrategyConfig: {
+          placements: [
+            { position: 1, percentage: 100 },
+          ],
+        },
+        createdAt: now,
+        updatedAt: now,
+      },
     ]);
 
     await marathonRepository.save(marathons);
 
-    // Seed participants if users exist
-    if (hasParticipants) {
-      await this.seedParticipants(marathons);
-      // Seed test marathon participants with specific accounts
-      await this.seedTestMarathonParticipants();
-    }
+    // Don't seed any participants - users should join manually to test join/leave flow
+    // All marathons start with currentPlayers = 0
 
-    this.logger.log('✓ Marathon data seeded successfully');
-  }
-
-  private async seedParticipants(marathons: Marathon[]): Promise<void> {
-    // Query existing users, excluding test users
-    const users = await this.query(`
-      SELECT id FROM users 
-      WHERE email NOT IN ('testuser1@example.com', 'testuser2@example.com')
-      ORDER BY "createdAt" LIMIT 50
-    `);
-
-    if (!users || users.length === 0) {
-      this.logger.warn('No users found. Skipping participant seeding.');
-      return;
-    }
-
-    this.logger.log(`Found ${users.length} users. Seeding participants...`);
-
-    const participantCounts = [85, 67, 23, 200, 32, 156, 342, 187, 0, 45, 78, 12, 89];
-    const participantValues: string[] = [];
-    let participantIndex = 0;
-
-    // Exclude test marathon (index 8) from regular participant seeding
-    marathons.forEach((marathon, marathonIndex) => {
-      // Skip test marathon (it will be handled separately)
-      if (marathonIndex === 8) {
-        return;
-      }
-
-      const participantCount = Math.min(participantCounts[marathonIndex] || 0, users.length);
-
-      for (let i = 0; i < participantCount; i++) {
-        const userId = users[i % users.length].id;
-        const joinDate = new Date(marathon.startDate);
-        joinDate.setDate(joinDate.getDate() - Math.floor(Math.random() * 7));
-
-        const isActive = Math.random() > 0.15;
-        const participantId = this.generateParticipantId(participantIndex);
-
-        participantValues.push(
-          `('${participantId}', '${marathon.id}', '${userId}', NULL, ${isActive}, '${joinDate.toISOString()}', '${joinDate.toISOString()}')`,
-        );
-        participantIndex++;
-      }
-    });
-
-    if (participantValues.length > 0) {
-      await this.query(`
-        INSERT INTO marathon_participants (
-          id, marathon_id, user_id, "metaTraderAccountId", "isActive", 
-          "createdAt", "updatedAt"
-        ) VALUES ${participantValues.join(', ')}
-      `);
-
-      // Update currentPlayers count
-      const counts = await this.query(`
-        SELECT marathon_id, COUNT(*) as count 
-        FROM marathon_participants 
-        GROUP BY marathon_id
-      `);
-
-      for (const countRow of counts) {
-        await this.query(`
-          UPDATE marathons 
-          SET "currentPlayers" = ${countRow.count} 
-          WHERE id = '${countRow.marathon_id}'
-        `);
-      }
-    }
-  }
-
-  private generateParticipantId(index: number): string {
-    const hex = index.toString(16).padStart(12, '0');
-    return `b1c2d3e4-f5a6-4000-a000-${hex}`;
-  }
-
-  private async seedTestMarathonParticipants(): Promise<void> {
-    const marathonId = 'a1b2c3d4-e5f6-4789-a012-345678901009';
-    const manager = this.getManager();
-    const userRepository = manager.getRepository(User);
-    const accountRepository = manager.getRepository(MetaTraderAccount);
-    const marathonRepository = manager.getRepository(Marathon);
-    const participantRepository = manager.getRepository(MarathonParticipant);
-
-    // Find test users using repository
-    const testUsers = await userRepository.find({
-      where: [
-        { email: 'testuser1@example.com' },
-        { email: 'testuser2@example.com' },
-      ],
-      order: { email: 'ASC' },
-    });
-
-    if (!testUsers || testUsers.length !== 2) {
-      this.logger.warn(`Test users not found. Found ${testUsers?.length || 0} users. Skipping test marathon participant seeding.`);
-      return;
-    }
-
-    this.logger.log(`Found ${testUsers.length} test users: ${testUsers.map(u => u.email).join(', ')}`);
-
-    // Find test MetaTrader accounts using repository
-    const testAccounts = await accountRepository.find({
-      where: [
-        { login: '261632689' },
-        { login: '261632685' },
-      ],
-      order: { login: 'ASC' },
-    });
-
-    if (!testAccounts || testAccounts.length !== 2) {
-      this.logger.warn(`Test MetaTrader accounts not found. Found ${testAccounts?.length || 0} accounts. Skipping test marathon participant seeding.`);
-      return;
-    }
-
-    this.logger.log(`Found ${testAccounts.length} test accounts: ${testAccounts.map(a => a.login).join(', ')}`);
-
-    // Find marathon
-    const marathon = await marathonRepository.findOne({
-      where: { id: marathonId },
-    });
-
-    if (!marathon) {
-      this.logger.warn(`Test marathon not found. Skipping test marathon participant seeding.`);
-      return;
-    }
-
-    // Check if participants already exist
-    const existingParticipants = await participantRepository
-      .createQueryBuilder('participant')
-      .where('participant.marathon_id = :marathonId', { marathonId })
-      .andWhere('participant.user_id IN (:...userIds)', { userIds: testUsers.map(u => u.id) })
-      .getMany();
-
-    if (existingParticipants.length > 0) {
-      this.logger.log(`Found ${existingParticipants.length} existing participants. Updating them...`);
-      
-      // Update existing participants
-      for (let i = 0; i < Math.min(existingParticipants.length, 2); i++) {
-        existingParticipants[i].isActive = true;
-        existingParticipants[i].metaTraderAccountId = testAccounts[i].id;
-        await participantRepository.save(existingParticipants[i]);
-      }
-
-      // Create missing participants if needed
-      if (existingParticipants.length < 2) {
-        const missingIndex = existingParticipants.length;
-        const newParticipant = participantRepository.create({
-          marathon: marathon,
-          user: testUsers[missingIndex],
-          metaTraderAccountId: testAccounts[missingIndex].id,
-          isActive: true,
-        });
-        await participantRepository.save(newParticipant);
-      }
-    } else {
-      // Create new participants
-      const participants = participantRepository.create([
-        {
-          marathon: marathon,
-          user: testUsers[0],
-          metaTraderAccountId: testAccounts[0].id,
-          isActive: true,
-        },
-        {
-          marathon: marathon,
-          user: testUsers[1],
-          metaTraderAccountId: testAccounts[1].id,
-          isActive: true,
-        },
-      ]);
-
-      await participantRepository.save(participants);
-      this.logger.log(`Created ${participants.length} new participants`);
-    }
-
-    // Get all participants for this marathon to update accounts
-    const allParticipants = await participantRepository
-      .createQueryBuilder('participant')
-      .leftJoinAndSelect('participant.user', 'user')
-      .where('participant.marathon_id = :marathonId', { marathonId })
-      .andWhere('participant.user_id IN (:...userIds)', { userIds: testUsers.map(u => u.id) })
-      .getMany();
-
-    // Update MetaTrader accounts to link them to participants
-    for (let i = 0; i < Math.min(allParticipants.length, 2); i++) {
-      const participant = allParticipants[i];
-      const account = testAccounts[i];
-      
-      account.marathonParticipantId = participant.id;
-      account.userId = testUsers[i].id;
-      await accountRepository.save(account);
-    }
-
-    // Update marathon currentPlayers count
-    marathon.currentPlayers = allParticipants.filter(p => p.isActive).length;
-    await marathonRepository.save(marathon);
-
-    this.logger.log(`✓ Test marathon participants seeded successfully. ${marathon.currentPlayers} active participants.`);
+    this.logger.log('✓ Marathon data seeded successfully (no participants - users can join manually)');
   }
 
   private async clearSeededPayments(): Promise<void> {

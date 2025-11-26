@@ -19,9 +19,8 @@ export class MetaTraderAccountSeeder extends BaseSeeder {
     const manager = this.getManager();
     const accountRepository = manager.getRepository(MetaTraderAccount);
 
-    // Only keep the two test accounts: 261632685 and 261632689
+    // Test accounts and additional accounts for testing join/leave
     // Using upsert to avoid deleting existing accounts that might be referenced
-    const testLogins = ['261632689', '261632685'];
     const testAccountsData = [
       {
         name: 'Test Account 1',
@@ -39,6 +38,71 @@ export class MetaTraderAccountSeeder extends BaseSeeder {
         platform: 'mt5',
         status: MetaTraderAccountStatus.UNDEPLOYED,
       },
+      // Additional accounts for testing join/leave process
+      {
+        name: 'Test Account 3',
+        login: '10010001',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 4',
+        login: '10010002',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 5',
+        login: '10010003',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 6',
+        login: '10010004',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 7',
+        login: '10010005',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 8',
+        login: '10010006',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 9',
+        login: '10010007',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
+      {
+        name: 'Test Account 10',
+        login: '10010008',
+        masterPassword: 'TestPassword123',
+        server: 'Exness-MT5Trial16',
+        platform: 'mt5',
+        status: MetaTraderAccountStatus.UNDEPLOYED,
+      },
     ];
 
     // Check if accounts already exist and upsert them
@@ -48,16 +112,23 @@ export class MetaTraderAccountSeeder extends BaseSeeder {
       });
 
       if (existing) {
-        // Update existing account
+        // Update existing account - ensure no assignments
         existing.name = accountData.name;
         existing.masterPassword = accountData.masterPassword;
         existing.server = accountData.server;
         existing.platform = accountData.platform;
         existing.status = accountData.status;
+        // Clear any assignments
+        existing.marathonParticipantId = null;
+        existing.userId = null;
         await accountRepository.save(existing);
       } else {
-        // Create new account
-        const newAccount = accountRepository.create(accountData);
+        // Create new account - no assignments
+        const newAccount = accountRepository.create({
+          ...accountData,
+          marathonParticipantId: null,
+          userId: null,
+        });
         await accountRepository.save(newAccount);
       }
     }

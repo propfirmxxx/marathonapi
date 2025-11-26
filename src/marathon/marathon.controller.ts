@@ -1,5 +1,6 @@
 import { GetUser } from '@/auth/decorators/get-user.decorator';
 import { AdminGuard } from '@/auth/guards/admin.guard';
+import { OptionalAuthGuard } from '@/auth/guards/optional-auth.guard';
 import { PaginatedResponseDto } from '@/common/dto/paginated-response.dto';
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -70,15 +71,17 @@ export class MarathonController {
   @ApiQuery({ name: 'myMarathons', required: false, type: Boolean, description: 'Filter marathons where current user is a participant (requires authentication)' })
   @ApiQuery({ name: 'search', required: false, type: String, description: 'Search by marathon name' })
   @ApiQuery({ name: 'status', required: false, enum: MarathonStatus, example: MarathonStatus.UPCOMING, description: 'Filter by marathon status' })
+  @ApiBearerAuth()
+  @UseGuards(OptionalAuthGuard)
   @Get()
   async findAll(
     @Query() query: GetMarathonsDto,
-    @Req() req: any,
+    @GetUser() user: any,
   ): Promise<PaginatedResponseDto<MarathonResponseDto>> {
     const pageNum = query.page && Number(query.page) > 0 ? Number(query.page) : 1;
     const limitNum = query.limit && Number(query.limit) > 0 ? Number(query.limit) : 10;
     
-    const userId = req.user?.id;
+    const userId = user?.id;
     const userIdForFilter = query.myMarathons && userId ? userId : undefined;
     
     const { marathons, total } = await this.marathonService.findAllWithFilters(
@@ -111,11 +114,13 @@ export class MarathonController {
     type: MarathonResponseDto
   })
   @ApiParam({ name: 'id', description: 'Marathon ID' })
+  @ApiBearerAuth()
+  @UseGuards(OptionalAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: any) {
     const userId = req.user?.id;
     const isParticipant = userId 
-      ? await this.marathonService.isUserParticipantOfMarathon(id, userId)
+      ? await this.marathonService.isParticipantInMarathon(id, userId)
       : false;
     const marathon = await this.marathonService.findOne(id);
 

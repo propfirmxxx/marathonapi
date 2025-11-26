@@ -37,6 +37,7 @@ export class MarathonProvisioningService {
       .andWhere('participant.isActive = :participantActive', { participantActive: true })
       .andWhere('marathon.isActive = :marathonActive', { marathonActive: true })
       .andWhere('marathon.startDate <= :now', { now })
+      .andWhere('marathon.status = :marathonStatus', { marathonStatus: MarathonStatus.ONGOING })
       .orderBy('participant.createdAt', 'ASC')
       .getMany();
 
@@ -59,6 +60,7 @@ export class MarathonProvisioningService {
       .where('participant.isActive = :participantActive', { participantActive: true })
       .andWhere('marathon.isActive = :marathonActive', { marathonActive: true })
       .andWhere('marathon.startDate <= :now', { now })
+      .andWhere('marathon.status = :marathonStatus', { marathonStatus: MarathonStatus.ONGOING })
       .andWhere('account.status = :status', { status: MetaTraderAccountStatus.UNDEPLOYED })
       .getMany();
 

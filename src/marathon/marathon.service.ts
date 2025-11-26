@@ -16,7 +16,7 @@ import { TokyoPerformance } from '../tokyo-data/entities/tokyo-performance.entit
 import { TokyoTransactionHistory } from '../tokyo-data/entities/tokyo-transaction-history.entity';
 import { TokyoBalanceHistory } from '../tokyo-data/entities/tokyo-balance-history.entity';
 import { TokyoEquityHistory } from '../tokyo-data/entities/tokyo-equity-history.entity';
-import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTradeHistoryResponseDto, ParticipantTradeHistoryDto, TradeDto, ParticipantAnalysisDto, PerformanceMetricsDto, DrawdownMetricsDto, FloatingRiskDto, EquityBalanceHistoryPointDto, SymbolStatsDto, TradeHistoryDto } from './dto/marathon-response.dto';
+import { MarathonLeaderboardResponseDto, MarathonLeaderboardEntryDto, MarathonPnLHistoryResponseDto, ParticipantPnLHistoryDto, PnLHistoryPointDto, MarathonTradeHistoryResponseDto, ParticipantTradeHistoryDto, TradeDto, ParticipantAnalysisDto, PerformanceMetricsDto, DrawdownMetricsDto, FloatingRiskDto, EquityBalanceHistoryPointDto, SymbolStatsDto, TradeHistoryDto, RuleViolationDto } from './dto/marathon-response.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { TokyoDataService } from '../tokyo-data/tokyo-data.service';
 import { ParticipantAnalysisQueryDto, AnalysisSection, TradeHistorySortBy, HistoryResolution } from './dto/participant-analysis-query.dto';
@@ -28,11 +28,27 @@ import { SettingsService } from '../settings/settings.service';
 import { ProfileVisibility } from '../settings/entities/user-settings.entity';
 import { UsersService } from '../users/users.service';
 import { transformRulesToArray } from './utils/marathon-rules.util';
+import { MarathonRule } from './enums/marathon-rule.enum';
+import { RuleViolation } from './entities/marathon-participant.entity';
 
 @Injectable()
 export class MarathonService {
   private readonly logger = new Logger(MarathonService.name);
   private readonly REFUND_RATE = 0.8;
+
+  /**
+   * Convert entity RuleViolation[] to DTO RuleViolationDto[]
+   */
+  private mapViolationsToDto(violations: RuleViolation[] | null): RuleViolationDto[] | null {
+    if (!violations) {
+      return null;
+    }
+    return violations.map(v => ({
+      rule: v.rule as MarathonRule,
+      value: v.value,
+      limit: v.limit,
+    }));
+  }
 
   constructor(
     @InjectRepository(Marathon)
@@ -132,12 +148,15 @@ export class MarathonService {
   }
 
   async isUserParticipantOfMarathon(id: string, userId: string): Promise<boolean> {
+    // Query with explicit cache disabled to ensure fresh data after participant creation
+    // This is important when checking immediately after payment completion
     const participant = await this.participantRepository.findOne({
       where: {
         marathon: { id: id },
         user: { id: userId },
         isActive: true,
       },
+      cache: false, // Disable cache to ensure fresh data after participant creation
     });
 
     return !!participant;
@@ -461,7 +480,7 @@ export class MarathonService {
         totalTrades,
         winrate,
         status: participant.status,
-        disqualificationReason: participant.disqualificationReason || null,
+        disqualificationReason: this.mapViolationsToDto(participant.disqualificationReason),
       });
     }
 
@@ -2018,6 +2037,21 @@ export class MarathonService {
     return participant;
   }
 
+  async isParticipantInMarathon(marathonId: string, userId: string): Promise<boolean> {
+    const participant = await this.participantRepository.findOne({
+      where: {
+        user: { id: userId },
+        marathon: { id: marathonId },
+        isActive: true,
+      },
+    });
+
+    if (!participant) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Get live participant analysis data in live.json format
    */
@@ -2127,7 +2161,7 @@ export class MarathonService {
       worstTrade: Number(worstTrade.toFixed(2)),
       daysActive,
       status: participant.status,
-      disqualificationReason: participant.disqualificationReason || null,
+      disqualificationReason: this.mapViolationsToDto(participant.disqualificationReason),
     };
 
     // Build risk metrics

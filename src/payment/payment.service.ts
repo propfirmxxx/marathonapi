@@ -150,16 +150,20 @@ export class PaymentService {
       throw new InsufficientMarathonCapacityException();
     }
 
-    // Check if user is already a participant
+    // Check if user is already an active participant in this specific marathon
     const existingParticipant = await this.participantRepository.findOne({
       where: {
         user: { id: userId },
         marathon: { id: marathonId },
         isActive: true,
       },
+      relations: ['marathon'],
     });
 
     if (existingParticipant) {
+      this.logger.warn(
+        `User ${userId} attempted to join marathon ${marathonId} (${existingParticipant.marathon?.name}) but is already an active participant`,
+      );
       throw new AlreadyMarathonMemberException();
     }
 
@@ -310,29 +314,42 @@ export class PaymentService {
       throw new NotFoundException(`Marathon reference missing for payment ${payment.id}`);
     }
 
+    // Check if payment was already processed (idempotency check)
+    // This handles cases where webhook is called multiple times for the same completed payment
+    if (payment.paymentType === PaymentType.MARATHON_JOIN && payment.marathonId) {
+      const participantExists = await this.participantRepository.findOne({
+        where: {
+          marathon: { id: payment.marathonId },
+          user: { id: payment.userId },
+          isActive: true,
+        },
+      });
+
+      if (participantExists) {
+        // Participant already exists - payment was already processed
+        if (previousStatus === PaymentStatus.COMPLETED) {
+          this.logger.debug(`Payment ${payment.id} already processed; participant ${participantExists.id} exists`);
+        } else {
+          this.logger.log(`Payment ${payment.id} completed; participant ${participantExists.id} already exists (duplicate webhook)`);
+        }
+        this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+        return;
+      }
+    }
+
     const alreadyCompleted = previousStatus === PaymentStatus.COMPLETED;
 
     if (alreadyCompleted) {
-      this.logger.warn(`Payment ${payment.id} already marked as completed – verifying processing state`);
-
+      // Payment was already marked as completed but participant doesn't exist - reprocess
       if (payment.paymentType === PaymentType.MARATHON_JOIN && payment.marathonId) {
-        const participantExists = await this.participantRepository.findOne({
-          where: {
-            marathon: { id: payment.marathonId },
-            user: { id: payment.userId },
-            isActive: true,
-          },
-        });
-
-        if (participantExists) {
-          this.logger.log(`Active participant ${participantExists.id} already present for payment ${payment.id}`);
-          this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
-          return;
-        }
-
         this.logger.warn(
-          `Active participant not found for completed payment ${payment.id}; reprocessing marathon join flow`,
+          `Payment ${payment.id} marked as completed but participant not found; reprocessing marathon join flow`,
         );
+      } else if (payment.paymentType === PaymentType.WALLET_CHARGE) {
+        // For wallet charge, check if balance was already added (can't easily verify, so skip)
+        this.logger.log(`Payment ${payment.id} already processed; skipping reprocessing`);
+        this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
+        return;
       } else {
         this.logger.log(`Payment ${payment.id} already processed; skipping reprocessing`);
         this.logger.log(`Webhook processed successfully for payment: ${payment.id}`);
