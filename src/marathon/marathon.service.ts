@@ -460,6 +460,8 @@ export class MarathonService {
         pnl: Number(pnl),
         totalTrades,
         winrate,
+        status: participant.status,
+        disqualificationReason: participant.disqualificationReason || null,
       });
     }
 
@@ -2124,6 +2126,8 @@ export class MarathonService {
       bestTrade: Number(bestTrade.toFixed(2)),
       worstTrade: Number(worstTrade.toFixed(2)),
       daysActive,
+      status: participant.status,
+      disqualificationReason: participant.disqualificationReason || null,
     };
 
     // Build risk metrics

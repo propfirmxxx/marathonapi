@@ -4,6 +4,12 @@ import { User } from '../../users/entities/user.entity';
 import { MetaTraderAccount } from '../../metatrader-accounts/entities/meta-trader-account.entity';
 import { ParticipantStatus } from '../enums/participant-status.enum';
 
+export interface RuleViolation {
+  rule: string; // MarathonRule enum value as string
+  value: number;
+  limit: number;
+}
+
 @Entity('marathon_participants')
 export class MarathonParticipant {
   @PrimaryGeneratedColumn('uuid')
@@ -35,6 +41,9 @@ export class MarathonParticipant {
 
   @Column({ type: 'uuid', nullable: true })
   refundTransactionId: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  disqualificationReason: RuleViolation[] | null;
 
   @CreateDateColumn()
   createdAt: Date;

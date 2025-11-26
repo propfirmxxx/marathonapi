@@ -23,6 +23,8 @@ export interface LeaderboardEntry {
   orders: any[];
   updatedAt: Date;
   joinedAt: Date;
+  status?: string;
+  disqualificationReason?: Array<{ rule: string; value: number; limit: number }> | null;
 }
 
 export interface MarathonLeaderboard {
@@ -104,6 +106,8 @@ export class MarathonLeaderboardService {
         orders: snapshot.orders ?? [],
         updatedAt: snapshot.updatedAt,
         joinedAt: participant.createdAt,
+        status: participant.status,
+        disqualificationReason: participant.disqualificationReason || null,
       });
     }
 
@@ -171,6 +175,8 @@ export class MarathonLeaderboardService {
         : participant.user.email,
       accountLogin,
       rank,
+      status: participant.status,
+      disqualificationReason: participant.disqualificationReason || null,
       balance: snapshot.balance ?? 0,
       equity: snapshot.equity ?? 0,
       profit: snapshot.profit ?? 0,

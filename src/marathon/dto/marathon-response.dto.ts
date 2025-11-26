@@ -7,6 +7,17 @@ import { MarathonRule, MarathonRules } from '../enums/marathon-rule.enum';
 import { MarathonRuleItem } from '../utils/marathon-rules.util';
 import { MarathonStatus } from '../enums/marathon-status.enum';
 
+export class RuleViolationDto {
+  @ApiProperty({ description: 'Rule that was violated', enum: MarathonRule, example: MarathonRule.MAX_DRAWDOWN_PERCENT })
+  rule: MarathonRule;
+
+  @ApiProperty({ description: 'Actual value that violated the rule', example: 25.5 })
+  value: number;
+
+  @ApiProperty({ description: 'Maximum allowed limit for this rule', example: 20 })
+  limit: number;
+}
+
 export class MarathonResponseDto {
   @ApiProperty({ description: 'Indicates whether the user is a participant of the marathon', example: true })
   isParticipant: boolean;
@@ -228,6 +239,18 @@ export class MarathonParticipantResponseDto {
   status: string;
 
   @ApiProperty({
+    description: 'Rule violations that caused disqualification (only present when status is disqualified)',
+    type: [RuleViolationDto],
+    required: false,
+    nullable: true,
+    example: [
+      { rule: MarathonRule.MAX_DRAWDOWN_PERCENT, value: 25.5, limit: 20 },
+      { rule: MarathonRule.MIN_TRADES, value: 8, limit: 10 }
+    ]
+  })
+  disqualificationReason?: RuleViolationDto[] | null;
+
+  @ApiProperty({
     description: 'Current account balance',
     example: 10000,
     required: false,
@@ -379,6 +402,26 @@ export class MarathonLeaderboardEntryDto {
 
   @ApiProperty({ description: 'Win rate percentage', example: 65.5 })
   winrate: number;
+
+  @ApiProperty({
+    description: 'Participant status',
+    example: 'active',
+    enum: ['active', 'disqualified', 'completed'],
+    required: false,
+  })
+  status?: string;
+
+  @ApiProperty({
+    description: 'Rule violations that caused disqualification (only present when status is disqualified)',
+    type: [RuleViolationDto],
+    required: false,
+    nullable: true,
+    example: [
+      { rule: MarathonRule.MAX_DRAWDOWN_PERCENT, value: 25.5, limit: 20 },
+      { rule: MarathonRule.MIN_TRADES, value: 8, limit: 10 }
+    ]
+  })
+  disqualificationReason?: RuleViolationDto[] | null;
 }
 
 export class MarathonLeaderboardResponseDto {

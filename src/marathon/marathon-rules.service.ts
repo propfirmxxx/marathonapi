@@ -344,6 +344,7 @@ export class MarathonRulesService {
     try {
       participant.status = ParticipantStatus.DISQUALIFIED;
       participant.isActive = false;
+      participant.disqualificationReason = violations;
 
       await this.participantRepository.save(participant);
 

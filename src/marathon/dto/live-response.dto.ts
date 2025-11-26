@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { MarathonRulesDto } from './marathon-rules.dto';
 import { MarathonRuleItem } from '../utils/marathon-rules.util';
 import { MarathonRule } from '../enums/marathon-rule.enum';
+import { RuleViolationDto } from './marathon-response.dto';
 
 export class MarathonLiveDto {
   @ApiProperty({ example: '1' })
@@ -66,6 +67,26 @@ export class MarathonLiveDto {
 
   @ApiProperty({ example: 7 })
   daysActive: number;
+
+  @ApiProperty({
+    description: 'Participant status',
+    example: 'active',
+    enum: ['active', 'disqualified', 'completed'],
+    required: false,
+  })
+  status?: string;
+
+  @ApiProperty({
+    description: 'Rule violations that caused disqualification (only present when status is disqualified)',
+    type: [RuleViolationDto],
+    required: false,
+    nullable: true,
+    example: [
+      { rule: MarathonRule.MAX_DRAWDOWN_PERCENT, value: 25.5, limit: 20 },
+      { rule: MarathonRule.MIN_TRADES, value: 8, limit: 10 }
+    ]
+  })
+  disqualificationReason?: RuleViolationDto[] | null;
 }
 
 export class RiskMetricsDto {
