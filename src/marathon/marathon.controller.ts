@@ -21,6 +21,7 @@ import { LiveResponseDto } from './dto/live-response.dto';
 import { ParticipantAnalysisQueryDto } from './dto/participant-analysis-query.dto';
 import { UpdateMarathonDto } from './dto/update-marathon.dto';
 import { CancelMarathonResponseDto } from './dto/cancel-marathon.dto';
+import { DetectHedgingTradesQueryDto, DetectHedgingTradesResponseDto } from './dto/detect-hedging-trades.dto';
 import { LiveAccountDataService } from './live-account-data.service';
 import { MarathonService } from './marathon.service';
 import { MarathonStatus } from './enums/marathon-status.enum';
@@ -449,6 +450,24 @@ Returns the authenticated user's analysis data for the specified marathon withou
   @Get('websocket-stats')
   getWebSocketStats() {
     return this.liveDataGateway.getSubscriptionStats();
+  }
+
+  @ApiOperation({ 
+    summary: 'Detect suspicious hedging trades between participants',
+    description: 'Analyzes trades to find potential hedging/collusion between two participants. Looks for opposite trades (BUY/SELL) on the same symbol with similar volume, price, and time.'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Returns list of suspicious trade pairs',
+    type: DetectHedgingTradesResponseDto
+  })
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @Get('admin/detect-hedging-trades')
+  async detectSuspiciousHedgingTrades(
+    @Query() query: DetectHedgingTradesQueryDto,
+  ): Promise<DetectHedgingTradesResponseDto> {
+    return this.marathonService.detectSuspiciousHedgingTrades(query);
   }
 
   @ApiBearerAuth()

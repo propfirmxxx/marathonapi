@@ -36,6 +36,8 @@ import { PasswordRequest } from './entities/password-request.entity';
 import { getClientIp } from '../settings/utils/ip-extractor.util';
 import { parseUserAgent } from '../settings/utils/device-parser.util';
 import { Request } from 'express';
+import { DetectHedgingTradesQueryDto, DetectHedgingTradesResponseDto, SuspiciousTradePairDto } from './dto/detect-hedging-trades.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class MarathonService {
@@ -2614,6 +2616,206 @@ export class MarathonService {
     return {
       masterPassword: account.masterPassword,
       requestedAt: savedRequest.requestedAt,
+    };
+  }
+
+  /**
+   * Detect suspicious hedging trades between two participants
+   * Looks for opposite trades (BUY/SELL) on the same symbol with similar volume, price, and time
+   */
+  async detectSuspiciousHedgingTrades(
+    query: DetectHedgingTradesQueryDto,
+  ): Promise<DetectHedgingTradesResponseDto> {
+    const {
+      marathonId,
+      fromDate,
+      toDate,
+      timeWindowMinutes = 5,
+      volumeThresholdPercent = 5,
+      priceThresholdPercent = 0.1,
+      minVolume = 0.01,
+    } = query;
+
+    // Build base query for transactions
+    let transactionQuery = this.transactionHistoryRepository
+      .createQueryBuilder('transaction')
+      .innerJoin('transaction.metaTraderAccount', 'account')
+      .leftJoin(
+        MarathonParticipant,
+        'participant',
+        'participant.metaTraderAccountId = account.id',
+      )
+      .leftJoin('participant.user', 'user')
+      .leftJoin('participant.marathon', 'marathon')
+      .where('transaction.type IN (:...types)', { types: ['BUY', 'SELL'] })
+      .andWhere('transaction.volume >= :minVolume', { minVolume })
+      .andWhere('transaction.openTime IS NOT NULL')
+      .andWhere('transaction.symbol IS NOT NULL')
+      .select([
+        'transaction.id AS transaction_id',
+        'transaction.type AS transaction_type',
+        'transaction.symbol AS transaction_symbol',
+        'transaction.volume AS transaction_volume',
+        'transaction.openPrice AS transaction_openPrice',
+        'transaction.openTime AS transaction_openTime',
+        'transaction.closeTime AS transaction_closeTime',
+        'account.id AS account_id',
+        'account.login AS account_login',
+        'user.id AS user_id',
+        'user.username AS user_username',
+        'participant.id AS participant_id',
+        'marathon.id AS marathon_id',
+        'marathon.name AS marathon_name',
+      ]);
+
+    // Apply filters
+    if (marathonId) {
+      transactionQuery = transactionQuery.andWhere('marathon.id = :marathonId', { marathonId });
+    }
+
+    if (fromDate) {
+      transactionQuery = transactionQuery.andWhere('transaction.openTime >= :fromDate', {
+        fromDate: new Date(fromDate),
+      });
+    }
+
+    if (toDate) {
+      transactionQuery = transactionQuery.andWhere('transaction.openTime <= :toDate', {
+        toDate: new Date(toDate),
+      });
+    }
+
+    // Get all transactions
+    const transactions = await transactionQuery.getRawMany();
+
+    // Group transactions by symbol
+    const transactionsBySymbol = new Map<string, any[]>();
+    for (const tx of transactions) {
+      const symbol = tx.transaction_symbol;
+      if (!transactionsBySymbol.has(symbol)) {
+        transactionsBySymbol.set(symbol, []);
+      }
+      transactionsBySymbol.get(symbol)!.push(tx);
+    }
+
+    const suspiciousPairs: SuspiciousTradePairDto[] = [];
+    const processedPairs = new Set<string>();
+
+    // For each symbol, find opposite trades
+    for (const [symbol, symbolTransactions] of transactionsBySymbol.entries()) {
+      // Separate BUY and SELL trades
+      const buyTrades = symbolTransactions.filter((t) => t.transaction_type === 'BUY');
+      const sellTrades = symbolTransactions.filter((t) => t.transaction_type === 'SELL');
+
+      // Compare each BUY with each SELL
+      for (const buyTrade of buyTrades) {
+        for (const sellTrade of sellTrades) {
+          // Skip if no user info (account not linked to participant)
+          if (!buyTrade.user_id || !sellTrade.user_id) {
+            continue;
+          }
+
+          // Skip if same user/account
+          if (buyTrade.user_id === sellTrade.user_id) {
+            continue;
+          }
+
+          // Create unique pair key to avoid duplicates
+          const pairKey = [
+            buyTrade.transaction_id,
+            sellTrade.transaction_id,
+          ]
+            .sort()
+            .join('-');
+          if (processedPairs.has(pairKey)) {
+            continue;
+          }
+          processedPairs.add(pairKey);
+
+          // Check time difference
+          const buyTime = new Date(buyTrade.transaction_openTime);
+          const sellTime = new Date(sellTrade.transaction_openTime);
+          const timeDiffMs = Math.abs(buyTime.getTime() - sellTime.getTime());
+          const timeDiffMinutes = timeDiffMs / (1000 * 60);
+
+          if (timeDiffMinutes > timeWindowMinutes) {
+            continue;
+          }
+
+          // Check volume similarity
+          const volumeDiff = Math.abs(buyTrade.transaction_volume - sellTrade.transaction_volume);
+          const avgVolume = (buyTrade.transaction_volume + sellTrade.transaction_volume) / 2;
+          const volumeDiffPercent = avgVolume > 0 ? (volumeDiff / avgVolume) * 100 : 100;
+
+          if (volumeDiffPercent > volumeThresholdPercent) {
+            continue;
+          }
+
+          // Check price similarity
+          const priceDiff = Math.abs(buyTrade.transaction_openPrice - sellTrade.transaction_openPrice);
+          const avgPrice = (buyTrade.transaction_openPrice + sellTrade.transaction_openPrice) / 2;
+          const priceDiffPercent = avgPrice > 0 ? (priceDiff / avgPrice) * 100 : 100;
+
+          if (priceDiffPercent > priceThresholdPercent) {
+            continue;
+          }
+
+          // Calculate suspicion score (0-100)
+          // Lower time difference, volume difference, and price difference = higher score
+          const timeScore = Math.max(0, 100 - (timeDiffMinutes / timeWindowMinutes) * 100);
+          const volumeScore = Math.max(0, 100 - (volumeDiffPercent / volumeThresholdPercent) * 100);
+          const priceScore = Math.max(0, 100 - (priceDiffPercent / priceThresholdPercent) * 100);
+          const suspicionScore = (timeScore * 0.4 + volumeScore * 0.3 + priceScore * 0.3);
+
+          // Determine which trade is first
+          const isBuyFirst = buyTime <= sellTime;
+          const trade1 = isBuyFirst ? buyTrade : sellTrade;
+          const trade2 = isBuyFirst ? sellTrade : buyTrade;
+
+          suspiciousPairs.push({
+            participant1UserId: trade1.user_id,
+            participant1Username: trade1.user_username || 'Unknown',
+            participant1AccountLogin: trade1.account_login,
+            trade1Id: trade1.transaction_id,
+            trade1Type: trade1.transaction_type,
+            trade1Volume: parseFloat(trade1.transaction_volume),
+            trade1OpenPrice: parseFloat(trade1.transaction_openPrice),
+            trade1OpenTime: new Date(trade1.transaction_openTime),
+            participant2UserId: trade2.user_id,
+            participant2Username: trade2.user_username || 'Unknown',
+            participant2AccountLogin: trade2.account_login,
+            trade2Id: trade2.transaction_id,
+            trade2Type: trade2.transaction_type,
+            trade2Volume: parseFloat(trade2.transaction_volume),
+            trade2OpenPrice: parseFloat(trade2.transaction_openPrice),
+            trade2OpenTime: new Date(trade2.transaction_openTime),
+            symbol,
+            timeDifferenceSeconds: Math.round(timeDiffMs / 1000),
+            volumeDifferencePercent: Math.round(volumeDiffPercent * 100) / 100,
+            priceDifferencePercent: Math.round(priceDiffPercent * 10000) / 100,
+            suspicionScore: Math.round(suspicionScore * 100) / 100,
+            marathonId: trade1.marathon_id || trade2.marathon_id || undefined,
+            marathonName: trade1.marathon_name || trade2.marathon_name || undefined,
+          });
+        }
+      }
+    }
+
+    // Sort by suspicion score (highest first)
+    suspiciousPairs.sort((a, b) => b.suspicionScore - a.suspicionScore);
+
+    return {
+      suspiciousPairs,
+      totalCount: suspiciousPairs.length,
+      parameters: {
+        timeWindowMinutes,
+        volumeThresholdPercent,
+        priceThresholdPercent,
+        minVolume,
+        fromDate: fromDate ? new Date(fromDate) : undefined,
+        toDate: toDate ? new Date(toDate) : undefined,
+        marathonId,
+      },
     };
   }
 } 
