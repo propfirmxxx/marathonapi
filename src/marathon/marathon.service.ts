@@ -27,10 +27,15 @@ import { Withdrawal } from '../withdrawals/entities/withdrawal.entity';
 import { SettingsService } from '../settings/settings.service';
 import { ProfileVisibility } from '../settings/entities/user-settings.entity';
 import { UsersService } from '../users/users.service';
+import { LocationService } from '../settings/location.service';
+import { SessionService } from '../settings/session.service';
 import { transformRulesToArray } from './utils/marathon-rules.util';
 import { MarathonRule } from './enums/marathon-rule.enum';
 import { RuleViolation } from './entities/marathon-participant.entity';
 import { PasswordRequest } from './entities/password-request.entity';
+import { getClientIp } from '../settings/utils/ip-extractor.util';
+import { parseUserAgent } from '../settings/utils/device-parser.util';
+import { Request } from 'express';
 
 @Injectable()
 export class MarathonService {
@@ -77,6 +82,8 @@ export class MarathonService {
     private readonly leaderboardService: MarathonLeaderboardService,
     private readonly settingsService: SettingsService,
     private readonly usersService: UsersService,
+    private readonly locationService: LocationService,
+    private readonly sessionService: SessionService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -2497,9 +2504,13 @@ export class MarathonService {
   /**
    * Get master password for a user's marathon account
    * Only available after marathon has started
-   * Tracks when password was requested
+   * Tracks when password was requested with IP, user agent, device info, and location
    */
-  async getMarathonMasterPassword(marathonId: string, userId: string): Promise<{
+  async getMarathonMasterPassword(
+    marathonId: string,
+    userId: string,
+    req?: Request,
+  ): Promise<{
     masterPassword: string;
     requestedAt: Date;
   }> {
@@ -2541,11 +2552,61 @@ export class MarathonService {
       throw new NotFoundException('Master password not available for this account');
     }
 
+    // Extract request information
+    let ipAddress: string | null = null;
+    let userAgent: string | null = null;
+    let sessionId: string | null = null;
+    let deviceInfo: any = null;
+    let location: any = null;
+
+    if (req) {
+      // Get IP address
+      ipAddress = getClientIp(req);
+
+      // Get user agent
+      userAgent = req.headers?.['user-agent'] || null;
+
+      // Get session ID from JWT token
+      try {
+        const authHeader = req.headers.authorization;
+        const token = authHeader?.replace('Bearer ', '');
+        if (token) {
+          const session = await this.sessionService.getSessionByToken(token);
+          if (session) {
+            sessionId = session.id;
+          }
+        }
+      } catch (error) {
+        // Ignore errors when getting session
+        this.logger.debug(`Could not get session ID: ${error.message}`);
+      }
+
+      // Parse device info from user agent
+      if (userAgent) {
+        deviceInfo = parseUserAgent(userAgent);
+      }
+
+      // Get location from IP (try to get it, but don't block if it fails)
+      if (ipAddress && ipAddress !== 'unknown') {
+        try {
+          location = await this.locationService.getLocationFromIp(ipAddress);
+        } catch (error) {
+          this.logger.debug(`Could not get location for IP ${ipAddress}: ${error.message}`);
+          // Continue without location
+        }
+      }
+    }
+
     // Record password request
     const passwordRequest = this.passwordRequestRepository.create({
       participantId: participant.id,
       userId: userId,
       passwordType: 'master',
+      ipAddress,
+      userAgent,
+      sessionId,
+      deviceInfo,
+      location,
     });
 
     const savedRequest = await this.passwordRequestRepository.save(passwordRequest);

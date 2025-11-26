@@ -4,6 +4,8 @@ import { User } from '../../users/entities/user.entity';
 
 @Entity('password_requests')
 @Index(['participantId', 'requestedAt'])
+@Index(['userId', 'requestedAt'])
+@Index(['ipAddress', 'requestedAt'])
 export class PasswordRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -26,6 +28,35 @@ export class PasswordRequest {
 
   @Column({ type: 'enum', enum: ['master', 'investor'], default: 'master' })
   passwordType: 'master' | 'investor';
+
+  @Column({ nullable: true })
+  ipAddress: string;
+
+  @Column({ nullable: true, type: 'text' })
+  userAgent: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  sessionId: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  deviceInfo: {
+    device?: string;
+    os?: string;
+    browser?: string;
+    platform?: string;
+  };
+
+  @Column({ type: 'jsonb', nullable: true })
+  location: {
+    country?: string;
+    city?: string;
+    region?: string;
+    timezone?: string;
+    coordinates?: {
+      lat: number;
+      lon: number;
+    };
+  };
 
   @CreateDateColumn()
   requestedAt: Date;

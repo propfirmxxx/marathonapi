@@ -640,6 +640,6 @@ socket.on('error', (error) => {
     @Param('id') marathonId: string,
     @Req() req: any,
   ) {
-    return await this.marathonService.getMarathonMasterPassword(marathonId, req.user.id);
+    return await this.marathonService.getMarathonMasterPassword(marathonId, req.user.id, req);
   }
 } 

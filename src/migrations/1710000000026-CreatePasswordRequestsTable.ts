@@ -15,6 +15,11 @@ export class CreatePasswordRequestsTable1710000000026 implements MigrationInterf
             "participantId" uuid NOT NULL,
             "userId" uuid NOT NULL,
             "passwordType" varchar NOT NULL DEFAULT 'master',
+            "ipAddress" varchar NULL,
+            "userAgent" text NULL,
+            "sessionId" uuid NULL,
+            "deviceInfo" jsonb NULL,
+            "location" jsonb NULL,
             "requestedAt" TIMESTAMP NOT NULL DEFAULT now(),
             CONSTRAINT "FK_password_requests_participant" FOREIGN KEY ("participantId") 
               REFERENCES "marathon_participants"("id") ON DELETE CASCADE,
@@ -30,6 +35,12 @@ export class CreatePasswordRequestsTable1710000000026 implements MigrationInterf
           
           CREATE INDEX "IDX_password_requests_participant_requested" 
             ON "password_requests" ("participantId", "requestedAt");
+          
+          CREATE INDEX "IDX_password_requests_user_requested" 
+            ON "password_requests" ("userId", "requestedAt");
+          
+          CREATE INDEX "IDX_password_requests_ip_requested" 
+            ON "password_requests" ("ipAddress", "requestedAt");
         END IF;
       END
       $$;
