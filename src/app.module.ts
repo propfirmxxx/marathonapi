@@ -30,6 +30,7 @@ import { TokyoDataModule } from './tokyo-data/tokyo-data.module';
 import { StatsModule } from './stats/stats.module';
 import { SettingsModule } from './settings/settings.module';
 import { SessionActivityMiddleware } from './settings/middleware/session-activity.middleware';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { SessionActivityMiddleware } from './settings/middleware/session-activit
     TokyoModule,
     TokyoDataModule,
     StatsModule,
+    StorageModule,
     // SettingsModule moved to top
   ],
   controllers: [AppController],
