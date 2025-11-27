@@ -1,0 +1,22 @@
+# Environment files with sensitive data - NEVER commit these!
+.env.compose.prod
+.env.local
+.env.production
+# Keep example file
+!env.compose.prod.example
+
+# Backup files
+backups/
+*.dump
+*.dump.gz
+*.sql
+*.sql.gz
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+

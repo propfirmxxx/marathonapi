@@ -1,0 +1,87 @@
+# Production-specific overrides for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  marathon-api:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"      # Larger logs for production
+        max-file: "10"       # Keep more log files
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  marathon-front:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  marathon-mt5-python:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"     # Larger logs for MT5
+        max-file: "20"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  db:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  directus:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  rabbitmq:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"     # RabbitMQ can generate lots of logs
+        max-file: "20"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  nginx:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  minio:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
+  docker-socket-proxy:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+        compress: "true"
+        tag: "{{.Name}}/{{.ID}}"
+
