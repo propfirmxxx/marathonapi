@@ -15,7 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { MinioService } from './minio.service';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
@@ -68,11 +68,17 @@ export class StorageController {
     }
   }
 
-  @Get('download/*') 
+  @Get('download/*path') 
   @ApiOperation({ summary: 'Download a file from MinIO storage' })
+  @ApiParam({ 
+    name: 'path', 
+    required: true, 
+    description: 'File path to download (can include folders, e.g., folder1/subfolder/file.jpg)', 
+    type: String 
+  })
   @ApiQuery({ name: 'presigned', required: false, type: Boolean, description: 'Get presigned URL instead of direct download' })
   async downloadFile(
-    @Param('*') objectName: string,
+    @Param('path') objectName: string,
     @Query('presigned') presigned?: string,
     @Res() res?: Response,
   ) {
