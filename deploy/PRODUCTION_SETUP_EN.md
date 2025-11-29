@@ -198,9 +198,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # 2. Setup MinIO (optional)
 ./minio-setup.sh
 
-# 3. Configure firewall
+# 3. Configure firewall (Docker-compatible iptables)
 cd firewall
-sudo ./configure-ufw.sh
+sudo ./configure-firewall.sh
 
 # 4. Verify services
 docker compose ps

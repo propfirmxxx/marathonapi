@@ -3,9 +3,31 @@
 # UFW (Uncomplicated Firewall) configuration script for Marathon API
 # This script configures UFW to only allow public access to nginx (ports 80, 443)
 # All other services are blocked from external access but accessible internally
+#
+# ⚠️  WARNING: Docker Compatibility Issue
+# Docker routes container traffic through the NAT table BEFORE it reaches UFW's
+# INPUT/OUTPUT chains. This means UFW rules are BYPASSED for Docker-published ports.
+# For proper Docker firewall control, use configure-firewall.sh instead, which
+# uses the DOCKER-USER chain.
+# See: https://docs.docker.com/engine/network/packet-filtering-firewalls/#docker-and-ufw
+#
+# This script may still work for non-Docker services, but Docker containers
+# will bypass these rules. Use at your own risk!
 
 set -e
 
+echo "⚠️  WARNING: UFW and Docker are incompatible!"
+echo "Docker-published ports will BYPASS UFW rules."
+echo "For proper Docker firewall control, use configure-firewall.sh instead."
+echo ""
+read -p "Continue anyway? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Aborted. Use configure-firewall.sh for Docker-compatible rules."
+    exit 1
+fi
+
+echo ""
 echo "Configuring UFW firewall rules for Marathon API..."
 
 # Enable UFW if not already enabled
@@ -47,9 +69,13 @@ ufw deny 8055/tcp comment 'Directus CMS - internal only'
 ufw deny 15672/tcp comment 'RabbitMQ Management - internal only'
 ufw deny 5672/tcp comment 'RabbitMQ AMQP - internal only'
 
+echo ""
 echo "UFW firewall configuration completed!"
-echo "Only nginx (ports 80, 443) is accessible from external networks."
-echo "Other services are only accessible from localhost and Docker networks."
+echo ""
+echo "⚠️  IMPORTANT REMINDER:"
+echo "Docker-published ports (3000, 4010, 8000, 8888, 8055, 15672, 5672)"
+echo "will BYPASS these UFW rules due to Docker's NAT routing."
+echo "For proper protection, use configure-firewall.sh instead."
 echo ""
 echo "Current UFW status:"
 ufw status verbose

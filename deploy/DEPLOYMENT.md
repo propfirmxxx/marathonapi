@@ -101,6 +101,10 @@ sudo docker run hello-world
 
 ### Step 4: Configure Firewall
 
+⚠️ **Note:** If you're using Docker (which this project does), UFW rules are bypassed for Docker-published ports. Skip this step and use the Docker-compatible firewall script in Step 6 instead.
+
+For non-Docker setups only:
+
 ```bash
 # Enable UFW
 sudo ufw enable
@@ -115,6 +119,8 @@ sudo ufw allow 443/tcp
 # Check firewall status
 sudo ufw status verbose
 ```
+
+**For Docker deployments:** See Step 6 for the correct Docker-compatible firewall configuration.
 
 ---
 
@@ -310,12 +316,13 @@ cd firewall
 # Review firewall configuration
 cat README.md
 
-# Apply firewall rules (only allows nginx, blocks other services)
-sudo chmod +x configure-ufw.sh
-sudo ./configure-ufw.sh
+# Apply firewall rules (Docker-compatible, only allows nginx, blocks other services)
+sudo chmod +x configure-firewall.sh
+sudo ./configure-firewall.sh
 
 # Verify rules
-sudo ufw status verbose
+sudo iptables -L DOCKER-USER -n -v
+sudo iptables -L INPUT -n -v
 ```
 
 ---
