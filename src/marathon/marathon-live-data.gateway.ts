@@ -25,7 +25,7 @@ interface ClientSubscription {
   cors: {
     origin: '*',
   },
-  namespace: 'marathon-live',
+  namespace: '/marathon-live',
 })
 export class MarathonLiveDataGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
