@@ -1,9 +1,13 @@
 import { DataSource } from 'typeorm';
 import { BaseSeeder } from './base-seeder';
 import { Marathon } from '../marathon/entities/marathon.entity';
+import { MarathonParticipant } from '../marathon/entities/marathon-participant.entity';
 import { PrizeStrategyType } from '../marathon/entities/prize-strategy.types';
 import { MarathonStatus } from '../marathon/enums/marathon-status.enum';
 import { MarathonRule } from '../marathon/enums/marathon-rule.enum';
+import { ParticipantStatus } from '../marathon/enums/participant-status.enum';
+import { User } from '../users/entities/user.entity';
+import { MetaTraderAccount } from '../metatrader-accounts/entities/meta-trader-account.entity';
 
 export class MarathonSeeder extends BaseSeeder {
   private readonly seededMarathonIds = [
@@ -26,6 +30,7 @@ export class MarathonSeeder extends BaseSeeder {
     'a1b2c3d4-e5f6-4789-a012-345678901016',
     'a1b2c3d4-e5f6-4789-a012-345678901017',
     'a1b2c3d4-e5f6-4789-a012-345678901018',
+    'a1b2c3d4-e5f6-4789-a012-345678901019', // Ongoing marathon with test user 1
   ];
 
   getName(): string {
@@ -667,14 +672,187 @@ export class MarathonSeeder extends BaseSeeder {
         createdAt: now,
         updatedAt: now,
       },
+      // Ongoing marathon with test user 1 as participant
+      {
+        id: 'a1b2c3d4-e5f6-4789-a012-345678901019',
+        name: 'Ongoing Test Marathon',
+        description: 'An ongoing marathon for testing with test user 1 as a participant with assigned MetaTrader account.',
+        entryFee: 100.00,
+        awardsAmount: 10000.00,
+        maxPlayers: 100,
+        startDate: activeStartDate,
+        endDate: activeEndDate,
+        isActive: true,
+        status: MarathonStatus.ONGOING,
+        rules: {
+          [MarathonRule.MIN_TRADES]: 10,
+          [MarathonRule.MAX_DRAWDOWN_PERCENT]: 20,
+          [MarathonRule.MIN_PROFIT_PERCENT]: 5,
+        },
+        currentPlayers: 0,
+        prizeStrategyType: PrizeStrategyType.WINNER_TAKE_ALL,
+        prizeStrategyConfig: {
+          placements: [
+            {
+              position: 1,
+              percentage: 100,
+            },
+          ],
+        },
+        createdAt: activeStartDate,
+        updatedAt: now,
+      },
     ]);
 
     await marathonRepository.save(marathons);
 
-    // Don't seed any participants - users should join manually to test join/leave flow
-    // All marathons start with currentPlayers = 0
+    // Create participant for test user 1 in the ongoing marathon
+    await this.createOngoingMarathonParticipant();
 
-    this.logger.log('✓ Marathon data seeded successfully (no participants - users can join manually)');
+    // Don't seed any other participants - users should join manually to test join/leave flow
+    // All other marathons start with currentPlayers = 0
+
+    this.logger.log('✓ Marathon data seeded successfully');
+  }
+
+  private async createOngoingMarathonParticipant(): Promise<void> {
+    const hasParticipants = await this.hasTable('marathon_participants');
+    const hasUsers = await this.hasTable('users');
+    const hasAccounts = await this.hasTable('metatrader_accounts');
+
+    if (!hasParticipants || !hasUsers || !hasAccounts) {
+      this.logger.warn('Required tables do not exist. Skipping participant creation.');
+      return;
+    }
+
+    const manager = this.getManager();
+    const userRepository = manager.getRepository(User);
+    const accountRepository = manager.getRepository(MetaTraderAccount);
+    const participantRepository = manager.getRepository(MarathonParticipant);
+    const marathonRepository = manager.getRepository(Marathon);
+
+    // Get test user 1
+    const testUser = await userRepository.findOne({
+      where: { email: 'testuser1@example.com' },
+    });
+
+    if (!testUser) {
+      this.logger.warn('Test user 1 not found. Skipping participant creation.');
+      return;
+    }
+
+    // Get the ongoing marathon
+    const ongoingMarathon = await marathonRepository.findOne({
+      where: { id: 'a1b2c3d4-e5f6-4789-a012-345678901019' },
+    });
+
+    if (!ongoingMarathon) {
+      this.logger.warn('Ongoing marathon not found. Skipping participant creation.');
+      return;
+    }
+
+    // Find a MetaTrader account with data (check for accounts that have Tokyo performance data)
+    // First try to find account with login 261632689 which is commonly used in examples
+    let metatraderAccount = await accountRepository.findOne({
+      where: { login: '261632689', marathonParticipantId: null },
+    });
+
+    // If not found or already assigned, try to find any account with existing data
+    if (!metatraderAccount) {
+      const hasPerformanceTable = await this.hasTable('tokyo_performance');
+      if (hasPerformanceTable) {
+        const accountWithData = await this.query(`
+          SELECT DISTINCT ma.id, ma.login, ma.name
+          FROM metatrader_accounts ma
+          INNER JOIN tokyo_performance tp ON tp."metaTraderAccountId" = ma.id
+          WHERE ma."marathonParticipantId" IS NULL
+          LIMIT 1
+        `);
+
+        if (accountWithData && accountWithData.length > 0) {
+          metatraderAccount = await accountRepository.findOne({
+            where: { id: accountWithData[0].id },
+          });
+        }
+      }
+
+      // If still not found, check other accounts that might have transaction history
+      if (!metatraderAccount) {
+        const hasTransactionTable = await this.hasTable('tokyo_transaction_history');
+        if (hasTransactionTable) {
+          const accountWithTransactions = await this.query(`
+            SELECT DISTINCT ma.id, ma.login, ma.name
+            FROM metatrader_accounts ma
+            INNER JOIN tokyo_transaction_history tth ON tth."metaTraderAccountId" = ma.id
+            WHERE ma."marathonParticipantId" IS NULL
+            LIMIT 1
+          `);
+
+          if (accountWithTransactions && accountWithTransactions.length > 0) {
+            metatraderAccount = await accountRepository.findOne({
+              where: { id: accountWithTransactions[0].id },
+            });
+          }
+        }
+      }
+    }
+
+    // If still not found, get any unassigned account
+    if (!metatraderAccount) {
+      metatraderAccount = await accountRepository.findOne({
+        where: { marathonParticipantId: null },
+      });
+    }
+
+    if (!metatraderAccount) {
+      this.logger.warn('No available MetaTrader account found. Skipping participant creation.');
+      return;
+    }
+
+    // Check if participant already exists
+    let participant = await participantRepository.findOne({
+      where: {
+        marathon: { id: ongoingMarathon.id },
+        user: { id: testUser.id },
+      },
+    });
+
+    if (participant) {
+      // Update existing participant
+      participant.isActive = true;
+      participant.status = ParticipantStatus.ACTIVE;
+      participant.cancelledAt = null;
+      participant.metaTraderAccountId = metatraderAccount.id;
+      participant = await participantRepository.save(participant);
+    } else {
+      // Create new participant
+      participant = participantRepository.create({
+        marathon: { id: ongoingMarathon.id },
+        user: { id: testUser.id },
+        metaTraderAccount: { id: metatraderAccount.id },
+        metaTraderAccountId: metatraderAccount.id,
+        isActive: true,
+        status: ParticipantStatus.ACTIVE,
+      });
+      participant = await participantRepository.save(participant);
+    }
+
+    // Update MetaTrader account assignment
+    metatraderAccount.marathonParticipantId = participant.id;
+    metatraderAccount.userId = testUser.id;
+    await accountRepository.save(metatraderAccount);
+
+    // Update marathon currentPlayers count
+    const currentCount = await participantRepository.count({
+      where: {
+        marathon: { id: ongoingMarathon.id },
+        isActive: true,
+      },
+    });
+    ongoingMarathon.currentPlayers = currentCount;
+    await marathonRepository.save(ongoingMarathon);
+
+    this.logger.log(`✓ Created participant for test user 1 in ongoing marathon with MetaTrader account ${metatraderAccount.login}`);
   }
 
   private async clearSeededPayments(): Promise<void> {
@@ -714,14 +892,14 @@ export class MarathonSeeder extends BaseSeeder {
     const hasParticipants = await this.hasTable('marathon_participants');
 
     if (hasParticipants) {
-      // Reset MetaTrader accounts assigned to test marathon before deleting participants
+      // Reset MetaTrader accounts assigned to test marathons before deleting participants
       await this.query(`
         UPDATE metatrader_accounts 
         SET "marathonParticipantId" = NULL,
             "userId" = NULL
         WHERE "marathonParticipantId" IN (
           SELECT id FROM marathon_participants 
-          WHERE marathon_id = 'a1b2c3d4-e5f6-4789-a012-345678901009'
+          WHERE marathon_id IN ('a1b2c3d4-e5f6-4789-a012-345678901009', 'a1b2c3d4-e5f6-4789-a012-345678901019')
         )
       `);
 
