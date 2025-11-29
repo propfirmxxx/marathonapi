@@ -51,7 +51,7 @@ export class AuthService {
     });
 
     if (!existingVerification || existingVerification.expiresAt < new Date()) {
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
@@ -63,13 +63,11 @@ export class AuthService {
   
       await this.emailVerificationRepository.save(verification);
       await this.emailService.sendVerificationCode(email, code);
-      return { message: code }
+      return { message: 'Verification code sent to your email', email };
     } else {
       await this.emailService.sendVerificationCode(email, existingVerification.code);
-      return { message: existingVerification.code }
+      return { message: 'Verification code sent to your email', email };
     }
-
-    return { message: 'Verification code sent to your email' };
   }
 
   async verifyEmail(email: string, code: string) {
