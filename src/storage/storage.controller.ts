@@ -15,11 +15,12 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { MinioService } from './minio.service';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiConsumes, ApiBearerAuth, ApiQuery, ApiParam, ApiExcludeController } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 
+@ApiExcludeController()
 @ApiTags('Storage')
 @Controller('storage')
 export class StorageController {
@@ -115,13 +116,19 @@ export class StorageController {
     }
   }
 
-  @Get('presigned-url/*')
+  @Get('presigned-url/*path')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get a presigned URL for temporary access to a file' })
+  @ApiParam({ 
+    name: 'path', 
+    required: true, 
+    description: 'File path (can include folders, e.g., folder1/subfolder/file.jpg)', 
+    type: String 
+  })
   @ApiQuery({ name: 'expiry', required: false, type: Number, description: 'Expiry time in seconds (default: 7 days)' })
   async getPresignedUrl(
-    @Param('*') objectName: string,
+    @Param('path') objectName: string,
     @Query('expiry') expiry?: string,
   ) {
     try {
@@ -178,11 +185,17 @@ export class StorageController {
     }
   }
 
-  @Delete('*')
+  @Delete('*path')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a file from MinIO storage' })
-  async deleteFile(@Param('*') objectName: string) {
+  @ApiParam({ 
+    name: 'path', 
+    required: true, 
+    description: 'File path to delete (can include folders, e.g., folder1/subfolder/file.jpg)', 
+    type: String 
+  })
+  async deleteFile(@Param('path') objectName: string) {
     try {
       const exists = await this.minioService.fileExists(objectName);
       if (!exists) {
@@ -249,11 +262,17 @@ export class StorageController {
     }
   }
 
-  @Get('info/*')
+  @Get('info/*path')
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get file metadata' })
-  async getFileInfo(@Param('*') objectName: string) {
+  @ApiParam({ 
+    name: 'path', 
+    required: true, 
+    description: 'File path (can include folders, e.g., folder1/subfolder/file.jpg)', 
+    type: String 
+  })
+  async getFileInfo(@Param('path') objectName: string) {
     try {
       const exists = await this.minioService.fileExists(objectName);
       if (!exists) {
