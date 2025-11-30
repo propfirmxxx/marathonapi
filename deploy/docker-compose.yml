@@ -50,6 +50,8 @@ services:
       - "4010:4010"
     networks:
       - marathon-network
+    environment:
+      - APP_BASE_URL=https://api.trademarathon.com
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4010/health || exit 1"]
       interval: 30s
