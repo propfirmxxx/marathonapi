@@ -7,6 +7,7 @@ export class UserSeeder extends BaseSeeder {
   private readonly seededUserEmails = [
     'testuser1@example.com',
     'testuser2@example.com',
+    'admin@example.com',
   ];
 
   getName(): string {
@@ -52,6 +53,12 @@ export class UserSeeder extends BaseSeeder {
         isActive: true,
         role: UserRole.USER,
       },
+      {
+        email: 'admin@example.com',
+        password: 'Admin123!@#',
+        isActive: true,
+        role: UserRole.ADMIN,
+      },
     ]);
 
     const savedUsers = await userRepository.save(users);
@@ -70,6 +77,12 @@ export class UserSeeder extends BaseSeeder {
           firstName: 'Test',
           lastName: 'User 2',
           nickname: 'testuser2',
+        },
+        {
+          userId: savedUsers[2].id,
+          firstName: 'Admin',
+          lastName: 'User',
+          nickname: 'admin',
         },
       ]);
 
